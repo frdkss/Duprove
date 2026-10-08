@@ -1,0 +1,49 @@
+.instructions {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  column-gap: 48px;
+  margin-top: 64px;
+  padding-block: 36px;
+  border-top: 1px solid var(--color-line);
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--color-muted);
+}
+.instructions h2 {
+  grid-row: span 2;
+  color: var(--color-ink);
+  font-size: 20px;
+  font-weight: 550;
+  letter-spacing: -0.5px;
+}
+.instructions p {
+  max-width: 640px;
+}
+.instructions a {
+  justify-self: start;
+  margin-top: 16px;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.instructions a:hover {
+  color: var(--color-ink);
+}
+@media (max-width: 800px) {
+  .instructions {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .instructions h2 {
+    grid-row: auto;
+  }
+  .instructions a {
+    margin-top: 4px;
+  }
+}
+@media (max-width: 700px) {
+  .instructions {
+    margin-top: 44px;
+    padding-block: 28px;
+  }
+}

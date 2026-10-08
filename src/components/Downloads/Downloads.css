@@ -1,0 +1,64 @@
+.downloads {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 310px;
+  padding: 28px;
+  border: 1px solid var(--color-line);
+  border-radius: 22px;
+  background: var(--color-panel);
+}
+.downloads__body {
+  flex: 1;
+  margin-top: 30px;
+  font-size: 14px;
+  line-height: 1.75;
+}
+.downloads__message {
+  color: var(--color-muted);
+}
+.downloads__empty-title {
+  margin-bottom: 10px;
+  color: var(--color-ink);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+.downloads__retry {
+  margin-top: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  padding: 9px 14px;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+.downloads__retry:hover {
+  background: var(--color-accent);
+}
+.downloads__previous {
+  margin-top: 18px;
+  color: var(--color-muted);
+}
+.downloads__github {
+  align-self: flex-start;
+  margin-top: 28px;
+  color: var(--color-muted);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.downloads__github:hover {
+  color: var(--color-ink);
+}
+@media (max-width: 700px) {
+  .downloads {
+    min-height: 280px;
+    padding: 24px;
+    border-radius: 18px;
+  }
+}
+@media (max-width: 400px) {
+  .downloads {
+    padding: 20px;
+  }
+}

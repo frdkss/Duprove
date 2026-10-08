@@ -1,0 +1,114 @@
+.animated-title {
+  position: relative;
+}
+.animated-title__text {
+  min-height: 1.12em;
+  display: flex;
+  align-items: baseline;
+  width: max-content;
+  max-width: calc(100% - 44px);
+  font-size: clamp(44px, 6.4vw, 88px);
+  font-weight: 650;
+  line-height: 1.12;
+  letter-spacing: -4.5px;
+  white-space: nowrap;
+}
+.animated-title__duplicate {
+  position: relative;
+  font-weight: 350;
+  font-style: italic;
+  letter-spacing: -4px;
+  color: var(--color-muted);
+}
+.animated-title__copy {
+  text-decoration: underline wavy #bc8580 1.5px;
+  text-underline-offset: 9px;
+}
+.animated-title__duplicate.is-selected .animated-title__copy {
+  border-radius: 5px;
+  background: var(--color-accent);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+.animated-title__tooltip {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  visibility: hidden;
+  transform: translateX(-50%);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: var(--color-paper);
+  box-shadow: 0 3px 14px rgb(37 56 50 / 4%);
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 400;
+  font-style: normal;
+  letter-spacing: 0;
+}
+.animated-title__tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: calc(50% - 3px);
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-paper);
+  transform: rotate(45deg);
+}
+.animated-title__cursor {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 2px;
+  height: 0.75em;
+  margin-left: 6px;
+  background: #8ca79a;
+}
+.animated-title__pause {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  color: var(--color-muted);
+  background: var(--color-paper);
+}
+.animated-title__pause:hover {
+  background: var(--color-panel);
+}
+@media (max-width: 700px) {
+  .animated-title__text {
+    font-size: clamp(30px, 8vw, 54px);
+    letter-spacing: -1.8px;
+  }
+  .animated-title__duplicate {
+    letter-spacing: -2px;
+  }
+  .animated-title__copy {
+    text-underline-offset: 5px;
+    text-decoration-thickness: 1px;
+  }
+  .animated-title__tooltip {
+    font-size: 10px;
+    padding: 7px 9px;
+  }
+  .animated-title__pause {
+    width: 30px;
+    height: 30px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animated-title__pause,
+  .animated-title__cursor {
+    display: none;
+  }
+}

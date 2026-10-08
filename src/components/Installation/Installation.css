@@ -1,0 +1,34 @@
+.installation {
+  margin-top: 80px;
+}
+.installation__title {
+  text-align: center;
+  font-size: 34px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -1.2px;
+}
+.installation__panels {
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+  margin-top: 32px;
+  align-items: stretch;
+}
+@media (max-width: 760px) {
+  .installation__panels {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+@media (max-width: 700px) {
+  .installation {
+    margin-top: 56px;
+  }
+  .installation__title {
+    font-size: 29px;
+    letter-spacing: -0.9px;
+  }
+  .installation__panels {
+    margin-top: 26px;
+  }
+}

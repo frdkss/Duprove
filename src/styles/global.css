@@ -1,0 +1,88 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  --color-canvas: #f8faf9;
+  --color-paper: #fcfdfc;
+  --color-panel: #edf4f1;
+  --color-ink: #253832;
+  --color-muted: #63776f;
+  --color-line: #dce7e2;
+  --color-accent: #dcece5;
+  --color-focus: #56816f;
+}
+
+:root {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-canvas);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  scrollbar-color: #bccdc5 var(--color-canvas);
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+}
+button,
+select,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a,
+select {
+  touch-action: manipulation;
+}
+button:not(:disabled),
+select {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+a,
+button {
+  color: inherit;
+}
+::selection {
+  color: var(--color-ink);
+  background: var(--color-accent);
+}
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 5px;
+}
+section[id] {
+  scroll-margin-top: 112px;
+}
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-canvas);
+}
+::-webkit-scrollbar-thumb {
+  border: 2px solid var(--color-canvas);
+  border-radius: 10px;
+  background: #bccdc5;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8ba698;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    scroll-behavior: auto;
+  }
+}

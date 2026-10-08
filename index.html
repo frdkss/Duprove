@@ -1,10 +1,30 @@
 <!doctype html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>DUPROVE</title>
-</head>
-<body>
-    <h1>DUPROVE</h1>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f8faf9" />
+    <meta
+      name="description"
+      content="Duprove — программа для поиска и удаления дубликатов файлов. Для тех, кто хранит всё. Даже дважды."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/styles/startup.css" />
+    <title>Duprove</title>
+  </head>
+  <body>
+    <div id="root">
+      <main class="startup" aria-labelledby="startup-title">
+        <h1 id="startup-title">Duprove</h1>
+        <p id="startup-message">Загружаем сайт…</p>
+        <div id="startup-help" hidden>
+          <p>Запустите <code>npm run dev</code> в папке проекта.</p>
+          <a href="http://127.0.0.1:5173/">Открыть сайт на Vite</a>
+        </div>
+        <noscript>Для работы сайта включите JavaScript в браузере.</noscript>
+      </main>
+    </div>
+    <script type="module" src="/src/bootstrap/showStartupMessage.js"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

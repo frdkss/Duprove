@@ -1,0 +1,55 @@
+.release-downloads + .release-downloads {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line);
+}
+.release-downloads__heading {
+  flex-wrap: wrap;
+}
+.release-downloads__heading h4 {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.release-downloads__heading > span {
+  color: var(--color-muted);
+  font-size: 11px;
+}
+.release-downloads__assets {
+  margin-top: 9px;
+}
+.release-downloads__link {
+  padding-block: 9px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.release-downloads__link svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+.release-downloads__link span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.release-downloads__link:hover {
+  color: var(--color-focus);
+}
+.release-downloads__link:hover span:first-of-type {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.release-downloads__size {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--color-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.release-downloads__missing {
+  margin-top: 8px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+.release-downloads__missing a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
