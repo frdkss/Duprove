@@ -1,12 +1,10 @@
-import { useRef, useState } from 'react'
-import { Pause, Play } from 'lucide-react'
+import { useRef } from 'react'
 import useDuplicateAnimation from '../../hooks/useDuplicateAnimation'
 import './AnimatedTitle.css'
 
 export default function AnimatedTitle() {
   const titleRef = useRef<HTMLHeadingElement>(null)
-  const [paused, setPaused] = useState(false)
-  useDuplicateAnimation(titleRef, paused)
+  useDuplicateAnimation(titleRef, false)
 
   return (
     <div className="animated-title">

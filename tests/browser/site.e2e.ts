@@ -97,7 +97,9 @@ test('Повторный запрос после ограничения API', as
   await expect(page.getByText('Первый релиз ещё впереди')).toBeVisible()
 })
 
-test('Дубликат повторяется, основное слово остаётся и пауза работает', async ({ page }) => {
+test('Дубликат повторяется, основное слово остаётся и учитывается уменьшение движения', async ({
+  page,
+}) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.route('https://api.github.com/repos/**/releases**', (route) =>
     route.fulfill({ status: route.request().url().endsWith('/latest') ? 404 : 200, json: [] }),
@@ -134,12 +136,7 @@ test('Дубликат повторяется, основное слово ос�
   ).toBe(true)
   expect(samples.some((sample) => sample.copy === '')).toBe(true)
   expect(samples.every((sample) => !sample.overflow)).toBe(true)
-  await page.getByRole('button', { name: 'Приостановить анимацию заголовка' }).click()
-  const pausedText = await page.locator('.animated-title__copy').textContent()
-  await page.waitForTimeout(600)
-  await expect(page.locator('.animated-title__copy')).toHaveText(pausedText ?? '')
   await page.setViewportSize({ width: 320, height: 740 })
-  await page.getByRole('button', { name: 'Включить анимацию заголовка' }).click()
   await expect(page.locator('.animated-title__copy')).toHaveText('Duprove', { timeout: 8000 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({ path: '.verification/mobile-animation.png', fullPage: true })
