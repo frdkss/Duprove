@@ -94,7 +94,8 @@
     },
     "mac": {
       "target": [
-        "pkg"
+        "pkg",
+        "dmg"
       ],
       "category": "public.app-category.utilities",
       "identity": null,
@@ -105,6 +106,15 @@
         "NSRemovableVolumesUsageDescription": "Duprove читает выбранные внешние накопители для локального поиска дубликатов.",
         "NSNetworkVolumesUsageDescription": "Duprove читает выбранные сетевые тома для локального поиска дубликатов."
       }
+    },
+    "dmg": {
+      "backgroundColor": "#f4f9f7",
+      "window": { "width": 540, "height": 380 },
+      "contents": [
+        { "x": 130, "y": 140, "type": "file" },
+        { "x": 410, "y": 140, "type": "link", "path": "/Applications" },
+        { "x": 270, "y": 280, "type": "file", "path": "docs/statistics-notice.txt", "name": "О данных.txt" }
+      ]
     },
     "pkg": {
       "welcome": "build/installer/macos-welcome.html",

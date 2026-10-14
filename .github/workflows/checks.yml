@@ -47,4 +47,5 @@ jobs:
             release/*.exe
             release/*.tar.gz
             release/Duprove-*.pkg
+            release/Duprove-*.dmg
           if-no-files-found: error
