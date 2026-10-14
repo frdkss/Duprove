@@ -1,0 +1,7 @@
+.title-bar { height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; -webkit-app-region: drag; user-select: none; }
+.title-bar-caption { margin-left: 27px; color: var(--color-muted); font-size: 9px; letter-spacing: 2.4px; opacity: .65; }
+.window-actions { display: flex; height: 100%; -webkit-app-region: no-drag; }
+.window-actions button { width: 47px; padding: 0; border: 0; border-radius: 0; background: transparent; display: grid; place-items: center; }
+.window-actions .icon { width: 17px !important; height: 17px !important; }
+.window-actions button:hover { background: var(--color-hover); }
+.window-actions .window-close:hover { background: #df4848; color: #fff; }

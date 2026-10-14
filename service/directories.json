@@ -1,0 +1,8 @@
+[
+  "native/src", "native/tests",
+  "electron/services",
+  "src/components", "src/window", "src/popup", "src/modal", "src/styles",
+  "backend/duprove_backend",
+  "contracts/fixtures", "tests", "scripts", "docs",
+  "service/logs", "build", "release", ".verification", ".tools"
+]
