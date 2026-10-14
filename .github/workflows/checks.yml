@@ -1,12 +1,12 @@
-name: Architecture and contract
-on: [push, pull_request]
+name: Build, contracts and platform checks
+on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
 jobs:
   check:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-22.04, macos-15-intel, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -26,3 +26,24 @@ jobs:
       - run: npm test
       - run: npm run test:backend
       - run: npm run test:native
+      - run: npm run test:drives
+      - if: runner.os == 'Linux'
+        run: sudo env DUPROVE_ANALYZER="$PWD/build/native/bin/duprove-analyzer" unshare --mount --propagation private python3 tests/test_linux_mount_namespace.py
+      - run: npm run test:installer
+      - run: npm run package
+      - if: runner.os == 'Linux'
+        run: python tests/test_linux_archive.py
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a node tests/packaged-startup.cjs release/linux-unpacked/duprove
+      - if: runner.os == 'macOS'
+        run: python tests/test_macos_package.py
+      - if: runner.os == 'macOS'
+        run: node tests/packaged-startup.cjs release/mac*/Duprove.app/Contents/MacOS/Duprove
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Duprove-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.tar.gz
+            release/Duprove-*.pkg
+          if-no-files-found: error

@@ -1,8 +1,11 @@
 const { app, shell } = require('electron')
 const assert = require('node:assert/strict')
 const path = require('node:path')
+const fs = require('node:fs')
 app.setAppPath(path.resolve(__dirname, '..'))
 app.setPath('userData', path.resolve(__dirname, '../.verification/startup-profile'))
+const consentFile = path.join(app.getPath('userData'), 'statistics-consent.json')
+fs.rmSync(consentFile, { force: true })
 const helpLinks = []
 shell.openExternal = async url => { helpLinks.push(url) }
 const timeout = setTimeout(() => { console.error('APP_STARTUP_TIMEOUT'); app.exit(1) }, 20000)
@@ -17,6 +20,14 @@ app.on('browser-window-created', (_event, window) => {
       })`)
       assert.equal(window.isVisible(), true, 'The actual application window must be visible')
       assert.deepEqual(window.getMinimumSize(), [640, 480])
+      assert.equal((await window.webContents.executeJavaScript('window.duprove.getStatisticsConsent()')).decision, 'default-enabled')
+      await assert.rejects(window.webContents.executeJavaScript('window.duprove.setStatisticsConsent({enabled:"true", noticeVersion:2})'), /INVALID_CONSENT_REQUEST/)
+      assert.equal((await window.webContents.executeJavaScript('window.duprove.getStatisticsConsent()')).decision, 'default-enabled')
+      assert.equal((await window.webContents.executeJavaScript('window.duprove.setStatisticsConsent({enabled:false, noticeVersion:2})')).decision, 'declined')
+      assert.equal((await window.webContents.executeJavaScript('window.duprove.setStatisticsConsent({enabled:true, noticeVersion:2})')).decision, 'granted')
+      assert.equal(JSON.parse(fs.readFileSync(consentFile, 'utf8')).decision, 'granted')
+      assert.equal((await window.webContents.executeJavaScript('window.duprove.setStatisticsConsent({enabled:false, noticeVersion:2})')).decision, 'declined')
+      assert.equal(JSON.parse(fs.readFileSync(consentFile, 'utf8')).decision, 'declined')
       await window.webContents.executeJavaScript('window.duprove.openHelp()')
       assert.deepEqual(helpLinks, ['https://duprove.site/#instrucitons'])
       assert.equal(await window.webContents.executeJavaScript('document.querySelector("h1").textContent'), 'Ваши диски')
@@ -35,7 +46,7 @@ app.on('browser-window-created', (_event, window) => {
       await minimized
       assert.equal(window.isMinimized(), true)
       clearTimeout(timeout)
-      console.log('APP_STARTUP_OK: actual Duprove window visible; native window controls work')
+      console.log('APP_STARTUP_OK: actual consent IPC validated and persisted; Duprove window visible; native window controls work')
       window.close()
     } catch (error) { console.error(error); app.exit(1) }
   })

@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { Icon, type IconName } from '../Icon/Icon'
 import { Toggle } from '../Toggle/Toggle'
+import { StatisticsConsent } from '../StatisticsConsent/StatisticsConsent'
+import type { DesktopBridge } from '../../../electron/bridge'
 import './SettingsPanel.css'
 export type Theme = 'light' | 'dark'
 function Group({ title, icon, children }: { title: string; icon: IconName; children: ReactNode }) {
@@ -9,7 +11,7 @@ function Group({ title, icon, children }: { title: string; icon: IconName; child
 function Row({ icon, label, children, unavailable = false }: { icon: IconName; label: string; children: ReactNode; unavailable?: boolean }) {
   return <div className={`setting-row ${unavailable ? 'setting-unavailable' : ''}`} title={unavailable ? 'Пока недоступно' : undefined}><Icon name={icon} size={18}/><span>{label}</span><div className="setting-control">{children}</div></div>
 }
-export function SettingsPanel({ theme, onTheme }: { theme: Theme; onTheme(theme: Theme): void }) {
+export function SettingsPanel({ theme, onTheme, api }: { theme: Theme; onTheme(theme: Theme): void; api?: DesktopBridge }) {
   return <div className="settings-panel">
     <Group title="Общие" icon="settings">
       <Row icon="globe" label="Язык интерфейса"><select aria-label="Язык интерфейса" disabled><option>Русский</option></select></Row>
@@ -30,7 +32,7 @@ export function SettingsPanel({ theme, onTheme }: { theme: Theme; onTheme(theme:
     </Group>
     <Group title="Дополнительно" icon="info">
       <Row icon="refresh" label="Проверять обновления автоматически" unavailable><Toggle label="Проверять обновления автоматически" checked={false} disabled/></Row>
-      <Row icon="medium" label="Отправлять анонимную статистику" unavailable><Toggle label="Отправлять анонимную статистику" checked={false} disabled/></Row>
+      <StatisticsConsent api={api}/>
     </Group>
   </div>
 }

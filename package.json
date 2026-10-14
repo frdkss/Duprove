@@ -15,9 +15,13 @@
     "start": "node scripts/run-electron.mjs .",
     "test": "node scripts/build-tests.mjs && node --test tests/*.test.cjs",
     "test:native": "python tests/test_analyzer.py",
-    "package": "npm run build && electron-builder --publish never",
+    "package": "node scripts/package-desktop.mjs",
+    "package:linux": "node scripts/package-desktop.mjs linux",
+    "package:mac": "node scripts/package-desktop.mjs darwin",
+    "test:installer": "python tests/test_linux_installer.py",
+    "test:drives": "python tests/test_drives.py",
     "test:backend": "python -m unittest discover -s tests -p test_contract.py",
-    "test:ui": "node --check tests/ui-smoke.cjs && node scripts/run-electron.mjs tests/ui-smoke.cjs",
+    "test:ui": "node scripts/build-tests.mjs && node --check tests/ui-smoke.cjs && node scripts/run-electron.mjs tests/ui-smoke.cjs",
     "test:startup": "node scripts/run-electron.mjs tests/app-startup.cjs"
   },
   "dependencies": {
@@ -41,6 +45,7 @@
     "appId": "ru.duprove.desktop",
     "productName": "Duprove",
     "icon": "public/logo.png",
+    "beforePack": "scripts/verify-package.cjs",
     "directories": {
       "output": "release"
     },
@@ -50,6 +55,10 @@
       "package.json"
     ],
     "extraResources": [
+      {
+        "from": "docs/statistics-notice.txt",
+        "to": "statistics-notice.txt"
+      },
       {
         "from": "build/native/bin",
         "to": "analyzer",
@@ -68,23 +77,43 @@
     },
     "nsis": {
       "oneClick": false,
+      "include": "installer/installer.nsh",
       "allowToChangeInstallationDirectory": true
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        "tar.gz"
+      ],
+      "executableName": "duprove",
+      "extraFiles": [
+        { "from": "installer/linux/install.sh", "to": "install.sh" },
+        { "from": "installer/linux/README.txt", "to": "INSTALL.txt" }
       ],
       "category": "Utility",
       "maintainer": "frdkss"
     },
     "mac": {
       "target": [
-        "zip",
-        "dmg"
+        "pkg"
       ],
       "category": "public.app-category.utilities",
-      "identity": null
+      "identity": null,
+      "extendInfo": {
+        "NSDocumentsFolderUsageDescription": "Duprove читает выбранные файлы для локального поиска дубликатов.",
+        "NSDownloadsFolderUsageDescription": "Duprove читает выбранные файлы для локального поиска дубликатов.",
+        "NSDesktopFolderUsageDescription": "Duprove читает выбранные файлы для локального поиска дубликатов.",
+        "NSRemovableVolumesUsageDescription": "Duprove читает выбранные внешние накопители для локального поиска дубликатов.",
+        "NSNetworkVolumesUsageDescription": "Duprove читает выбранные сетевые тома для локального поиска дубликатов."
+      }
+    },
+    "pkg": {
+      "welcome": "build/installer/macos-welcome.html",
+      "installLocation": "/Applications",
+      "allowAnywhere": false,
+      "allowCurrentUserHome": true,
+      "allowRootDirectory": true,
+      "isRelocatable": false,
+      "mustClose": ["ru.duprove.desktop"]
     },
     "publish": [
       {
