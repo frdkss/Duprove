@@ -28,6 +28,8 @@ jobs:
       - run: npm run test:backend
       - run: npm run test:native
       - run: npm run test:traversal
+      - run: npm run test:comparison
+      - run: npm run test:content
       - run: npm run test:drives
       - if: runner.os == 'Windows'
         shell: pwsh

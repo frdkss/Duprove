@@ -16,6 +16,8 @@
     "test": "node scripts/build-tests.mjs && node --test tests/*.test.cjs",
     "test:native": "python tests/test_analyzer.py",
     "test:traversal": "python tests/test_traversal.py",
+    "test:comparison": "python tests/test_comparison.py",
+    "test:content": "python tests/test_content.py",
     "package": "node scripts/package-desktop.mjs",
     "package:linux": "node scripts/package-desktop.mjs linux",
     "package:mac": "node scripts/package-desktop.mjs darwin",
@@ -56,6 +58,10 @@
       "package.json"
     ],
     "extraResources": [
+      {
+        "from": "build/native/licenses",
+        "to": "licenses"
+      },
       {
         "from": "docs/statistics-notice.txt",
         "to": "statistics-notice.txt"

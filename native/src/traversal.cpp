@@ -15,7 +15,7 @@ void discover(DB& db,const std::vector<std::string>& roots,const fs::path& worki
   Query pending(db,"SELECT id,path,identity FROM dirs WHERE root=? AND done=0 ORDER BY id LIMIT 1");
   Query finish(db,"UPDATE dirs SET done=1 WHERE id=?");
   // First selected root owns hard links. Hash reuse requires a stronger resume policy (stage 5).
-  Query file(db,"INSERT OR IGNORE INTO files(path,identity,root,size,mtime,ctime,ext,cat,seen) VALUES(?,?,?,?,?,?,?,?,1)");
+  Query file(db,"INSERT OR IGNORE INTO files(path,identity,root,size,mtime,ctime,ext,cat,name,seen) VALUES(?,?,?,?,?,?,?,?,?,1)");
   auto queue=[&](const fs::path& path,const FileInfo& info,int root) {
     enqueue.reset(); enqueue.bind(1,utf8(path)); enqueue.bind(2,info.id); enqueue.bind(3,root); enqueue.next();
   };
@@ -67,7 +67,8 @@ void discover(DB& db,const std::vector<std::string>& roots,const fs::path& worki
             } else if(devices.count(entry.info.device) && !boundaries.count(pathKey(entry.path))) {
               file.reset(); file.bind(1,utf8(entry.path)); file.bind(2,entry.info.id); file.bind(3,root);
               file.bind(4,entry.info.size); file.bind(5,entry.info.modified); file.bind(6,entry.info.changed);
-              file.bind(7,entry.info.size==0 ? std::string("empty") : extension(entry.path)); file.bind(8,cat); file.next();
+              file.bind(7,entry.info.size==0 ? std::string("empty") : extension(entry.path)); file.bind(8,cat);
+              file.bind(9,utf8(entry.path.filename())); file.next();
             }
           }
           if(++batch%1024==0) { transaction.checkpoint(); progress(); context.throttle(); }

@@ -1,6 +1,7 @@
 ﻿#include "scanner.h"
 #include "storage.h"
 #include "comparison.h"
+#include "content.h"
 #include "traversal.h"
 #include "report.h"
 #include <chrono>
@@ -25,7 +26,7 @@ int scan(const json& job,ScanContext& context) {
     root=utf8(path.lexically_normal());
     if(!unique.insert(pathKey(fs::u8path(root))).second) throw std::runtime_error("DUPLICATE_ROOT");
   }
-  if(job.value("content",false)) throw std::runtime_error("CONTENT_POLICY_UNDEFINED");
+  const bool checkContent=job.value("content",false);
   const auto dbPath=fs::u8path(job.at("database").get<std::string>()).lexically_normal();
   if(!dbPath.is_absolute() || dbPath.filename().empty() || excluded(dbPath)) throw std::runtime_error("INVALID_DATABASE");
   fs::create_directories(dbPath.parent_path());
@@ -36,13 +37,14 @@ int scan(const json& job,ScanContext& context) {
   if(!ec && status.type()!=fs::file_type::not_found && status.type()!=fs::file_type::regular) throw std::runtime_error("INVALID_DATABASE");
   DB db(utf8(dbPath));
   db.exec("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA cache_size=-4096; PRAGMA temp_store=FILE; "
-          "CREATE TABLE IF NOT EXISTS files(path TEXT PRIMARY KEY,identity TEXT UNIQUE,root INTEGER,size INTEGER,mtime INTEGER,ctime INTEGER DEFAULT 0,ext TEXT,cat TEXT,hash TEXT DEFAULT '',norm TEXT DEFAULT '',gid INTEGER DEFAULT 0,seen INTEGER DEFAULT 0); "
+          "CREATE TABLE IF NOT EXISTS files(path TEXT PRIMARY KEY,identity TEXT UNIQUE,root INTEGER,size INTEGER,mtime INTEGER,ctime INTEGER DEFAULT 0,ext TEXT,cat TEXT,name TEXT DEFAULT '',hash TEXT DEFAULT '',norm TEXT DEFAULT '',gid INTEGER DEFAULT 0,seen INTEGER DEFAULT 0); "
           "CREATE INDEX IF NOT EXISTS ix_size ON files(size); CREATE INDEX IF NOT EXISTS ix_hash ON files(hash); CREATE INDEX IF NOT EXISTS ix_gid ON files(gid); CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT);");
-  bool hasChangeTime=false;
-  { Query columns(db,"PRAGMA table_info(files)"); while(columns.next()) if(columns.str(1)=="ctime") hasChangeTime=true; }
+  bool hasChangeTime=false,hasName=false;
+  { Query columns(db,"PRAGMA table_info(files)"); while(columns.next()) { if(columns.str(1)=="ctime") hasChangeTime=true; if(columns.str(1)=="name") hasName=true; } }
   if(!hasChangeTime) db.exec("ALTER TABLE files ADD COLUMN ctime INTEGER DEFAULT 0");
+  if(!hasName) db.exec("ALTER TABLE files ADD COLUMN name TEXT DEFAULT ''");
   // Rebuild this scan's inventory. Durable resume/cache validation belongs to stage 5.
-  db.exec("DELETE FROM files;");
+  db.exec("DELETE FROM files; DROP TABLE IF EXISTS content_matches; DROP TABLE IF EXISTS content_files;");
   const int count=int(roots.size());
   json states=json::array();
   for(auto& root:roots) states.push_back({{"path",root},{"phase","waiting"},{"files",0},{"empty",0},{"duplicate_members",0},{"duplicate_groups",0},{"errors",0},{"percent",nullptr},{"types",json::object()}});
@@ -76,40 +78,11 @@ int scan(const json& job,ScanContext& context) {
     }
     transaction.commit();
   }
-  // Equality predicates followed by gid order: avoid sorting all previous
-  // members for every file in a large duplicate group.
-  db.exec("CREATE INDEX IF NOT EXISTS ix_comparison ON files(hash,size,gid);");
-  int64_t nextGroup=1;
-  {
-    Transaction transaction(db);
-    Query rows(db,"SELECT path,root,size,mtime,ctime,identity,hash FROM files WHERE hash<>'' AND size>0 ORDER BY path");
-    Query assign(db,"UPDATE files SET gid=? WHERE path=?");
-    size_t batch=0;
-    while(rows.next()) {
-      const int root=int(rows.num(1));
-      if(!context.waitFor(root)) continue;
-      const auto path=rows.str(0);
-      const auto expected=record(rows,2);
-      if(!current(path,expected)) { invalid(path,root); continue; }
-      int64_t group=0,previous=-1;
-      Query candidates(db,"SELECT path,gid,root,size,mtime,ctime,identity FROM files WHERE hash=? AND size=? AND gid>0 ORDER BY gid",{rows.str(6),expected.size});
-      while(candidates.next()) {
-        const auto candidateGroup=candidates.num(1);
-        const auto candidateRoot=int(candidates.num(2));
-        if(candidateGroup==previous || context.controls[candidateRoot]==2) continue;
-        const auto candidate=candidates.str(0);
-        const auto candidateInfo=record(candidates,3);
-        if(!current(candidate,candidateInfo)) { invalid(candidate,candidateRoot); continue; }
-        previous=candidateGroup;
-        if(equalBytes(fs::u8path(path),expected,fs::u8path(candidate),candidateInfo,root,context)) { group=candidateGroup; break; }
-      }
-      if(!current(path,expected)) { invalid(path,root); continue; }
-      if(!group) group=nextGroup++;
-      assign.reset(); assign.bind(1,group); assign.bind(2,path); assign.next();
-      if(++batch%256==0) transaction.checkpoint();
-      progress();
-    }
-    transaction.commit();
+  send();
+  groupExactFiles(db,context,invalid,progress);
+  if(checkContent) {
+    content::compareFiles(db,context,states,invalid,progress);
+    content::validate(db,context,invalid);
   }
   // Recheck confirmed group members before reporting; changes cannot retain stale matches.
   {
@@ -134,5 +107,7 @@ int scan(const json& job,ScanContext& context) {
     states[root]["duplicate_members"]=report["statistics"]["disks"][root]["duplicate_members"];
     states[root]["duplicate_groups"]=report["statistics"]["disks"][root]["duplicate_groups"];
   }
-  send(); context.emit({{"type","result"},{"report",report},{"disks",states}}); return 0;
+  auto contentResult=content::result(db,checkContent);
+  if(checkContent && !complete) contentResult["complete"]=false;
+  send(); context.emit({{"type","result"},{"report",report},{"disks",states},{"content",contentResult}}); return 0;
 }

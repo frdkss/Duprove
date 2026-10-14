@@ -47,14 +47,21 @@ class AnalyzerTests(unittest.TestCase):
             validated = subprocess.run([os.environ.get('DUPROVE_NODE', 'node'), '-e', check], input=json.dumps(report), text=True, cwd=ROOT, timeout=15)
             self.assertEqual(validated.returncode, 0)
 
-    def test_optional_content_not_silently_claimed_as_implemented(self):
+    def test_optional_content_is_explicit_and_separate_from_public_report(self):
         with tempfile.TemporaryDirectory(dir=FIXTURES) as temporary:
             base = Path(temporary)
             job = base / 'job.json'
             job.write_text(json.dumps({'roots': [str(base)], 'database': str(base / 'work/index.sqlite'), 'content': True}), encoding='utf-8')
             result = subprocess.run([str(BINARY), '--job', str(job)], input='', capture_output=True, text=True, encoding='utf-8', timeout=15)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertEqual(json.loads(result.stdout)['type'], 'error')
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            event = json.loads(result.stdout.splitlines()[-1])
+            self.assertTrue(event['content']['enabled'])
+            self.assertEqual(event['content']['warnings'], [])
+            self.assertTrue(is_report(event['report']))
+            self.assertNotIn('content', event['report'])
+            check = "const v=require('./.verification/tests/electron/services/analyzer-service.js');let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>v.contentFromEvent(JSON.parse(s)))"
+            validated = subprocess.run([os.environ.get('DUPROVE_NODE', 'node'), '-e', check], input=json.dumps(event), text=True, cwd=ROOT, timeout=15)
+            self.assertEqual(validated.returncode, 0)
 
 
 if __name__ == '__main__':

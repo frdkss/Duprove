@@ -33,6 +33,8 @@
 и управление заданиями относятся к этапу 5.
 Правила независимости UI, локальной логики, ядра и сервера:
 [docs/component-boundaries.md](docs/component-boundaries.md).
+Уровни проверки файлов, критерий точного совпадения и состояние этапа 4:
+[docs/file-comparison.md](docs/file-comparison.md).
 Формат отчёта: [contracts/README.md](contracts/README.md).
 
 «Настройки → Дополнительно → Отправлять анонимную статистику» — отправка статистики
@@ -72,6 +74,8 @@ npm test
 npm run test:backend
 npm run test:native
 npm run test:traversal
+npm run test:comparison
+npm run test:content
 ctest --test-dir build/native -C Release --output-on-failure
 npm start
 ```
