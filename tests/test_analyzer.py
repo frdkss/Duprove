@@ -11,11 +11,13 @@ sys.path.insert(0, str(ROOT / 'backend'))
 from duprove_backend.contract import is_report
 
 BINARY = Path(os.environ.get('DUPROVE_ANALYZER', str(ROOT / 'build/native/bin' / ('duprove-analyzer.exe' if os.name == 'nt' else 'duprove-analyzer'))))
+FIXTURES = ROOT / '.verification/native-fixtures'
+FIXTURES.mkdir(parents=True, exist_ok=True)
 
 
 class AnalyzerTests(unittest.TestCase):
     def test_native_report_uses_public_contract(self):
-        with tempfile.TemporaryDirectory(prefix='duprove-stage1-') as temporary:
+        with tempfile.TemporaryDirectory(prefix='duprove-stage1-', dir=FIXTURES) as temporary:
             base = Path(temporary)
             roots = [base / 'disk-a', base / 'disk-b']
             for root in roots:
@@ -46,7 +48,7 @@ class AnalyzerTests(unittest.TestCase):
             self.assertEqual(validated.returncode, 0)
 
     def test_optional_content_not_silently_claimed_as_implemented(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(dir=FIXTURES) as temporary:
             base = Path(temporary)
             job = base / 'job.json'
             job.write_text(json.dumps({'roots': [str(base)], 'database': str(base / 'work/index.sqlite'), 'content': True}), encoding='utf-8')

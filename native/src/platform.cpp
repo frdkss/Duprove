@@ -1,13 +1,20 @@
 #include "platform.h"
+#include "mounts.h"
 #include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
+#include <map>
+#include <stdexcept>
 #ifdef _WIN32
 #include <windows.h>
 #include <shlobj.h>
 #else
 #include <sys/stat.h>
+#ifdef __APPLE__
+#include <sys/param.h>
+#include <sys/mount.h>
+#endif
 #endif
 std::string utf8(const fs::path& p) { return p.u8string(); }
 static std::string lower(std::string s) { for(auto& c:s) if(c>='A'&&c<='Z') c+=32; return s; }
@@ -25,18 +32,34 @@ static bool within(const fs::path& p,const fs::path& base) {
 }
 json drives() {
   json out=json::array();
-  auto add=[&](const fs::path& p) { std::error_code ec; auto s=fs::space(p,ec); if(!ec) out.push_back({{"path",utf8(p)},{"name",utf8(p)},{"capacity",s.capacity},{"available",s.available}}); };
+  auto add=[&](const fs::path& p) { std::error_code ec; if(!fs::is_directory(p,ec)||ec)return; auto s=fs::space(p,ec); if(!ec && s.capacity<=9007199254740991ULL) out.push_back({{"path",utf8(p)},{"name",utf8(p)},{"capacity",s.capacity},{"available",std::min(s.available,s.capacity)}}); };
 #ifdef _WIN32
   wchar_t buffer[512]; auto n=GetLogicalDriveStringsW(512,buffer);
   if(n && n<512) for(auto p=buffer;*p;p+=wcslen(p)+1) { auto t=GetDriveTypeW(p); if(t==DRIVE_FIXED||t==DRIVE_REMOVABLE||t==DRIVE_REMOTE) add(fs::path(p)); }
 #elif defined(__APPLE__)
-  add("/"); std::error_code ec; for(auto& e:fs::directory_iterator("/Volumes",ec)) if(e.is_directory(ec)&&e.path()!="/Volumes/Macintosh HD") add(e.path());
+  struct statfs* mounted=nullptr;
+  const int count=getmntinfo(&mounted,MNT_NOWAIT);
+  if(count<=0) throw std::runtime_error("MOUNT_LIST_UNAVAILABLE");
+  std::vector<mounts::Entry> entries;
+  std::map<std::string,std::pair<uint64_t,uint64_t>> sizes;
+  for(int i=0;i<count;++i) {
+    const auto& item=mounted[i];
+    const std::string mount=item.f_mntonname;
+    if(!item.f_bsize || item.f_blocks>9007199254740991ULL/item.f_bsize)continue;
+    const auto capacity=uint64_t(item.f_blocks)*item.f_bsize;
+    const auto available=std::min(uint64_t(item.f_bavail),uint64_t(item.f_blocks))*item.f_bsize;
+    entries.push_back({mount,item.f_mntfromname,item.f_fstypename,"/",
+      std::to_string(item.f_fsid.val[0])+":"+std::to_string(item.f_fsid.val[1]),0,0,bool(item.f_flags&MNT_DONTBROWSE)});
+    sizes[mount]={capacity,available};
+  }
+  for(const auto& entry:mounts::selectMac(entries)) {
+    const auto size=sizes.at(entry.path);
+    out.push_back({{"path",entry.path},{"name",entry.path},{"capacity",size.first},{"available",size.second}});
+  }
 #else
-  std::ifstream in("/proc/self/mounts"); std::string dev,mount,type,rest;
-  while(in>>dev>>mount>>type) { std::getline(in,rest); if(mount=="/"||dev.rfind("/dev/",0)==0||type=="cifs"||type=="nfs"||type.rfind("fuse.",0)==0) {
-    for(auto esc: {std::pair{"\\040"," "}, {"\\011","\t"},{"\\134","\\"}}) { size_t pos; while((pos=mount.find(esc.first))!=std::string::npos) mount.replace(pos,4,esc.second); }
-    if(!excluded(fs::u8path(mount))) add(fs::u8path(mount));
-  }}
+  std::ifstream in("/proc/self/mountinfo");
+  if(!in) throw std::runtime_error("MOUNT_LIST_UNAVAILABLE");
+  for(const auto& entry:mounts::selectLinux(mounts::readLinux(in))) add(fs::u8path(entry.path));
 #endif
   return out;
 }
@@ -51,7 +74,7 @@ bool excluded(const fs::path& p) {
   if(first!=rel.end()) { auto part=lower(utf8(*first)); if(part=="program files"||part=="program files (x86)"||part=="programdata"||part=="recovery"||part=="$windows.~bt") return true; }
   if(name=="pagefile.sys"||name=="hiberfil.sys"||name=="swapfile.sys") return true;
 #else
-  for(auto s:{"/proc","/sys","/dev","/run","/boot","/usr","/bin","/sbin","/lib","/lib64","/etc","/var","/System","/Library","/private"}) if(within(p,s)) return true;
+  if(mounts::systemPath(utf8(p.lexically_normal()))) return true;
 #endif
   return false;
 }

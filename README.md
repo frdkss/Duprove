@@ -38,6 +38,13 @@
 пока не подключён. Установщик Windows показывает информацию о данных без отдельного
 подтверждения согласия. Подробности и границы реализации: [docs/consent.md](docs/consent.md).
 
+Пакеты: Windows — NSIS, Linux — `tar.gz` с `install.sh`, macOS — `.pkg` для Intel
+и Apple Silicon. В Linux информация о данных показывается до копирования файлов,
+в macOS — на первой странице установщика. Сборка: `npm run package` на целевой ОС;
+подробности — [docs/installation.md](docs/installation.md).
+Обнаружение смонтированных томов и ограничения проверки Linux/macOS:
+[docs/drive-discovery.md](docs/drive-discovery.md).
+
 Для разработки нужны Node.js 24, Python 3.12+, CMake 3.24+, C++17-компилятор
 (Windows: Visual Studio Build Tools с Desktop development with C++; Linux: GCC/Clang).
 Первичная установка зависимостей требует интернета, запуск установленного приложения — нет.
@@ -64,7 +71,8 @@ npm start
 
 `npm run dev` запускает Vite и Electron для разработки. C++ нужно предварительно
 собрать командами выше. `test:native` использует временные искусственные файлы,
-а не накопители пользователя. CI выполняет сборку и проверки на Windows и Linux.
+а не накопители пользователя. CI настроен на сборку и проверки Windows, Linux и macOS
+(Intel/Apple Silicon).
 Наличие CI-конфигурации само по себе не подтверждает прохождение удалённого запуска.
 `npm run test:ui` проверяет Electron/preload/React на искусственных накопителях
 и сохраняет снимки экранов в `.verification/ui-*.png`; на Linux нужен графический сеанс

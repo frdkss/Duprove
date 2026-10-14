@@ -13,7 +13,8 @@
 | Компонент | Ответственность | Зависимости |
 | --- | --- | --- |
 | `native/duprove-core` | Локальный анализ; статическая C++17 библиотека | SQLite, nlohmann/json, PicoSHA2, адаптер ОС |
-| `native/src/platform.*` | Накопители, идентичность файла, категории, исключения ОС | Windows API / Linux filesystem |
+| `native/src/platform.*` | Накопители, идентичность файла, категории, исключения ОС | Windows API / Linux mountinfo / macOS getmntinfo |
+| `native/src/mounts.*` | Разбор mountinfo, выбор видимых томов и исключение служебных путей | Стандартная библиотека C++; отдельные CTest |
 | `native/src/traversal.*` | Обход и запись внутренних метаданных | platform, storage, ScanContext |
 | `native/src/comparison.*` | SHA-256, побайтовое сравнение, проверка актуальности метаданных | Только локальные файлы и ScanContext |
 | `native/src/content.h` | Интерфейс дополнительного сравнения содержимого | Будущие реализации после определения критериев `warn` |
