@@ -3,6 +3,7 @@ const { mkdtempSync, rmSync } = require('node:fs')
 const { tmpdir } = require('node:os')
 const path = require('node:path')
 const assert = require('node:assert/strict')
+const { waitForMain } = require('./helpers/packaged-readiness.cjs')
 if (process.argv.length !== 3) throw Error('Usage: node tests/packaged-startup.cjs <packaged executable>')
 const profile = mkdtempSync(path.join(tmpdir(), 'duprove-packaged-ui-'))
 const binary = process.argv[2]
@@ -56,14 +57,16 @@ function evaluate(expression) {
 }
 async function check() {
   try {
+    await waitForMain(evaluate)
+    if (finished) return
     const response = await evaluate(`(async () => {
       const {app, BrowserWindow} = process.mainModule.require('electron');
       await app.whenReady();
       for (let i=0; i<100; i++) {
         const window = BrowserWindow.getAllWindows()[0];
         if (window && !window.webContents.isLoading()) {
-          const result = await window.webContents.executeJavaScript('(async()=>({drives:await window.duprove.listDrives(),heading:document.querySelector("h1")?.textContent,consent:await window.duprove.getStatisticsConsent()}))()');
-          if (result.heading) return {packaged:app.isPackaged,visible:window.isVisible(),count:result.drives.length,root:result.drives.some(d=>d.path==="/"),decision:result.consent.decision};
+          const result = await window.webContents.executeJavaScript('(async()=>{if(!window.duprove || !document.querySelector("h1")) return null; return {drives:await window.duprove.listDrives(),consent:await window.duprove.getStatisticsConsent()};})()');
+          if (result) return {packaged:app.isPackaged,visible:window.isVisible(),count:result.drives.length,root:result.drives.some(d=>d.path==="/"),decision:result.consent.decision};
         }
         await new Promise(resolve=>setTimeout(resolve,100));
       }
