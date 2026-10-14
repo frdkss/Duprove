@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'node:path'
 import { channels } from './bridge'
 import { listDrives } from './services/analyzer-service'
+import { ConsentService } from './services/consent-service'
 
 if (process.platform === 'win32') app.setAppUserModelId('ru.duprove.desktop')
 
@@ -27,21 +28,38 @@ function createWindow() {
   else void window.loadFile(path.join(__dirname, '../dist/index.html'))
 }
 
-void app.whenReady().then(() => {
-  if (process.platform === 'darwin') app.dock?.setIcon(applicationIcon())
-  ipcMain.handle(channels.drives, () => listDrives(executable()))
-  ipcMain.handle(channels.help, event => {
-    if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) return
-    return shell.openExternal('https://duprove.site/#instrucitons')
+// One authority for consent: another process must not retain an outdated grant.
+if (!app.requestSingleInstanceLock()) app.quit()
+else {
+  app.on('second-instance', () => {
+    const window = BrowserWindow.getAllWindows()[0]
+    if (window) { if (window.isMinimized()) window.restore(); window.show(); window.focus() }
   })
-  ipcMain.handle(channels.window, (event, action: unknown) => {
-    const window = BrowserWindow.fromWebContents(event.sender)
-    if (!window || event.senderFrame !== event.sender.mainFrame) return
-    if (action === 'minimize') window.minimize()
-    else if (action === 'maximize') { if (window.isMaximized()) window.unmaximize(); else window.maximize() }
-    else if (action === 'close') window.close()
+  void app.whenReady().then(() => {
+    if (process.platform === 'darwin') app.dock?.setIcon(applicationIcon())
+    const consent = new ConsentService(path.join(app.getPath('userData'), 'statistics-consent.json'))
+    ipcMain.handle(channels.consentGet, event => {
+      if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('INVALID_CONSENT_SENDER')
+      return consent.snapshot()
+    })
+    ipcMain.handle(channels.consentSet, (event, request: unknown) => {
+      if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('INVALID_CONSENT_SENDER')
+      return consent.set(request)
+    })
+    ipcMain.handle(channels.drives, () => listDrives(executable()))
+    ipcMain.handle(channels.help, event => {
+      if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) return
+      return shell.openExternal('https://duprove.site/#instrucitons')
+    })
+    ipcMain.handle(channels.window, (event, action: unknown) => {
+      const window = BrowserWindow.fromWebContents(event.sender)
+      if (!window || event.senderFrame !== event.sender.mainFrame) return
+      if (action === 'minimize') window.minimize()
+      else if (action === 'maximize') { if (window.isMaximized()) window.unmaximize(); else window.maximize() }
+      else if (action === 'close') window.close()
+    })
+    createWindow()
+    app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow() })
   })
-  createWindow()
-  app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow() })
-})
-app.on('window-all-closed', () => app.quit())
+  app.on('window-all-closed', () => app.quit())
+}

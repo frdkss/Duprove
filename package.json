@@ -17,7 +17,7 @@
     "test:native": "python tests/test_analyzer.py",
     "package": "npm run build && electron-builder --publish never",
     "test:backend": "python -m unittest discover -s tests -p test_contract.py",
-    "test:ui": "node --check tests/ui-smoke.cjs && node scripts/run-electron.mjs tests/ui-smoke.cjs",
+    "test:ui": "node scripts/build-tests.mjs && node --check tests/ui-smoke.cjs && node scripts/run-electron.mjs tests/ui-smoke.cjs",
     "test:startup": "node scripts/run-electron.mjs tests/app-startup.cjs"
   },
   "dependencies": {
@@ -51,6 +51,10 @@
     ],
     "extraResources": [
       {
+        "from": "docs/statistics-notice.txt",
+        "to": "statistics-notice.txt"
+      },
+      {
         "from": "build/native/bin",
         "to": "analyzer",
         "filter": [
@@ -68,6 +72,7 @@
     },
     "nsis": {
       "oneClick": false,
+      "include": "installer/installer.nsh",
       "allowToChangeInstallationDirectory": true
     },
     "linux": {

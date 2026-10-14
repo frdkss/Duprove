@@ -63,7 +63,7 @@ export function MainWindow() {
     <Sidebar {...driveListProps} view={view} expanded={expanded} mode={mode} onView={navigate} onExpand={() => setExpanded(previous => previous === 'mode' ? null : 'mode')} onMode={setMode} onHelp={openHelp}/>
     <main className="main-window"><header className="page-heading"><h1>{view === 'disks' ? 'Ваши диски' : 'Настройки'}</h1></header>
       {helpError && <p className="help-error" role="alert">{helpError}</p>}
-      {view === 'settings' ? <SettingsPanel theme={theme} onTheme={setTheme}/> : <>
+      {view === 'settings' ? <SettingsPanel theme={theme} onTheme={setTheme} api={window.duprove}/> : <>
         {status ? <div className="drive-empty" role="status"><Icon name="drive" size={44}/><p>{status}</p></div> : <div className="disk-workspace">
           {activeDrive ? <DriveOverview drive={activeDrive} onNext={nextDrive ? () => setActivePath(nextDrive.path) : undefined} onPrevious={previousDrive ? () => setActivePath(previousDrive.path) : undefined}/> : <div className="drive-empty"><Icon name="drive" size={44}/><h2>Выберите диск</h2><p>Отметьте нужные накопители в разделе «Ваши диски» слева.</p></div>}
         </div>}
