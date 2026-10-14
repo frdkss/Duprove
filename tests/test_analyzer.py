@@ -44,7 +44,7 @@ class AnalyzerTests(unittest.TestCase):
                 self.assertEqual(path.read_bytes(), data)
 
             check = "const v=require('./.verification/tests/contracts/validate.js');let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>process.exit(v.isReport(JSON.parse(s))?0:1))"
-            validated = subprocess.run(['node', '-e', check], input=json.dumps(report), text=True, cwd=ROOT, timeout=15)
+            validated = subprocess.run([os.environ.get('DUPROVE_NODE', 'node'), '-e', check], input=json.dumps(report), text=True, cwd=ROOT, timeout=15)
             self.assertEqual(validated.returncode, 0)
 
     def test_optional_content_not_silently_claimed_as_implemented(self):

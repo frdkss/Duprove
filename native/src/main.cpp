@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <memory>
 void emit(const json& v) { static std::mutex m; std::lock_guard<std::mutex> lock(m); std::cout<<v.dump(-1,' ',false,json::error_handler_t::replace)<<std::endl; }
-int main(int argc,char** argv) {
+static int run(int argc,const std::vector<std::string>& argv) {
   try {
     if(argc==2 && std::string(argv[1])=="--drives") {emit(drives());return 0;}
     if(argc!=3 || std::string(argv[1])!="--job") {std::cerr<<"Usage: duprove-analyzer --drives | --job file.json\n";return 2;}
@@ -22,3 +22,12 @@ int main(int argc,char** argv) {
     return scan(job,*context);
   } catch(...) {emit({{"type","error"},{"message","Не удалось выполнить анализ. Проверьте доступ к рабочему каталогу."}});return 1;}
 }
+#ifdef _WIN32
+int wmain(int argc,wchar_t** argv) {
+  std::vector<std::string> args;
+  for(int i=0;i<argc;++i) args.push_back(utf8(fs::path(argv[i])));
+  return run(argc,args);
+}
+#else
+int main(int argc,char** argv) { return run(argc,std::vector<std::string>(argv,argv+argc)); }
+#endif
