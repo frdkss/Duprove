@@ -58,6 +58,9 @@ function(duprove_content_dependencies)
     BUILD_BYPRODUCTS "${jpeg_library}")
   add_library(duprove-jpeg STATIC IMPORTED GLOBAL)
   set_target_properties(duprove-jpeg PROPERTIES IMPORTED_LOCATION "${jpeg_library}"
+    # Keep the pinned header ahead of CPATH/Homebrew headers. Imported includes
+    # are otherwise -isystem and can silently select an incompatible host API.
+    IMPORTED_NO_SYSTEM TRUE
     INTERFACE_INCLUDE_DIRECTORIES "${turbojpeg_SOURCE_DIR}/src")
   if(MSVC)
     foreach(config Debug Release RelWithDebInfo MinSizeRel)
