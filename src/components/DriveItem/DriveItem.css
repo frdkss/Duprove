@@ -1,0 +1,8 @@
+.drive-item { display: flex; align-items: center; gap: 1.125rem; width: 100%; min-width: 0; flex-shrink: 0; padding: .9375rem .75rem .9375rem 1.0625rem; border: 1px solid var(--color-line); border-radius: .6875rem; background: var(--color-paper); text-align: left; transition: background .16s ease, border-color .16s ease; }
+.drive-item:hover { background: var(--color-card-hover); border-color: var(--color-line-strong); }
+.drive-item-selected { background: var(--color-selected-soft); }
+.drive-item-active { background: var(--color-selected); border-color: var(--color-selection-border); }
+.drive-item-active:hover, .drive-item-selected:hover { background: var(--color-accent-strong); border-color: var(--color-selection-border); }
+.drive-info { display: grid; flex: 1; gap: .3125rem; min-width: 0; }
+.drive-info strong { font-size: .875rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drive-info>span { font-size: .75rem; color: var(--color-muted); }
