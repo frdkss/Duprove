@@ -15,6 +15,7 @@
     "start": "node scripts/run-electron.mjs .",
     "test": "node scripts/build-tests.mjs && node --test tests/*.test.cjs",
     "test:native": "python tests/test_analyzer.py",
+    "test:traversal": "python tests/test_traversal.py",
     "package": "node scripts/package-desktop.mjs",
     "package:linux": "node scripts/package-desktop.mjs linux",
     "package:mac": "node scripts/package-desktop.mjs darwin",

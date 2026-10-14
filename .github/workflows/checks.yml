@@ -27,7 +27,13 @@ jobs:
       - run: npm test
       - run: npm run test:backend
       - run: npm run test:native
+      - run: npm run test:traversal
       - run: npm run test:drives
+      - if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tests/test_windows_volume_mount.ps1
+      - if: runner.os == 'macOS'
+        run: python tests/test_macos_volume.py
       - if: runner.os == 'Linux'
         run: sudo env DUPROVE_ANALYZER="$PWD/build/native/bin/duprove-analyzer" unshare --mount --propagation private python3 tests/test_linux_mount_namespace.py
       - run: npm run test:installer

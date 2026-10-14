@@ -26,6 +26,11 @@
 Меню и дополнительные команды описаны в [service/README.md](service/README.md).
 
 Архитектура и ограничения: [docs/architecture.md](docs/architecture.md).
+Обход этапа 3, исключения, правила ссылок и замеры скорости ядра:
+[docs/safe-traversal.md](docs/safe-traversal.md). Реализация проверена на Windows
+и Linux локально, а также в нативном CI Windows, Linux и macOS Intel/Apple Silicon.
+Проверены временные тома Windows без буквы и macOS APFS. Запуск анализа из UI
+и управление заданиями относятся к этапу 5.
 Правила независимости UI, локальной логики, ядра и сервера:
 [docs/component-boundaries.md](docs/component-boundaries.md).
 Формат отчёта: [contracts/README.md](contracts/README.md).
@@ -66,6 +71,7 @@ npm run build
 npm test
 npm run test:backend
 npm run test:native
+npm run test:traversal
 ctest --test-dir build/native -C Release --output-on-failure
 npm start
 ```

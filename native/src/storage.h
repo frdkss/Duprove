@@ -39,6 +39,15 @@ struct Query {
   Query(const Query&)=delete;
   Query& operator=(const Query&)=delete;
   ~Query(){sqlite3_finalize(s);}
+  void reset() {
+    if(sqlite3_reset(s)!=SQLITE_OK || sqlite3_clear_bindings(s)!=SQLITE_OK) throw std::runtime_error("DATABASE_RESET_FAILED");
+  }
+  void bind(int i,const std::string& value) {
+    if(sqlite3_bind_text(s,i,value.data(),int(value.size()),SQLITE_TRANSIENT)!=SQLITE_OK) throw std::runtime_error("DATABASE_BIND_FAILED");
+  }
+  void bind(int i,int64_t value) {
+    if(sqlite3_bind_int64(s,i,value)!=SQLITE_OK) throw std::runtime_error("DATABASE_BIND_FAILED");
+  }
   bool next() {
     int result=sqlite3_step(s);
     if(result!=SQLITE_ROW&&result!=SQLITE_DONE)throw std::runtime_error("DATABASE_STEP_FAILED");
@@ -51,3 +60,11 @@ struct Query {
   }
 };
 inline void put(DB& d,const char* s,const json& a=json::array()){Query q(d,s,a);q.next();}
+struct Transaction {
+  DB& db;
+  bool active=true;
+  explicit Transaction(DB& value):db(value) { db.exec("BEGIN"); }
+  ~Transaction() { if(active) sqlite3_exec(db.db,"ROLLBACK",nullptr,nullptr,nullptr); }
+  void commit() { db.exec("COMMIT"); active=false; }
+  void checkpoint() { commit(); db.exec("BEGIN"); active=true; }
+};

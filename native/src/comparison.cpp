@@ -1,22 +1,45 @@
-#include "comparison.h"
+﻿#include "comparison.h"
 #include <picosha2.h>
-#include <fstream>
 #include <algorithm>
-std::string digest(const fs::path& p,int root,ScanContext& context){
- std::ifstream in(p,std::ios::binary);if(!in)return "";
- picosha2::hash256_one_by_one h; std::array<unsigned char,65536>b{};
- while(in){if(!context.waitFor(root))return "";in.read(reinterpret_cast<char*>(b.data()),b.size());auto n=in.gcount();
-  h.process(b.begin(),b.begin()+n);
-  context.throttle();
- }
- if(!in.eof())return "";
- h.finish();
- return picosha2::get_hash_hex_string(h);
+std::string digest(const fs::path& path,const FileInfo& expected,int root,ScanContext& context) {
+  try {
+    FileReader file(path);
+    if(!file.info().same(expected)) return "";
+    picosha2::hash256_one_by_one hash;
+    std::array<unsigned char,262144> buffer;
+    int64_t total=0;
+    for(;;) {
+      if(!context.waitFor(root)) return "";
+      const auto n=file.read(reinterpret_cast<char*>(buffer.data()),buffer.size());
+      total+=int64_t(n);
+      if(total>expected.size) return "";
+      if(!n) break;
+      hash.process(buffer.begin(),buffer.begin()+n);
+      context.throttle();
+    }
+    if(total!=expected.size || !file.info().same(expected)) return "";
+    hash.finish(); return picosha2::get_hash_hex_string(hash);
+  } catch(const std::exception&) { return ""; }
 }
-bool equalBytes(const fs::path& a,const fs::path& b,int root,ScanContext& context){
- std::ifstream x(a,std::ios::binary),y(b,std::ios::binary);if(!x||!y)return false;
- std::array<char,65536> bx{},by{};
- do{if(!context.waitFor(root))return false;x.read(bx.data(),bx.size());y.read(by.data(),by.size());if(x.gcount()!=y.gcount()||!std::equal(bx.begin(),bx.begin()+x.gcount(),by.begin()))return false;context.throttle();}while(x&&y);
- return x.eof()&&y.eof();
+bool equalBytes(const fs::path& a,const FileInfo& expectedA,const fs::path& b,const FileInfo& expectedB,int root,ScanContext& context) {
+  try {
+    FileReader x(a),y(b);
+    if(!x.info().same(expectedA) || !y.info().same(expectedB)) return false;
+    std::array<char,262144> bx,by;
+    int64_t total=0;
+    for(;;) {
+      if(!context.waitFor(root)) return false;
+      const auto nx=x.read(bx.data(),bx.size()),ny=y.read(by.data(),by.size());
+      if(nx!=ny || !std::equal(bx.begin(),bx.begin()+nx,by.begin())) return false;
+      total+=int64_t(nx);
+      if(total>expectedA.size) return false;
+      if(!nx) break;
+      context.throttle();
+    }
+    return total==expectedA.size && x.info().same(expectedA) && y.info().same(expectedB);
+  } catch(const std::exception&) { return false; }
 }
-bool current(const std::string& p,int64_t size,int64_t time){std::error_code ec;auto path=fs::u8path(p);auto n=fs::file_size(path,ec);if(ec||n!=uint64_t(size)||excluded(path))return false;auto t=fs::last_write_time(path,ec);return !ec&&t.time_since_epoch().count()==time;}
+bool current(const std::string& path,const FileInfo& expected) {
+  FileInfo info;
+  return inspectFile(fs::u8path(path),info) && info.same(expected);
+}

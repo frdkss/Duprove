@@ -1,9 +1,27 @@
-# Обнаружение накопителей Linux и macOS
+# Обнаружение накопителей Windows, Linux и macOS
 
 Локальная операция `duprove-analyzer --drives` возвращает смонтированные тома,
 их точки монтирования, ёмкость и доступное место. Несмонтированные устройства,
 неразмеченные диски и заблокированные зашифрованные разделы не обнаруживаются
 этим API. Оно не обходит файлы и не отправляет статистику.
+
+Область выбора, границы монтирования при обходе, ошибки, ссылки и замеры:
+[safe-traversal.md](safe-traversal.md).
+
+## Windows
+
+`FindFirstVolumeW` / `FindNextVolumeW` и `GetVolumePathNamesForVolumeNameW`
+дают буквы и каталоги подключения томов; `GetLogicalDriveStringsW` добавляет
+подключённые логические диски, включая сетевые. Пути объединяются без повторов
+с учётом регистра Windows. Предлагаются fixed/removable/remote с доступной
+ёмкостью; запросы остаются read-only. Два разных mount paths одного тома могут
+присутствовать отдельно; идентификаторы объектов исключают повторный учёт при анализе.
+
+Источник API: [Microsoft — GetVolumePathNamesForVolumeNameW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumepathnamesforvolumenamew).
+Проверены реальные локальные тома Windows и отдельный NTFS-том без буквы,
+подключённый к каталогу в GitHub Actions. Тест создаёт собственный VHDX,
+проверяет его идентичность перед форматированием и удаляет после отключения.
+Физические USB/SMB-устройства в этой сессии не подключались.
 
 ## Linux
 
@@ -47,8 +65,14 @@ NFS/NFS4, CIFS/SMB3, пользовательские FUSE-тома, а такж
 API и поля сверены с
 [описанием getmntinfo Apple](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/getmntinfo.3.html)
 и [заголовком mount.h XNU](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/sys/mount.h).
-Локального Mac нет: реальный вызов API, TCC и поведение накопителей на macOS в этой
-сессии не запускались. Подготовлены отдельные CI-проверки Intel/Apple Silicon.
+Нативная сборка, вызов `getmntinfo`, CTest и интеграционные проверки выполнены
+на GitHub-hosted macOS Intel и Apple Silicon. Дополнительно создаётся временный
+разреженный APFS-образ с именем тома `Macintosh HD`, подключённый к каталогу
+с пробелом. Проверяются обнаружение, граница невыбранного тома, сравнение
+выбранных корней на разных томах и исчезновение тома после отключения.
+Основание: [CI 38565338105](https://github.com/frdkss/Duprove/actions/runs/38565338105),
+коммит `4a0e171626cc289d2989ac067b4609809238b95e`.
+TCC-диалоги, физические USB-устройства и сетевые серверы отдельно не проверены.
 
 ## Проверки
 
@@ -59,5 +83,10 @@ API и поля сверены с
 - `tests/test_linux_mount_namespace.py`: Linux bind mount в изолированном mount
   namespace, том под `/run/media`, имя с пробелом и буквальным `\040`, исключение
   обычного соседнего каталога. Монтирования основной системы не меняются.
+- `tests/test_windows_volume_mount.ps1`: новый временный VHDX/NTFS, подключение
+  без буквы к каталогу, выбор томов и межтомовое сравнение. Требует администратора;
+  локальные физические диски не форматирует.
+- `tests/test_macos_volume.py`: новый временный APFS sparse image, обнаружение
+  и отключение, выбор томов и сравнение искусственных файлов.
 
 Фактические результаты конкретных запусков записаны в [verification.md](verification.md).
