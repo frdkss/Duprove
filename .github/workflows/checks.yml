@@ -25,11 +25,17 @@ jobs:
       - run: ctest --test-dir build/native -C Release --output-on-failure
       - run: npm run build
       - run: npm test
+      - if: runner.os != 'Linux'
+        run: npm run test:desktop
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:desktop
       - run: npm run test:backend
       - run: npm run test:native
       - run: npm run test:traversal
       - run: npm run test:comparison
       - run: npm run test:content
+      - run: npm run test:resume
+      - run: npm run test:runtime
       - run: npm run test:drives
       - if: runner.os == 'Windows'
         shell: pwsh

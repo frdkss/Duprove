@@ -77,7 +77,7 @@ int main() {
     const auto first=base/"first", second=base/"second";
     write(first/"a","same"); write(second/"b","same"); changed=false;
     result=run(base/"work"/"late.sqlite",{first,second},[&](const json& event) {
-      if(!changed && event["type"]=="progress" && event["disks"][1]["phase"]=="hashing" && event["disks"][0]["phase"]=="comparing") {
+      if(!changed && event["type"]=="progress" && event["disks"][1]["phase"]=="hashing" && event["disks"][0]["phase"]=="waiting") {
         changed=true; fs::remove(first/"a");
       }
     });
@@ -88,6 +88,41 @@ int main() {
     require(reader.info().same(info),"reader metadata matches discovery");
     char bytes[16]; require(reader.read(bytes,sizeof(bytes))==4 && std::string(bytes,4)=="same","read-only reader");
     require(reader.read(bytes,sizeof(bytes))==0,"EOF");
+
+    // Sharing a prefix must keep it pinned even after the preceding directory
+    // object dies. A rename/replacement must not redirect subsequent opens.
+    const auto pinned=base/"pinned";
+    write(pinned/"left"/"deep"/"file","left");
+    write(pinned/"right"/"file","right");
+    {
+      auto preceding=std::make_unique<Directory>(pinned/"left"/"deep");
+      Directory next(pinned/"right",preceding.get());
+      preceding.reset();
+#ifdef _WIN32
+      std::error_code renameError;
+      fs::rename(pinned,base/"moved-pinned",renameError);
+      require(bool(renameError),"shared ancestor stays pinned against replacement");
+#endif
+      FileReader shared(pinned/"right"/"file",&next);
+      require(shared.read(bytes,sizeof(bytes))==5 && std::string(bytes,5)=="right","shared prefix reads correct sibling");
+    }
+    fs::rename(pinned,base/"released-pinned");
+
+    // A cursor reuses only directory handles, never stale per-file metadata.
+    const auto cursorRoot=base/"cursor";
+    write(cursorRoot/"a"/"file","one");
+    write(cursorRoot/"b"/"file","two");
+    {
+      DirectoryCursor cursor;
+      FileInfo original,modified;
+      require(cursor.inspect(cursorRoot/"a"/"file",original),"cursor first file");
+      write(cursorRoot/"a"/"file","changed size");
+      require(cursor.inspect(cursorRoot/"a"/"file",modified) && !modified.same(original),"cursor must inspect fresh file metadata");
+      require(cursor.inspect(cursorRoot/"b"/"file",modified),"cursor sibling path");
+      require(!cursor.inspect(cursorRoot/"missing"/"file",modified),"cursor unavailable parent");
+      require(cursor.inspect(cursorRoot/"a"/"file",modified),"cursor recovers after unavailable parent");
+      require(modified.size==12,"cursor returns correct recovered metadata");
+    }
 
     const UserFolders folders={{base/"localized","documents"},{base/"localized"/"photos","pictures"}};
     require(folderCategory(base/"localized"/"photos"/"x",folders)=="pictures","most specific known folder");

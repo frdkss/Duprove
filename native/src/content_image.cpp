@@ -106,7 +106,7 @@ void jpeg(Value& value,const std::vector<unsigned char>& bytes) {
   std::unique_ptr<void,decltype(&tj3Destroy)> decoder(tj3Init(TJINIT_DECOMPRESS),tj3Destroy);
   if(!decoder) fail(Status::limit);
   if(tj3Set(decoder.get(),TJPARAM_STOPONWARNING,1) || tj3Set(decoder.get(),TJPARAM_SCANLIMIT,100) ||
-     tj3Set(decoder.get(),TJPARAM_MAXMEMORY,64) || tj3Set(decoder.get(),TJPARAM_MAXPIXELS,int(maxPixels))) fail();
+     tj3Set(decoder.get(),TJPARAM_MAXMEMORY,decoderMemoryMiB) || tj3Set(decoder.get(),TJPARAM_MAXPIXELS,int(maxPixels))) fail();
   if(tj3DecompressHeader(decoder.get(),bytes.data(),bytes.size())) fail();
   const int width=tj3Get(decoder.get(),TJPARAM_JPEGWIDTH),height=tj3Get(decoder.get(),TJPARAM_JPEGHEIGHT);
   if(width<=0 || height<=0) fail();

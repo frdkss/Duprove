@@ -1,2 +1,2 @@
 import { build } from 'esbuild'
-await build({entryPoints:['contracts/validate.ts','contracts/consent.ts','electron/services/report-service.ts','electron/services/consent-service.ts','electron/services/analyzer-service.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.verification/tests',outbase:'.'})
+await build({entryPoints:['contracts/validate.ts','contracts/consent.ts','contracts/analysis.ts','electron/services/report-service.ts','electron/services/consent-service.ts','electron/services/analyzer-service.ts','electron/services/analysis-timing.ts','electron/services/job-service.ts','electron/services/job-client.ts','electron/analysis-worker.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.verification/tests',outbase:'.'})

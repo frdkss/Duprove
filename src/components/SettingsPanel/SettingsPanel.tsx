@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Icon, type IconName } from '../Icon/Icon'
 import { Toggle } from '../Toggle/Toggle'
 import { StatisticsConsent } from '../StatisticsConsent/StatisticsConsent'
@@ -12,11 +12,23 @@ function Row({ icon, label, children, unavailable = false }: { icon: IconName; l
   return <div className={`setting-row ${unavailable ? 'setting-unavailable' : ''}`} title={unavailable ? 'Пока недоступно' : undefined}><Icon name={icon} size={18}/><span>{label}</span><div className="setting-control">{children}</div></div>
 }
 export function SettingsPanel({ theme, onTheme, api }: { theme: Theme; onTheme(theme: Theme): void; api?: DesktopBridge }) {
+  const [autostart, setAutostart] = useState({ enabled: false, supported: false })
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+  useEffect(() => { let active = true; void api?.getAutostart().then(value => { if (active) setAutostart(value) }).catch(() => { if (active) setError('Не удалось прочитать настройку автозапуска.') }); return () => { active = false } }, [api])
+  const changeAutostart = async (enabled: boolean) => {
+    if (!api) return
+    setPending(true); setError('')
+    try { setAutostart(await api.setAutostart(enabled)) } catch { setError('Не удалось изменить настройку автозапуска.') }
+    finally { setPending(false) }
+  }
   return <div className="settings-panel">
+    {error && <p role="alert">{error}</p>}
     <Group title="Общие" icon="settings">
       <Row icon="globe" label="Язык интерфейса"><select aria-label="Язык интерфейса" disabled><option>Русский</option></select></Row>
       <Row icon="sun" label="Тема оформления"><select aria-label="Тема оформления" value={theme} onChange={e => onTheme(e.target.value as Theme)}><option value="light">Светлая</option><option value="dark">Тёмная</option></select></Row>
-      <Row icon="power" label="Запускать вместе с системой" unavailable><Toggle label="Запускать вместе с системой" checked={false} disabled/></Row>
+      <Row icon="power" label="Запускать вместе с системой" unavailable={!autostart.supported}><Toggle label="Запускать вместе с системой" checked={autostart.enabled} onChange={enabled => void changeAutostart(enabled)} disabled={pending || !autostart.supported}/></Row>
+      <p className="autostart-note">Анализ начинается и продолжается только по кнопке.{!autostart.supported && ' Автозапуск доступен в установленном приложении.'}</p>
     </Group>
     <Group title="Сканирование" icon="search">
       <Row icon="folder" label="Исключённые папки" unavailable><button className="subtle-button" disabled>Настроить</button></Row>

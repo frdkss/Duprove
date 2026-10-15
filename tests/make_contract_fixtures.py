@@ -29,6 +29,12 @@ def fixtures():
         'total': dict(summary(), duplicates=0), 'disks': [dict(summary(), id=0)],
         'locations': {'standard': {'total': summary(), 'categories': {c: summary() for c in CATEGORIES}}, 'custom': summary()}}, duplicates=[])
     cases.append(dict(name='empty scan', valid=True, report=empty))
+    for ext in ('.my_format', '.long-' + 'x' * 30, '.данные', '.c++', '.tar.gz', '.' + 'x' * 254):
+        extended = copy.deepcopy(empty)
+        extended['statistics']['total'] = dict(summary({ext: 1}), duplicates=0)
+        extended['statistics']['disks'] = [dict(summary({ext: 1}), id=0)]
+        extended['statistics']['locations']['custom'] = summary({ext: 1})
+        cases.append(dict(name='literal extension ' + ext, valid=True, report=extended))
     split = copy.deepcopy(report)
     split['statistics']['locations']['standard']['categories']['documents'] = summary({'.txt': 1}, 1, 1)
     split['statistics']['locations']['standard']['categories']['downloads'] = summary({'.txt': 1, '.jpg': 1}, 1, 1)
@@ -61,7 +67,9 @@ def fixtures():
         ('custom folder name', ['statistics', 'locations', 'standard', 'categories', 'private'], summary()),
         ('filename in type', ['statistics', 'total', 'types', 'private.txt'], 1),
         ('uppercase extension', ['duplicates', 0, 'extensions'], {'.TXT': 3}),
-        ('oversized extension', ['duplicates', 0, 'extensions'], {'.' + 'x' * 21: 3}),
+        ('oversized extension', ['duplicates', 0, 'extensions'], {'.' + 'x' * 255: 3}),
+        ('path separator in extension', ['statistics', 'total', 'types', '.txt/private'], 1),
+        ('windows separator in extension', ['statistics', 'total', 'types', '.txt\\private'], 1),
         ('empty file in group', ['duplicates', 0, 'extensions'], {'empty': 3}),
         ('zero type count', ['statistics', 'total', 'types', '.zero'], 0),
         ('copies mismatch', ['duplicates', 0, 'copies'], 4),

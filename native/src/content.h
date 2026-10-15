@@ -3,8 +3,9 @@
 #include <array>
 #include <vector>
 namespace content {
-constexpr size_t maxTextBytes=8*1024*1024, maxFileBytes=64*1024*1024;
-constexpr uint64_t maxPixels=16*1024*1024;
+inline thread_local size_t maxTextBytes=8*1024*1024, maxFileBytes=64*1024*1024;
+inline thread_local uint64_t maxPixels=16*1024*1024;
+inline thread_local int decoderMemoryMiB=64;
 constexpr unsigned sampleSide=32;
 enum class Status { ready, empty, unsupported, invalid, protectedFile, limit, unavailable, stopped };
 const char* statusName(Status);

@@ -42,11 +42,12 @@ Value read(const fs::path& path,const FileInfo& expected,int root,ScanContext& c
       if(!context.waitFor(root)) throw Failure{Status::stopped};
       const auto amount=std::min(size_t(262144),bytes.size()-offset);
       if(file.read(reinterpret_cast<char*>(bytes.data()+offset),amount)!=amount) throw Failure{Status::unavailable};
-      offset+=amount; context.throttle();
+      offset+=amount; context.accountRead(root,amount);
     }
     char extra;
     if(file.read(&extra,1) || !file.info().same(expected)) throw Failure{Status::unavailable};
     value=text ? decodeText(bytes,ext) : decodeImage(bytes,ext);
+    context.throttle();
     if(!context.waitFor(root)) throw Failure{Status::stopped};
     if(!file.info().same(expected) || !current(utf8(path),expected)) throw Failure{Status::unavailable};
     if(value.status==Status::ready) value.hash=text ? picosha2::hash256_hex_string(value.text) : hex(value.imageHash);
@@ -72,21 +73,33 @@ void compareFiles(DB& db,ScanContext& context,json& states,const std::function<v
     size_t batch=0;
     while(files.next()) {
       const auto path=files.str(0); const int root=int(files.num(1));
+      context.currentFile(root,path);
       const auto value=read(fs::u8path(path),record(files,2),root,context);
       put(db,"INSERT INTO content_files VALUES(?,?,?,?,?,?)",{path,value.kind,statusName(value.status),value.hash,value.width,value.height});
       if(value.status==Status::unavailable) invalid(path,root);
       if(++batch%128==0) transaction.checkpoint();
+      context.fileProgress(root);
       progress();
     }
     transaction.commit();
   }
-  for(auto& state:states) if(state["phase"]=="content") state["phase"]="content_comparing";
+  for(size_t root=0;root<states.size();++root) if(states[root]["phase"]=="content") {
+    auto& state=states[root]; state["phase"]="content_comparing";state["percent"]=0;
+    Query number(db,"SELECT count(*) FROM files f JOIN content_files c ON c.path=f.path WHERE f.root=? AND c.status='ready'",{root});number.next();
+    state["work"]["operation"]="content_comparing";state["work"]["done"]=0;state["work"]["total"]=number.num(0);state["work"]["current"]="";
+  }
+  context.fileProgress=[](int) {};
   context.emit({{"type","progress"},{"disks",states}});
   Transaction transaction(db);
   Query files(db,"SELECT f.path,f.root,f.size,f.mtime,f.ctime,f.identity,f.gid,f.rowid,c.kind,c.hash FROM files f JOIN content_files c ON c.path=f.path WHERE c.status='ready' ORDER BY f.rowid");
   size_t batch=0;
   while(files.next()) {
     const auto path=files.str(0); const int root=int(files.num(1)); const auto expected=record(files,2);
+    context.currentFile(root,path);
+    struct Advance {
+      json& state;
+      ~Advance() { auto& w=state["work"];w["done"]=w["done"].get<int64_t>()+1;state["percent"]=100.0*w["done"].get<int64_t>()/std::max(int64_t(1),w["total"].get<int64_t>()); }
+    } advance{states[root]};
     if(!context.waitFor(root)) { unavailable(path,root,Status::stopped);continue; }
     const auto left=read(fs::u8path(path),expected,root,context);
     if(left.status!=Status::ready) { unavailable(path,root,left.status==Status::stopped ? Status::stopped : Status::unavailable);continue; }
@@ -131,10 +144,12 @@ void validate(DB& db,ScanContext& context,const std::function<void(const std::st
   Query files(db,"SELECT f.path,f.root,f.size,f.mtime,f.ctime,f.identity,c.status FROM files f JOIN content_files c ON c.path=f.path");
   while(files.next()) {
     const int root=int(files.num(1)); const auto path=files.str(0);
+    context.currentFile(root,path);context.waitFor(root);
     if(context.controls[root]==2) put(db,"UPDATE content_files SET status='stopped' WHERE path=?",{path});
     else if(files.str(6)=="ready" && !current(path,record(files,2))) {
       put(db,"UPDATE content_files SET status='unavailable' WHERE path=?",{path});invalid(path,root);
     }
+    context.fileProgress(root);
   }
   db.exec("DELETE FROM content_matches WHERE left_path IN (SELECT path FROM content_files WHERE status<>'ready') OR right_path IN (SELECT path FROM content_files WHERE status<>'ready')");
   transaction.commit();

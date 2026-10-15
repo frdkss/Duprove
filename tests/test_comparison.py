@@ -112,6 +112,21 @@ class ComparisonTests(unittest.TestCase):
         self.write(1, 'b', b'data')
         self.assertEqual(self.scan()['statistics']['total']['duplicates'], 1)
 
+    def test_sha256_padding_stream_boundaries_and_cache_format(self):
+        expected = {}
+        for length in (1, 3, 55, 56, 63, 64, 65, 262143, 262144, 262145, 1000000):
+            data = (bytes(range(256)) * (length // 256 + 1))[:length]
+            for disk in (0, 1):
+                name = f'vector-{length}-{disk}'
+                self.write(disk, name, data)
+                expected[name] = hashlib.sha256(data).hexdigest()
+        for attempt in range(2):
+            report = self.scan()
+            self.assertEqual(report['statistics']['total']['duplicates'], len(expected) // 2)
+            with closing(sqlite3.connect(self.database)) as db:
+                actual = dict(db.execute('SELECT name,hash FROM files'))
+            self.assertEqual(actual, expected, f'fresh/cache run {attempt}')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,6 +14,16 @@
 namespace {
 [[noreturn]] void failed() { throw std::runtime_error("FILE_ACCESS_FAILED"); }
 #ifdef _WIN32
+// Use extended-length names at the Win32 boundary, independent of registry or
+// executable manifests. Keep ordinary paths for exclusions, identity and reports.
+std::wstring nativePath(const fs::path& path) {
+  auto normalized=path.lexically_normal();
+  normalized.make_preferred();
+  const auto value=normalized.native();
+  if(value.rfind(L"\\\\?\\",0)==0) return value;
+  if(value.rfind(L"\\\\",0)==0) return L"\\\\?\\UNC\\"+value.substr(2);
+  return L"\\\\?\\"+value;
+}
 struct Handle {
   HANDLE value = INVALID_HANDLE_VALUE;
   explicit Handle(HANDLE v = INVALID_HANDLE_VALUE) : value(v) {}
@@ -37,7 +47,7 @@ FileInfo metadata(HANDLE h) {
   return result;
 }
 bool volumeMount(const fs::path& path) {
-  auto value = path.native();
+  auto value = nativePath(path);
   if(value.empty() || value.back()!=L'\\') value+=L'\\';
   wchar_t name[MAX_PATH];
   return GetVolumeNameForVolumeMountPointW(value.c_str(),name,MAX_PATH)!=0;
@@ -70,7 +80,8 @@ struct Directory::Impl {
   fs::path path;
   FileInfo info;
 #ifdef _WIN32
-  std::vector<std::unique_ptr<Handle>> parents;
+  struct Pin { fs::path path; std::shared_ptr<Handle> handle; };
+  std::vector<Pin> parents;
   HANDLE search = INVALID_HANDLE_VALUE;
   WIN32_FIND_DATAW entry{};
   bool started=false, ended=false;
@@ -81,31 +92,40 @@ struct Directory::Impl {
   ~Impl() { if(entries) closedir(entries); if(fd>=0) close(fd); }
 #endif
 };
-Directory::Directory(const fs::path& raw) : impl(std::make_unique<Impl>()) {
+Directory::Directory(const fs::path& raw,const Directory* preceding) : impl(std::make_unique<Impl>()) {
   const auto path = raw.lexically_normal();
   if(!path.is_absolute()) failed();
   impl->path=path;
 #ifdef _WIN32
   auto component=path.root_path();
   auto pin=[&](const fs::path& p) {
-    auto handle=std::make_unique<Handle>(CreateFileW(p.c_str(),FILE_READ_ATTRIBUTES,
+    const auto index=impl->parents.size();
+    if(preceding && index<preceding->impl->parents.size() && preceding->impl->parents[index].path==p) {
+      // These handles deny FILE_SHARE_DELETE, so the entire shared prefix is
+      // still the same directory chain, not a cached pathname lookup.
+      impl->parents.push_back(preceding->impl->parents[index]);
+      return;
+    }
+    const auto systemPath=nativePath(p);
+    auto handle=std::make_shared<Handle>(CreateFileW(systemPath.c_str(),FILE_READ_ATTRIBUTES,
       FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,OPEN_EXISTING,
       FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT,nullptr));
     if(handle->value==INVALID_HANDLE_VALUE) failed();
     auto info=metadata(handle->value);
     if(info.kind==FileInfo::Kind::skip && volumeMount(p)) {
-      handle=std::make_unique<Handle>(CreateFileW(p.c_str(),FILE_READ_ATTRIBUTES,
+      handle=std::make_shared<Handle>(CreateFileW(systemPath.c_str(),FILE_READ_ATTRIBUTES,
         FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,OPEN_EXISTING,FILE_FLAG_BACKUP_SEMANTICS,nullptr));
       if(handle->value==INVALID_HANDLE_VALUE) failed();
       info=metadata(handle->value);
     }
     if(info.kind!=FileInfo::Kind::directory) failed();
-    impl->info=info;
-    impl->parents.push_back(std::move(handle));
+    impl->parents.push_back({p,std::move(handle)});
   };
   pin(component);
   for(const auto& part:path.relative_path()) { if(part.empty() || part==L".") continue; component/=part; pin(component); }
+  impl->info=metadata(impl->parents.back().handle->value);
 #else
+  (void)preceding; // POSIX descriptors do not prevent ancestor replacement.
   impl->fd=open("/",O_RDONLY|O_DIRECTORY|O_CLOEXEC);
   if(impl->fd<0) failed();
   for(const auto& part:path.relative_path()) {
@@ -124,7 +144,8 @@ const FileInfo& Directory::info() const { return impl->info; }
 bool Directory::inspect(const fs::path& name,FileInfo& result) const {
   if(name.empty() || name!=name.filename() || name=="." || name=="..") return false;
 #ifdef _WIN32
-  Handle handle(CreateFileW((impl->path/name).c_str(),FILE_READ_ATTRIBUTES,
+  const auto systemPath=nativePath(impl->path/name);
+  Handle handle(CreateFileW(systemPath.c_str(),FILE_READ_ATTRIBUTES,
     FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,
     FILE_FLAG_OPEN_REPARSE_POINT|FILE_FLAG_BACKUP_SEMANTICS,nullptr));
   if(handle.value==INVALID_HANDLE_VALUE) return false;
@@ -141,7 +162,8 @@ bool Directory::next(FileEntry& result) {
   for(;;) {
     if(!impl->started) {
       impl->started=true;
-      impl->search=FindFirstFileExW((impl->path/L"*").c_str(),FindExInfoBasic,&impl->entry,FindExSearchNameMatch,nullptr,FIND_FIRST_EX_LARGE_FETCH);
+      const auto pattern=nativePath(impl->path/L"*");
+      impl->search=FindFirstFileExW(pattern.c_str(),FindExInfoBasic,&impl->entry,FindExSearchNameMatch,nullptr,FIND_FIRST_EX_LARGE_FETCH);
       if(impl->search==INVALID_HANDLE_VALUE) { if(GetLastError()==ERROR_FILE_NOT_FOUND) { impl->ended=true; return false; } failed(); }
     } else if(!FindNextFileW(impl->search,&impl->entry)) {
       if(GetLastError()!=ERROR_NO_MORE_FILES) failed();
@@ -175,23 +197,33 @@ bool Directory::next(FileEntry& result) {
 }
 
 struct FileReader::Impl {
-  Directory parent;
+  std::unique_ptr<Directory> ownedParent;
+  Directory* parent=nullptr;
 #ifdef _WIN32
   Handle handle;
 #else
   int fd=-1;
   ~Impl() { if(fd>=0) close(fd); }
 #endif
-  explicit Impl(const fs::path& path) : parent(path.parent_path()) {}
-};
-FileReader::FileReader(const fs::path& path) : impl(std::make_unique<Impl>(path)) {
-  if(excluded(path)) failed();
+  explicit Impl(const fs::path& path,Directory* pinnedParent) {
 #ifdef _WIN32
-  impl->handle.value=CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,
+    if(pinnedParent) { parent=pinnedParent;return; }
+#else
+    (void)pinnedParent; // POSIX directory handles do not pin ancestors against rename.
+#endif
+    ownedParent=std::make_unique<Directory>(path.parent_path());parent=ownedParent.get();
+  }
+};
+FileReader::FileReader(const fs::path& path,Directory* pinnedParent) : impl(std::make_unique<Impl>(path,pinnedParent)) {
+  if(excluded(path)) failed();
+  if(impl->parent->impl->path!=path.parent_path().lexically_normal()) failed();
+#ifdef _WIN32
+  const auto systemPath=nativePath(path);
+  impl->handle.value=CreateFileW(systemPath.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE,
     nullptr,OPEN_EXISTING,FILE_FLAG_OPEN_REPARSE_POINT|FILE_FLAG_SEQUENTIAL_SCAN,nullptr);
   if(impl->handle.value==INVALID_HANDLE_VALUE || GetFileType(impl->handle.value)!=FILE_TYPE_DISK) failed();
 #else
-  impl->fd=openat(impl->parent.impl->fd,path.filename().c_str(),O_RDONLY|O_NOFOLLOW|O_NONBLOCK|O_CLOEXEC);
+  impl->fd=openat(impl->parent->impl->fd,path.filename().c_str(),O_RDONLY|O_NOFOLLOW|O_NONBLOCK|O_CLOEXEC);
   if(impl->fd<0) failed();
 #endif
   if(info().kind!=FileInfo::Kind::regular) failed();
@@ -225,4 +257,24 @@ size_t FileReader::read(char* buffer,size_t length) {
 bool inspectFile(const fs::path& path,FileInfo& result) {
   try { if(excluded(path)) return false; Directory parent(path.parent_path()); return parent.inspect(path.filename(),result); }
   catch(...) { return false; }
+}
+Directory* DirectoryCursor::parent(const fs::path& path) {
+#ifdef _WIN32
+  const auto wanted=path.parent_path().lexically_normal();
+  if(!directory || wanted!=parentPath) {
+    try { directory=std::make_unique<Directory>(wanted,directory.get());parentPath=wanted; }
+    catch(...) { directory.reset();throw; }
+  }
+  return directory.get();
+#else
+  (void)path;
+  return nullptr;
+#endif
+}
+bool DirectoryCursor::inspect(const fs::path& path,FileInfo& result) {
+  try {
+    if(excluded(path)) return false;
+    auto* pinned=parent(path);
+    return pinned ? pinned->inspect(path.filename(),result) : inspectFile(path,result);
+  } catch(...) { return false; }
 }

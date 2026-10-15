@@ -1,0 +1,5 @@
+.analysis-summary { margin-right: auto; display: grid; gap: .35rem; font-size: .75rem; color: var(--color-secondary); min-width: 0; }
+.analysis-warning { color: var(--color-secondary); }
+.analysis-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+.analysis-buttons button { white-space: nowrap; box-sizing: border-box; width: 10.875rem; min-width: 10.875rem; height: 2.5rem; padding: 0 .75rem; display: inline-flex; align-items: center; justify-content: center; gap: .375rem; border-radius: .5rem; font-size: .75rem; line-height: 1rem; }
+.scan-footer { flex-wrap: wrap; gap: .5rem; }
