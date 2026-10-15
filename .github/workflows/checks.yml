@@ -23,7 +23,7 @@ jobs:
       - run: npm run native:configure
       - run: npm run native:build
       - if: runner.os == 'Windows'
-        run: npm run check:defender
+        run: npm run check:defender -- -UpdateSignatures
       - run: ctest --test-dir build/native -C Release --output-on-failure
       - run: npm run build
       - run: npm test

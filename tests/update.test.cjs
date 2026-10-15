@@ -7,6 +7,7 @@ const os = require('node:os')
 const https = require('node:https')
 const { EventEmitter } = require('node:events')
 const { PassThrough } = require('node:stream')
+const { spawnSync } = require('node:child_process')
 const { verifyManifest, selectTarget, compareVersions, stableVersion } = require('../.verification/tests/electron/services/update-manifest.js')
 const { UpdateService } = require('../.verification/tests/electron/services/update-service.js')
 const { verifyPackage, installedUpdateHost, PackageUpdateInstaller } = require('../.verification/tests/electron/services/update-installer.js')
@@ -206,13 +207,30 @@ test('unsupported installation makes no network requests', async t => {
   await f.service.start(); await f.service.tick()
   assert.equal(f.service.snapshot().status, 'unavailable'); assert.equal(f.counts().requests, 0)
 })
-test('Windows installer launch really executes PowerShell before allowing shutdown', { skip: process.platform !== 'win32' }, async t => {
+test('Windows installer executes hash verification with its own PowerShell modules before shutdown', { skip: process.platform !== 'win32' }, async t => {
   const base = await temporary(t), directory = path.join(base, 'updates'), app = path.join(base, 'app'), helpers = path.join(base, 'helpers')
   for (const folder of [directory, app, helpers]) await mkdir(folder)
   const file = path.join(directory, 'package.exe'); await writeFile(file, 'new')
-  await writeFile(path.join(helpers, 'update-windows.ps1'), `param([string]$Transaction)\n$job = Get-Content -LiteralPath $Transaction -Raw | ConvertFrom-Json\n[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'armed'), $job.token)\n`)
+  await writeFile(path.join(helpers, 'update-windows.ps1'), `param([string]$Transaction)\n$ErrorActionPreference='Stop'\n$job = Get-Content -LiteralPath $Transaction -Raw | ConvertFrom-Json\nif ((Get-FileHash -LiteralPath $job.package -Algorithm SHA512).Hash.ToLowerInvariant() -ne $job.sha512) { throw 'BAD_HASH' }\nif ($env:PSModulePath.Contains('nonexistent-PS7-modules')) { throw 'INHERITED_PS7_MODULES' }\n[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'armed'), $job.token)\n`)
   let stopped = false
   const installer = new PackageUpdateInstaller({ directory, executable: path.join(app, 'Duprove.exe'), helperDirectory: helpers, shutdown: async () => { stopped = true } })
-  await installer.prepare(file, '1.1.0', target); await installer.install()
+  const inherited = process.env.PSModulePath
+  process.env.PSModulePath = 'Z:\\nonexistent-PS7-modules'
+  try { await installer.prepare(file, '1.1.0', target); await installer.install() }
+  finally { if (inherited === undefined) delete process.env.PSModulePath; else process.env.PSModulePath = inherited }
   assert.equal(stopped, true)
+})
+
+test('release signing CLI accepts a planned main-branch release and rejects a mismatched version', async t => {
+  const directory = await temporary(t)
+  await mkdir(path.join(directory, 'config')); await mkdir(path.join(directory, 'release'))
+  await writeFile(path.join(directory, 'package.json'), JSON.stringify({ version: '1.1.0' }))
+  await writeFile(path.join(directory, 'config/update-public-key.pem'), publicKey)
+  for (const name of [target.asset, 'Duprove-1.1.0-linux-x64.tar.gz']) await writeFile(path.join(directory, 'release', name), 'new')
+  const env = { ...process.env, GITHUB_REF_NAME: 'main', DUPROVE_RELEASE_TAG: 'v1.1.0', DUPROVE_UPDATE_PRIVATE_KEY: pair.privateKey.export({ type: 'pkcs8', format: 'pem' }) }
+  const run = () => spawnSync(process.execPath, [path.resolve(__dirname, '../scripts/release-manifest.mjs')], { cwd: directory, env, encoding: 'utf8', windowsHide: true, timeout: 30000 })
+  const result = run(); assert.equal(result.status, 0, result.stderr)
+  assert.equal(verifyManifest(await readFile(path.join(directory, 'release/stable.json')), publicKey, '1.1.0').version, '1.1.0')
+  env.DUPROVE_RELEASE_TAG = 'v2.0.0'
+  assert.notEqual(run().status, 0)
 })

@@ -52,6 +52,15 @@ npm run check:defender -- -UpdateSignatures -Path release/Duprove-1.0.0-win-x64.
 обнаружение, недоступный Defender, базы старше 7 дней, отсутствие/изменение
 файла или ошибка сканирования завершают проверку с кодом 1.
 
+Команда npm и упаковщик запускают скрипт через Node-обёртку, удаляющую
+`PSModulePath` только из окружения дочернего `powershell.exe`. Windows PowerShell
+восстанавливает свой путь модулей. Это устраняет конфликт модулей PowerShell 7
+в цепочке `pwsh → npm/Node → powershell.exe`, который проявлялся в CI как
+`Get-FileHash is not recognized`. Аналогичное исправление сделано для helper
+автообновления. Окружение родительского процесса и системные настройки не меняются.
+Причина такого наследования описана в
+[документации Microsoft](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_psmodulepath?view=powershell-7.6).
+
 `beforePack` проверяет анализатор, включая прямой запуск electron-builder.
 `npm run package` дополнительно проверяет готовый NSIS EXE. Сборка останавливается
 при неуспешной проверке; ранее созданные файлы в `release/` автоматически не удаляются.

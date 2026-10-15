@@ -29,7 +29,7 @@ export async function makeManifest(directory, version, privatePem, publicPem) {
 }
 async function main() {
   const pkg = JSON.parse(await readFile('package.json', 'utf8'))
-  if (process.env.GITHUB_REF_NAME !== `v${pkg.version}`) throw Error('RELEASE_TAG_MUST_MATCH_PACKAGE_VERSION')
+  if ((process.env.DUPROVE_RELEASE_TAG || process.env.GITHUB_REF_NAME) !== `v${pkg.version}`) throw Error('RELEASE_TAG_MUST_MATCH_PACKAGE_VERSION')
   const privatePem = process.env.DUPROVE_UPDATE_PRIVATE_KEY
   if (!privatePem) throw Error('RELEASE_SIGNING_KEY_REQUIRED')
   const directory = process.argv[2] || 'release'

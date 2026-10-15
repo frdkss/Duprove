@@ -88,7 +88,10 @@ export class PackageUpdateInstaller {
       : [helper, directory, String(this.transaction.parentPid), String(this.transaction.target), String(this.transaction.source), String(this.transaction.token)]
     // Windows PowerShell can exit 0 without executing -File with DETACHED_PROCESS.
     // Windows children outlive the parent with ignored handles + unref; POSIX needs setsid.
-    const child = spawn(command, args, { detached: !windows, stdio: 'ignore', windowsHide: true })
+    // A GUI started from pwsh can inherit PS7 module paths too. The PS5 helper
+    // needs its own modules for Get-FileHash and JSON/file operations.
+    const env = windows ? Object.fromEntries(Object.entries(process.env).filter(([name]) => name.toUpperCase() !== 'PSMODULEPATH')) : process.env
+    const child = spawn(command, args, { detached: !windows, stdio: 'ignore', windowsHide: true, env })
     await new Promise<void>((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject) })
     child.unref()
     // Never quit the working app until the independent installer has checked its inputs.
