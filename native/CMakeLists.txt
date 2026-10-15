@@ -4,9 +4,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 include(FetchContent)
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_Declare(json
+  URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+  URL_HASH SHA256=42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa)
 FetchContent_Declare(sha GIT_REPOSITORY https://github.com/okdshin/PicoSHA2.git GIT_TAG 161cb3fc4170fa7a3eca9e582cebd27cc4d1fe29)
-FetchContent_Declare(sqlite URL https://www.sqlite.org/2025/sqlite-amalgamation-3500400.zip)
+FetchContent_Declare(sqlite
+  URL https://www.sqlite.org/2025/sqlite-amalgamation-3500400.zip
+  URL_HASH SHA256=1d3049dd0f830a025a53105fc79fd2ab9431aea99e137809d064d8ee8356b032)
 FetchContent_MakeAvailable(json sha sqlite)
 include(cmake/content-dependencies.cmake)
 add_library(sqlite3 STATIC ${sqlite_SOURCE_DIR}/sqlite3.c)

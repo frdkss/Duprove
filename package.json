@@ -15,6 +15,7 @@
     "icons": "node scripts/build-icons.mjs",
     "native:configure": "cmake -S native -B build/native",
     "native:build": "cmake --build build/native --config Release",
+    "check:defender": "powershell.exe -NoProfile -NonInteractive -File scripts/check-windows-defender.ps1",
     "start": "node scripts/run-electron.mjs .",
     "test": "node scripts/build-tests.mjs && node --test tests/*.test.cjs",
     "test:native": "python tests/test_analyzer.py",
@@ -69,6 +70,11 @@
     ],
     "extraResources": [
       {
+        "from": "installer",
+        "to": "updater",
+        "filter": ["update-linux.sh", "update-windows.ps1"]
+      },
+      {
         "from": "build/native/licenses",
         "to": "licenses"
       },
@@ -94,6 +100,8 @@
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
       "include": "installer/installer.nsh",
       "allowToChangeInstallationDirectory": true
     },
