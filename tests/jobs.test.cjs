@@ -176,19 +176,25 @@ test('state stays responsive in main while a real worker analyzes files', async 
     executable: binary, directory: path.join(f.directory, 'app'), consentFile: path.join(f.directory, 'consent.json') })
   t.after(() => client.dispose())
   await client.ready
-  await client.call('start', f.request)
-  let samples = 0, maxMs = 0
+  let samples = 0, maxMs = 0, runs = 0
+  const observationStarted = performance.now()
   const timer = setInterval(() => {
     const started = performance.now(); const state = client.snapshot(); maxMs = Math.max(maxMs, performance.now() - started)
-    assert.equal(state.id !== null, true); samples++
+    if (state.status === 'running') { assert.notEqual(state.id, null); samples++ }
   }, 10)
   try {
-    const completed = await until(client, s => ['completed', 'error'].includes(s.status))
-    assert.equal(completed.status, 'completed', completed.error)
+    // Fast machines can finish one scan before eleven timer ticks. Keep observing
+    // real analyses instead of imposing a minimum duration on a single scan.
+    do {
+      await client.call('start', f.request)
+      const completed = await until(client, s => ['completed', 'error'].includes(s.status))
+      assert.equal(completed.status, 'completed', completed.error)
+      runs++
+    } while (samples <= 10 && performance.now() - observationStarted < 10000)
   } finally { clearInterval(timer) }
   assert.ok(samples > 10, 'Main continues responding while the worker runs')
   assert.ok(maxMs < 100, `Snapshot latency ${maxMs} ms exceeds the 100 ms budget`)
-  console.log(`ANALYSIS_STATE_LATENCY: ${samples} samples, maximum ${maxMs.toFixed(3)} ms`)
+  console.log(`ANALYSIS_STATE_LATENCY: ${samples} samples over ${runs} runs, maximum ${maxMs.toFixed(3)} ms`)
 })
 test('content warnings survive service restart and statistics remain disabled after refusal', async t => {
   const f = await fixture(t, 16)

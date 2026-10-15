@@ -1,0 +1,9 @@
+**
+!backend/
+!backend/requirements*.txt
+!backend/duprove_backend/
+!backend/duprove_backend/*.py
+!backend/deploy/
+!backend/deploy/gunicorn.conf.py
+!contracts/
+!contracts/report.schema.json

@@ -5,7 +5,7 @@ import { isGrantId, type Consent } from './consent-service'
 import { writeLocalJson } from './local-json'
 
 // Transport must honor signal, including during retries. Every retry re-enters sendReport.
-export interface ReportTransport { send(json: string, options: { signal: AbortSignal }): Promise<void> }
+export interface ReportTransport { send(json: string, options: { signal: AbortSignal; reportId?: string }): Promise<void> }
 export interface PreparedReport {
   version: 1
   consentGrantId: string | null
@@ -17,7 +17,7 @@ export function prepareReport(report: unknown, consent: Consent): PreparedReport
   return { version: 1, consentGrantId: consent.current()?.grantId ?? null, report: copy }
 }
 
-function validatePrepared(value: unknown): asserts value is PreparedReport {
+export function validatePrepared(value: unknown): asserts value is PreparedReport {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('INVALID_PREPARED_REPORT')
   const item = value as Record<string, unknown>
   if (Object.keys(item).length !== 3 || item.version !== 1 || !('report' in item)
@@ -38,13 +38,13 @@ export function loadPreparedReport(file: string): PreparedReport {
   return value
 }
 
-export async function sendReport(prepared: unknown, consent: Consent, transport: ReportTransport): Promise<boolean> {
+export async function sendReport(prepared: unknown, consent: Consent, transport: ReportTransport, reportId?: string): Promise<boolean> {
   validatePrepared(prepared)
   const payload = serializeReport(prepared.report)
   // No await between the fresh authorization check and handing data to transport.
   const authorization = consent.current()
   if (!authorization || authorization.signal.aborted || authorization.grantId !== prepared.consentGrantId) return false
-  try { await transport.send(payload, { signal: authorization.signal }) }
+  try { await transport.send(payload, { signal: authorization.signal, reportId }) }
   catch (error) { if (authorization.signal.aborted) return false; throw error }
   return !authorization.signal.aborted
 }

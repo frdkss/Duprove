@@ -1,6 +1,7 @@
 #include "scanner.h"
 #include "file_access.h"
 #include "user_dirs.h"
+#include "traversal.h"
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -40,6 +41,26 @@ int main() {
     require(report["statistics"]["disks"][0]["files"]==2 && report["statistics"]["disks"][1]["files"]==1,"nested root ownership");
     require(report.dump().find(utf8(base))==std::string::npos,"private path in public report");
     require(report.dump().find("one.txt")==std::string::npos,"private name in public report");
+    // Observe directory callbacks directly, independent of the scanner's 250 ms
+    // telemetry throttle and how quickly this small inventory is traversed.
+    const auto inventory=base/"inventory";
+    for(int index=0;index<4;++index) write(inventory/std::to_string(index)/"file","fixture");
+    auto inventoryResult=run(base/"work"/"inventory.sqlite",{inventory});
+    {
+      DB db(utf8(base/"work"/"inventory.sqlite"));
+      ScanContext context; context.loadMode=2; context.emit=[](const json&) {};
+      json states=inventoryResult["disks"];
+      bool inventoryAdvanced=false;
+      discover(db,{utf8(inventory)},base/"work",states,context,[&] {
+        const auto& disk=states[0]; const auto& work=disk["work"];
+        require(disk["phase"]=="discovering","directory progress phase");
+        require(work["unit"]=="directories","directory work unit");
+        require(disk["percent"].get<double>()<100,"discovery does not claim completion");
+        require(work["done"].get<int64_t>()<=work["total"].get<int64_t>(),"directory work bounds");
+        inventoryAdvanced|=work["done"].get<int64_t>()>0 && work["done"].get<int64_t>()<work["total"].get<int64_t>();
+      });
+      require(inventoryAdvanced,"directory work advances before traversal ends");
+    }
     const auto osFolders=knownFolders();
     for(const auto& folder:osFolders) require(folderCategory(folder.first/"fixture",osFolders)!="custom","OS known folder mapping");
     result=run(base/"work"/"missing.sqlite",{base/"missing",outside});
