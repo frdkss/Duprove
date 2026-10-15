@@ -30,6 +30,9 @@ jobs:
       - if: runner.os == 'Linux'
         run: xvfb-run -a npm run test:desktop
       - run: npm run test:backend
+      - run: npm run test:server
+      - if: runner.os == 'Linux'
+        run: npm run test:server:deployment
       - run: npm run test:native
       - run: npm run test:statistics
       - run: npm run test:traversal

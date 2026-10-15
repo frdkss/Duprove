@@ -41,6 +41,12 @@
 Формат отчёта: [contracts/README.md](contracts/README.md).
 Агрегация категорий, проверка и сохранение JSON, приватность журнала:
 [docs/statistics.md](docs/statistics.md).
+Сервер приёма статистики этапа 7, API, лимиты и установка через Docker Compose:
+[docs/statistics-server.md](docs/statistics-server.md). По решению пользователя
+этап 7 завершён для локального Docker; публичное размещение отложено.
+Локальный Docker-стенд: `npm run server:dev`; он записывает фактический IP
+контейнера и URL в `.env`. Проверка — `npm run server:check`, остановка —
+`npm run server:stop`. Отправка отчётов из приложения относится к этапу 8.
 
 «Настройки → Дополнительно → Отправлять анонимную статистику» — отправка статистики
 для школьного проекта. По умолчанию включено для нового профиля; ранее сохранённый
@@ -77,6 +83,7 @@ npm run native:build
 npm run build
 npm test
 npm run test:backend
+npm run test:server
 npm run test:native
 npm run test:statistics
 npm run test:traversal
