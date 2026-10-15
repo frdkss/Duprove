@@ -1,6 +1,22 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { binaryTarget } = require('../scripts/verify-package.cjs')
+const { checkWindowsDefender } = require('../scripts/check-windows-defender.cjs')
+
+test('Windows packaging fails closed on Defender detection, unavailability, or timeout', () => {
+  const file = 'C:\\build with spaces\\analyzer.exe'
+  for (const result of [{ status: 1 }, { status: 2 }, { status: -2142236669 },
+    { status: null, signal: 'SIGTERM' }, { status: null, error: Error('ENOENT') }]) {
+    assert.throws(() => checkWindowsDefender(file, 'C:\\project', () => result), /WINDOWS_DEFENDER_CHECK_FAILED/)
+  }
+  checkWindowsDefender(file, 'C:\\project', (command, args, options) => {
+    assert.equal(args.at(-1), file)
+    assert.equal(options.shell, undefined)
+    assert.equal(options.windowsHide, true)
+    assert.ok(options.timeout > 0)
+    return { status: 0 }
+  })
+})
 test('packaging distinguishes analyzer OS and CPU and rejects unknown executables', () => {
   for (const [machine, arch] of [[62, 'x64'], [183, 'arm64']]) {
     const elf = Buffer.alloc(64)

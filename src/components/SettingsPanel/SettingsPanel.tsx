@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Icon, type IconName } from '../Icon/Icon'
 import { Toggle } from '../Toggle/Toggle'
 import { StatisticsConsent } from '../StatisticsConsent/StatisticsConsent'
+import { AppUpdate } from '../AppUpdate/AppUpdate'
 import type { DesktopBridge } from '../../../electron/bridge'
 import './SettingsPanel.css'
 export type Theme = 'light' | 'dark'
@@ -43,7 +44,7 @@ export function SettingsPanel({ theme, onTheme, api }: { theme: Theme; onTheme(t
       <Row icon="clock" label="Хранить результаты последнего сканирования" unavailable><Toggle label="Хранить результаты последнего сканирования" checked={false} disabled/></Row>
     </Group>
     <Group title="Дополнительно" icon="info">
-      <Row icon="refresh" label="Проверять обновления автоматически" unavailable><Toggle label="Проверять обновления автоматически" checked={false} disabled/></Row>
+      <AppUpdate api={api} settings/>
       <StatisticsConsent api={api}/>
     </Group>
   </div>

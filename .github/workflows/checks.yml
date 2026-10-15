@@ -22,9 +22,16 @@ jobs:
       - run: python -m pip install -r backend/requirements.txt
       - run: npm run native:configure
       - run: npm run native:build
+      - if: runner.os == 'Windows'
+        run: npm run check:defender
       - run: ctest --test-dir build/native -C Release --output-on-failure
       - run: npm run build
       - run: npm test
+      - if: runner.os == 'Windows'
+        shell: powershell
+        run: ./tests/test_update_windows.ps1
+      - if: runner.os == 'Linux'
+        run: python tests/test_update_linux.py
       - if: runner.os != 'Linux'
         run: npm run test:desktop
       - if: runner.os == 'Linux'
@@ -58,6 +65,13 @@ jobs:
         run: python tests/test_macos_package.py
       - if: runner.os == 'macOS'
         run: node tests/packaged-startup.cjs release/mac*/Duprove.app/Contents/MacOS/Duprove
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with:
+          name: defender-checks
+          path: .verification/defender/*.json
+          include-hidden-files: true
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: Duprove-${{ matrix.os }}

@@ -1,5 +1,15 @@
 !include "nsDialogs.nsh"
 
+; Only this installer-owned marker permits automatic replacement. Unpacked and
+; machine-wide installations are deliberately not treated as per-user NSIS.
+!macro customInstall
+  ${If} $installMode == "CurrentUser"
+    FileOpen $0 "$INSTDIR\.duprove-managed" w
+    FileWrite $0 "Duprove NSIS per-user v1"
+    FileClose $0
+  ${EndIf}
+!macroend
+
 ; Information only. No checkbox, consent write, or acceptance callback.
 ; The future license flow must not treat installation as statistics consent.
 !macro customWelcomePage

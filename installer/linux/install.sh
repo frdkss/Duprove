@@ -77,7 +77,14 @@ cp -a -- "$source_dir/." "$stage/"
 printf '%s\n' "$marker" > "$stage/.duprove-managed"
 chmod u+x "$stage/duprove" "$stage/resources/analyzer/duprove-analyzer"
 launcher_tmp=$(mktemp "$bin_home/.duprove-launcher.XXXXXXXX")
-printf '#!/usr/bin/env bash\n# Duprove managed launcher v1\nexec %q "$@"\n' "$target/duprove" > "$launcher_tmp"
+printf '#!/usr/bin/env bash\n# Duprove managed launcher v1\ntarget=%q\n' "$target" > "$launcher_tmp"
+cat >> "$launcher_tmp" <<'LAUNCHER'
+# Recover the rename gap after power loss. Never move an unmarked directory.
+if [[ ! -e $target && ! -L $target && -d $target.previous && ! -L $target.previous && $(cat -- "$target.previous/.duprove-managed") == 'Duprove managed installation v1' ]]; then
+  mv -- "$target.previous" "$target"
+fi
+exec "$target/duprove" "$@"
+LAUNCHER
 chmod 755 "$launcher_tmp"
 
 # Exec has two escaping layers: desktop strings, then argument quoting.

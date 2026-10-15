@@ -11,6 +11,12 @@ const bridge: DesktopBridge = {
   controlAnalysis: command => ipcRenderer.invoke(channels.analysisControl, command),
   getAnalysisReport: () => ipcRenderer.invoke(channels.analysisReport),
   getReportDelivery: () => ipcRenderer.invoke(channels.deliveryGet),
+  getUpdate: () => ipcRenderer.invoke(channels.updateGet),
+  onUpdate: listener => {
+    const receive = (_event: Electron.IpcRendererEvent, snapshot: Parameters<typeof listener>[0]) => listener(snapshot)
+    ipcRenderer.on(channels.updateEvent, receive)
+    return () => { ipcRenderer.removeListener(channels.updateEvent, receive) }
+  },
   onReportDelivery: listener => {
     const receive = (_event: Electron.IpcRendererEvent, snapshot: Parameters<typeof listener>[0]) => listener(snapshot)
     ipcRenderer.on(channels.deliveryEvent, receive)

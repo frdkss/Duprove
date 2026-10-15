@@ -13,6 +13,8 @@ app.whenReady().then(async () => {
   let consentService = new ConsentService(consentFile)
   let delivery = { revision: 0, configured: true, enabled: true, pending: 0, sending: false, sent: 0, failed: 0, excluded: 0, nextAttemptAt: null, error: null }
   ipcMain.handle('duprove:delivery:get', () => delivery)
+  let update = { revision: 0, status: 'idle', currentVersion: '1.0.0', availableVersion: null, percent: null, restartAt: null, nextCheckAt: null, error: null }
+  ipcMain.handle('duprove:update:get', () => update)
   ipcMain.handle('duprove:consent:get', () => consentService.snapshot())
   ipcMain.handle('duprove:consent:set', (event, request) => {
     const result = consentService.set(request)
@@ -373,6 +375,18 @@ app.whenReady().then(async () => {
   await screenshot('ui-analysis-log-dark')
   await click('.analysis-log-close')
   clearTimeout(timeout)
+  update = { ...update, revision: 1, status: 'scheduled', availableVersion: '1.1.0', restartAt: Date.now() + 60000 }
+  window.webContents.send('duprove:update:event', update)
+  await settle()
+  assert.match(await evaluate('document.querySelector(".app-update").textContent'), /1\.1\.0.*Перезапуск/s)
+  for (const [width, height] of [[1280, 800], [640, 480]]) {
+    await resize(width, height)
+    await screenshot(`ui-update-scheduled-${width}x${height}`)
+  }
+  await clickText('Настройки')
+  await settle()
+  assert.match(await evaluate('document.querySelector(".app-update").textContent'), /не зависят от отправки статистики/)
+  assert.equal(await evaluate('typeof window.duprove.installUpdate'), 'undefined', 'Renderer cannot install arbitrary packages')
   console.log('UI_SMOKE_OK: consent, quiet revocation, persistence, selection, navigation, animations, help, themes and 5 viewport sizes')
   app.exit(0)
 }).catch(error => { console.error(error); app.exit(1) })

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ReportDelivery } from '../../components/ReportDelivery/ReportDelivery'
+import { AppUpdate } from '../../components/AppUpdate/AppUpdate'
 import type { Drive } from '../../../electron/bridge'
 import { Sidebar, type LoadMode, type View } from '../../components/Sidebar/Sidebar'
 import { TitleBar } from '../../components/TitleBar/TitleBar'
@@ -102,6 +103,7 @@ export function MainWindow() {
   return <div className="app-shell"><TitleBar/><div className="app-body">
     <Sidebar {...driveListProps} content={content} onContent={setContent} view={view} expanded={expanded} mode={mode} onView={navigate} onExpand={() => setExpanded(previous => previous === 'mode' ? null : 'mode')} onMode={setMode} onHelp={openHelp}/>
     <main className="main-window"><header className="page-heading"><h1>{view === 'disks' ? 'Ваши диски' : 'Настройки'}</h1></header>
+      {view !== 'settings' && <AppUpdate api={window.duprove}/>}
       {helpError && <p className="help-error" role="alert">{helpError}</p>}
       {(analysisError || job.error) && <p className="help-error" role="alert">{analysisError || (job.error === 'ANALYSIS_INCOMPLETE' ? 'Анализ завершён с пропусками или ошибками доступа. Доступен неполный результат.' : 'Анализ прерван или не удалось сохранить данные. Можно повторить попытку.')} {job.error && <small>Код: {job.error}</small>}</p>}
       {view === 'settings' ? <SettingsPanel theme={theme} onTheme={setTheme} api={window.duprove}/> : <>

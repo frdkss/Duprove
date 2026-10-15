@@ -62,6 +62,8 @@
 в macOS PKG — на первой странице установщика; в DMG рядом с приложением лежит
 файл «О данных.txt». Сборка: `npm run package` на целевой ОС;
 подробности — [docs/installation.md](docs/installation.md).
+Проверка Windows Defender при упаковке и текущее срабатывание:
+[docs/windows-defender.md](docs/windows-defender.md).
 Обнаружение смонтированных томов и ограничения проверки Linux/macOS:
 [docs/drive-discovery.md](docs/drive-discovery.md).
 
@@ -102,6 +104,9 @@ npm start
 а не накопители пользователя. CI настроен на сборку и проверки Windows, Linux и macOS
 (Intel/Apple Silicon).
 Наличие CI-конфигурации само по себе не подтверждает прохождение удалённого запуска.
+Канал обновлений из GitHub Releases, подпись пакетов и границы проверенной установки:
+[docs/auto-updates.md](docs/auto-updates.md). Сквозная проверка между опубликованными
+версиями ещё не завершена.
 `npm run test:ui` проверяет Electron/preload/React на искусственных накопителях
 и сохраняет снимки экранов в `.verification/ui-*.png`; на Linux нужен графический сеанс
 или Xvfb. Результаты локальной проверки: [docs/verification.md](docs/verification.md).

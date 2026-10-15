@@ -8,6 +8,11 @@ import { activeJob } from '../contracts/analysis'
 import { getAutostart, setAutostart } from './services/autostart'
 import { DeliveryService } from './services/delivery-service'
 import { HttpsReportTransport, readTransportSettings } from './services/report-transport'
+import { UpdateService } from './services/update-service'
+import { GithubUpdateTransport } from './services/update-transport'
+import { PackageUpdateInstaller, installedUpdateHost, acknowledgeUpdate } from './services/update-installer'
+
+declare const __DUPROVE_UPDATE_KEY__: string
 
 let jobs: JobClient | undefined
 let tray: Tray | undefined
@@ -15,6 +20,13 @@ let quitting = false
 let closing = false
 let notification: Notification | undefined
 let delivery: DeliveryService | undefined
+let updates: UpdateService | undefined
+let analysisCommands = 0
+async function analysisCall(method: 'start' | 'command', request: unknown) {
+  if (closing || updates?.blocksAnalysis) throw Error('UPDATE_INSTALLING')
+  analysisCommands++
+  try { return await jobs!.call(method, request) } finally { analysisCommands-- }
+}
 function showWindow() {
   const window = BrowserWindow.getAllWindows()[0]
   if (window) { if (window.isMinimized()) window.restore(); window.show(); window.focus() }
@@ -49,6 +61,7 @@ function createWindow() {
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', event => event.preventDefault())
   window.on('close', event => {
+    if (!quitting && updates?.blocksAnalysis) { event.preventDefault(); return }
     if (!quitting && jobs && activeJob(jobs.snapshot().status)) {
       event.preventDefault()
       try { ensureTray(); window.hide() } catch { /* Keep the window reachable if the tray is unavailable. */ }
@@ -100,10 +113,11 @@ else {
       if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('INVALID_SENDER')
     }
     ipcMain.handle(channels.analysisGet, event => { trusted(event); return jobs!.snapshot() })
-    ipcMain.handle(channels.analysisStart, (event, request: unknown) => { trusted(event); return jobs!.call('start', request) })
-    ipcMain.handle(channels.analysisControl, (event, request: unknown) => { trusted(event); return jobs!.call('command', request) })
+    ipcMain.handle(channels.analysisStart, (event, request: unknown) => { trusted(event); return analysisCall('start', request) })
+    ipcMain.handle(channels.analysisControl, (event, request: unknown) => { trusted(event); return analysisCall('command', request) })
     ipcMain.handle(channels.analysisReport, event => { trusted(event); return jobs!.call('report') })
     ipcMain.handle(channels.deliveryGet, event => { trusted(event); return delivery!.snapshot() })
+    ipcMain.handle(channels.updateGet, event => { trusted(event); return updates!.snapshot() })
     ipcMain.handle(channels.autostartGet, event => { trusted(event); return getAutostart() })
     ipcMain.handle(channels.autostartSet, (event, enabled: unknown) => { trusted(event); return setAutostart(enabled) })
     ipcMain.handle(channels.consentGet, event => {
@@ -129,15 +143,55 @@ else {
       else if (action === 'close') window.close()
     })
     await jobs.ready
+    const updateDirectory = path.join(app.getPath('userData'), 'updates')
+    updates = new UpdateService({ directory: updateDirectory, version: app.getVersion(), publicKey: __DUPROVE_UPDATE_KEY__,
+      host: await installedUpdateHost(process.execPath, app.isPackaged), transport: new GithubUpdateTransport(),
+      installer: new PackageUpdateInstaller({ directory: updateDirectory, executable: process.execPath,
+        helperDirectory: app.isPackaged ? path.join(process.resourcesPath, 'updater') : path.join(app.getAppPath(), 'installer'),
+        shutdown: async () => {
+          if (closing || activeJob(jobs!.snapshot().status)) throw Error('UPDATE_APP_BUSY')
+          closing = true
+          try { await jobs!.call('shutdown'); await delivery!.stop() }
+          catch (error) { closing = false; throw error }
+          quitting = true; tray?.destroy(); app.quit()
+        } }),
+      busy: () => closing || analysisCommands > 0 || activeJob(jobs!.snapshot().status),
+      notify: version => {
+        if (Notification.isSupported()) {
+          notification = new Notification({ title: 'Обновление Duprove', body: `Версия ${version} загружена. Приложение перезапустится через минуту, если анализ не запущен.`, icon: applicationIcon() })
+          notification.on('failed', () => {}); notification.show()
+        }
+      } })
+    updates.on('snapshot', snapshot => {
+      for (const window of BrowserWindow.getAllWindows()) if (!window.webContents.isDestroyed()) window.webContents.send(channels.updateEvent, snapshot)
+    })
     createWindow()
+    // Acknowledge only after worker startup and renderer load, so a broken build rolls back.
+    const mainWindow = BrowserWindow.getAllWindows()[0]
+    mainWindow.webContents.once('did-finish-load', () => {
+      void mainWindow.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+        let attempts = 0;
+        const check = () => window.duprove && document.querySelector('h1') ? resolve(true)
+          : attempts++ > 100 ? reject(Error('UI_NOT_READY')) : setTimeout(check, 100);
+        check();
+      })`).then(async () => {
+        if (process.argv.includes('--duprove-updated')) {
+          if (jobs!.snapshot().error === 'ANALYSIS_WORKER_FAILED') throw Error('UPDATE_WORKER_NOT_READY')
+          await listDrives(executable())
+        }
+        await acknowledgeUpdate(updateDirectory, app.getVersion())
+        await updates!.start()
+      }).catch(() => {})
+    })
     app.on('activate', showWindow)
   })
   app.on('window-all-closed', () => app.quit())
   app.on('before-quit', event => {
     if (quitting || !jobs) return
     event.preventDefault()
+    if (updates?.blocksAnalysis) return
     if (closing) return
     closing = true
-    void Promise.allSettled([delivery?.stop(), jobs.call('shutdown')]).finally(() => { quitting = true; tray?.destroy(); app.quit() })
+    void Promise.allSettled([updates?.stop(), delivery?.stop(), jobs.call('shutdown')]).finally(() => { quitting = true; tray?.destroy(); app.quit() })
   })
 }
