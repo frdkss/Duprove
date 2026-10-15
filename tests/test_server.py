@@ -10,6 +10,7 @@ import threading
 import time
 import unittest
 from unittest.mock import Mock, call, patch
+from uuid import uuid4
 import urllib.error
 import urllib.request
 from wsgiref.simple_server import make_server, WSGIRequestHandler
@@ -186,6 +187,43 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(request(self.app, PATH_INFO='/healthz', REQUEST_METHOD='GET')['status'], 200)
         self.assertEqual(request(self.app, REQUEST_METHOD='GET')['status'], 405)
         self.assertEqual(request(self.app, PATH_INFO='/reports.sqlite3', REQUEST_METHOD='GET')['status'], 404)
+
+    def test_idempotent_retry_survives_restart_and_full_quota(self):
+        self.app = Application(replace(self.settings, max_reports=1))
+        key = str(uuid4())
+        first = request(self.app, HTTP_IDEMPOTENCY_KEY=key)
+        self.assertEqual(first['status'], 201)
+        original = self.rows()
+        self.app = Application(replace(self.settings, max_reports=1))
+        repeated = request(self.app, HTTP_IDEMPOTENCY_KEY=key)
+        self.assertEqual(repeated['status'], 201)
+        self.assertEqual(repeated['body'], first['body'])
+        self.assertEqual(repeated['body']['receipt_id'], key)
+        self.assertEqual(self.rows(), original, 'A retry must not renew retention or consume quota')
+        self.assertEqual(request(self.app, HTTP_IDEMPOTENCY_KEY=str(uuid4()))['status'], 503)
+
+    def test_concurrent_idempotency_and_conflicting_payload(self):
+        key = str(uuid4())
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            results = list(pool.map(lambda _: request(self.app, HTTP_IDEMPOTENCY_KEY=key), range(8)))
+        self.assertTrue(all(r['status'] == 201 for r in results))
+        self.assertEqual(len(self.rows()), 1)
+        changed = dict(EXAMPLE, complete=not EXAMPLE['complete'])
+        result = request(self.app, json.dumps(changed).encode(), HTTP_IDEMPOTENCY_KEY=key)
+        self.assertEqual(result['status'], 409)
+        self.assertFalse(result['body']['accepted'])
+        self.assertEqual(len(self.rows()), 1)
+        self.assertEqual(json.loads(self.rows()[0][2]), EXAMPLE)
+        self.assertEqual(request(self.app, HTTP_IDEMPOTENCY_KEY=str(uuid4()))['status'], 201)
+        self.assertEqual(len(self.rows()), 2, 'Identical reports from distinct analyses remain independent')
+
+    def test_invalid_idempotency_key_is_not_stored_or_reflected(self):
+        for key in ['', 'PRIVATE_PATH', str(uuid4()).upper(), str(uuid4()) + ', ' + str(uuid4())]:
+            result = request(self.app, HTTP_IDEMPOTENCY_KEY=key)
+            self.assertEqual(result['status'], 400)
+            if key:
+                self.assertNotIn(key, json.dumps(result))
+        self.assertEqual(self.rows(), [])
 
     def test_retention_retries_startup_failure_without_logging_exception(self):
         for failure in (OSError('PRIVATE_PATH'), sqlite3.OperationalError('PRIVATE_SQL'), StorageFull()):

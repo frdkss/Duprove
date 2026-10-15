@@ -11,6 +11,10 @@ class StorageFull(Exception):
     pass
 
 
+class ReportConflict(Exception):
+    pass
+
+
 class Store:
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -45,17 +49,25 @@ class Store:
                 db.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
             yield db
 
-    def save(self, payload: bytes, deadline: float, now=None):
+    def save(self, payload: bytes, deadline: float, now=None, report_id=None):
         received_at = int(time.time() if now is None else now)
         with self.connection(deadline) as db, db:
             db.execute('BEGIN IMMEDIATE')
+            if time.monotonic() >= deadline:
+                raise TimeoutError()
+            if report_id is not None:
+                existing = db.execute('SELECT payload FROM reports WHERE id=?', (report_id,)).fetchone()
+                if existing is not None:
+                    if existing[0] != payload:
+                        raise ReportConflict()
+                    return report_id
             count, size = db.execute('SELECT reports, bytes FROM usage WHERE id=1').fetchone()
             if count >= self.settings.max_reports or size + len(payload) > self.settings.max_payload_bytes:
                 raise StorageFull()
             if time.monotonic() >= deadline:
                 raise TimeoutError()
             # A fresh server receipt is not a persistent user/device identifier.
-            receipt = str(uuid4())
+            receipt = report_id or str(uuid4())
             db.execute('INSERT INTO reports VALUES (?, ?, ?)', (receipt, received_at, payload))
         return receipt
 

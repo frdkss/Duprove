@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ReportDelivery } from '../../components/ReportDelivery/ReportDelivery'
 import type { Drive } from '../../../electron/bridge'
 import { Sidebar, type LoadMode, type View } from '../../components/Sidebar/Sidebar'
 import { TitleBar } from '../../components/TitleBar/TitleBar'
@@ -108,6 +109,7 @@ export function MainWindow() {
           {activeDrive ? <DriveOverview drive={activeDrive} progress={job.disks.find(d => d.path === activePath)} paused={job.status === 'paused'} running={job.status === 'running' || job.status === 'stopping'} finished={analysisFinished(job)} onShowLog={!locked && job.disks.some(d => d.path === activePath) ? () => setLogPath(activePath) : undefined} onNext={nextDrive ? () => setActivePath(nextDrive.path) : undefined} onPrevious={previousDrive ? () => setActivePath(previousDrive.path) : undefined}/> : <div className="drive-empty"><Icon name="drive" size={44}/><h2>Выберите диск</h2><p>Отметьте нужные накопители в разделе «Ваши диски» слева.</p></div>}
         </div>}
         <AnalysisControls job={job} selected={selected.length} busy={busy} onStart={() => void run()} onCommand={command => void run(command)}/>
+        <ReportDelivery api={window.duprove}/>
       </>}
     </main></div>{logDisk && <AnalysisLogDialog job={job} disk={logDisk} onClose={() => setLogPath(null)}/>}</div>
 }

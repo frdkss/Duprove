@@ -4,8 +4,9 @@ import type { DesktopBridge } from '../../../electron/bridge'
 import { Toggle } from '../Toggle/Toggle'
 import { Icon } from '../Icon/Icon'
 import './StatisticsConsent.css'
+import { ReportDelivery } from '../ReportDelivery/ReportDelivery'
 
-type ConsentApi = Pick<DesktopBridge, 'getStatisticsConsent' | 'setStatisticsConsent'>
+type ConsentApi = Pick<DesktopBridge, 'getStatisticsConsent' | 'setStatisticsConsent' | 'getReportDelivery' | 'onReportDelivery'>
 export function StatisticsConsent({ api }: { api?: ConsentApi }) {
   const [consent, setConsent] = useState<ConsentSnapshot | null>(null)
   const [busy, setBusy] = useState(false)
@@ -42,8 +43,9 @@ export function StatisticsConsent({ api }: { api?: ConsentApi }) {
         <p>В отчёт входят расширения, количества файлов и пустых файлов, экземпляров и лишних копий, группы дубликатов, обезличенные данные диаграмм, номера дисков внутри отчёта и обобщённые категории расположения: документы, загрузки, рабочий стол, изображения, музыка, видео и общий итог остальных папок.</p>
         <p>Содержимое и имена файлов, полные пути, хеши, названия и структура нестандартных каталогов не отправляются.</p>
         <p>Отправку можно отключить этим переключателем. Ранее сохранённый отказ сохраняется при обновлении. Ожидающие отчёты останутся локально; после повторного включения отправляются только новые. Уже переданные данные отозвать из приложения нельзя.</p>
-        <p>В текущей версии сетевой отправки ещё нет. Выбор сохраняется на этом устройстве.</p>
+        <p>Каждый отчёт получает случайный номер для защиты от повторного учёта. Этот номер не обозначает пользователя или устройство. Результат отправки показывается отдельно от анализа.</p>
       </details>
+      <ReportDelivery api={api}/>
       {consent?.persistenceError && <p className="statistics-error" role="alert">Не удалось сохранить выбор. Отправка отключена в текущем сеансе; после перезапуска проверьте настройку.</p>}
       {error && <p className="statistics-error" role="alert">{error}</p>}
     </div>

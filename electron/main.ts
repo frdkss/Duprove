@@ -6,12 +6,15 @@ import { ConsentService } from './services/consent-service'
 import { JobClient } from './services/job-client'
 import { activeJob } from '../contracts/analysis'
 import { getAutostart, setAutostart } from './services/autostart'
+import { DeliveryService } from './services/delivery-service'
+import { HttpsReportTransport, readTransportSettings } from './services/report-transport'
 
 let jobs: JobClient | undefined
 let tray: Tray | undefined
 let quitting = false
 let closing = false
 let notification: Notification | undefined
+let delivery: DeliveryService | undefined
 function showWindow() {
   const window = BrowserWindow.getAllWindows()[0]
   if (window) { if (window.isMinimized()) window.restore(); window.show(); window.focus() }
@@ -66,10 +69,22 @@ else {
   void app.whenReady().then(async () => {
     if (process.platform === 'darwin') app.dock?.setIcon(applicationIcon())
     const consent = new ConsentService(path.join(app.getPath('userData'), 'statistics-consent.json'))
+    let transport: HttpsReportTransport | null = null
+    let configurationError: string | null = null
+    try {
+      const settings = readTransportSettings(app.getAppPath(), app.isPackaged)
+      if (settings) transport = new HttpsReportTransport(settings)
+    } catch { configurationError = 'DELIVERY_CONFIGURATION_FAILED' }
+    delivery = new DeliveryService(path.join(app.getPath('userData'), 'analysis'), consent, transport, configurationError)
+    delivery.on('snapshot', snapshot => {
+      for (const window of BrowserWindow.getAllWindows()) if (!window.webContents.isDestroyed()) window.webContents.send(channels.deliveryEvent, snapshot)
+    })
+    void delivery.refresh()
     jobs = new JobClient(path.join(__dirname, 'analysis-worker.js'), { executable: executable(),
       directory: path.join(app.getPath('userData'), 'analysis'), consentFile: path.join(app.getPath('userData'), 'statistics-consent.json') })
     let previousStatus = 'idle'
     jobs.on('snapshot', snapshot => {
+      if (!activeJob(snapshot.status) && snapshot.status !== 'idle') void delivery!.refresh()
       for (const window of BrowserWindow.getAllWindows()) if (!window.webContents.isDestroyed()) window.webContents.send(channels.analysisEvent, snapshot)
       if (snapshot.status === 'completed' && previousStatus !== 'completed' && BrowserWindow.getAllWindows().some(w => !w.isVisible())) {
         tray?.setToolTip('Duprove — анализ завершён')
@@ -88,6 +103,7 @@ else {
     ipcMain.handle(channels.analysisStart, (event, request: unknown) => { trusted(event); return jobs!.call('start', request) })
     ipcMain.handle(channels.analysisControl, (event, request: unknown) => { trusted(event); return jobs!.call('command', request) })
     ipcMain.handle(channels.analysisReport, event => { trusted(event); return jobs!.call('report') })
+    ipcMain.handle(channels.deliveryGet, event => { trusted(event); return delivery!.snapshot() })
     ipcMain.handle(channels.autostartGet, event => { trusted(event); return getAutostart() })
     ipcMain.handle(channels.autostartSet, (event, enabled: unknown) => { trusted(event); return setAutostart(enabled) })
     ipcMain.handle(channels.consentGet, event => {
@@ -96,7 +112,9 @@ else {
     })
     ipcMain.handle(channels.consentSet, (event, request: unknown) => {
       if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('INVALID_CONSENT_SENDER')
-      return consent.set(request)
+      const snapshot = consent.set(request)
+      delivery!.consentChanged()
+      return snapshot
     })
     ipcMain.handle(channels.drives, event => { trusted(event); return listDrives(executable()) })
     ipcMain.handle(channels.help, event => {
@@ -120,6 +138,6 @@ else {
     event.preventDefault()
     if (closing) return
     closing = true
-    void jobs.call('shutdown').catch(() => {}).finally(() => { quitting = true; tray?.destroy(); app.quit() })
+    void Promise.allSettled([delivery?.stop(), jobs.call('shutdown')]).finally(() => { quitting = true; tray?.destroy(); app.quit() })
   })
 }

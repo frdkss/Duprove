@@ -121,6 +121,9 @@ if (action === 'stop') {
   docker([...compose, 'up', '-d', '--no-build', ...(validCertificate ? [] : ['--force-recreate']),
     '--wait', '--wait-timeout', '120'])
   docker([...compose, 'exec', '-T', 'proxy', 'nginx', '-t'])
+  // Bind-mounted config changes do not recreate the proxy. Reload also resolves
+  // the receiver address after Compose replaced its container during an update.
+  docker([...compose, 'exec', '-T', 'proxy', 'nginx', '-s', 'reload'])
   const ip = containerIP()
   save({ DUPROVE_CONTAINER_IP: ip })
   await check(endpoint, caFile)

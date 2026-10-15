@@ -8,7 +8,7 @@ import time
 
 from .contract import is_report
 from .settings import Settings
-from .storage import StorageFull, Store
+from .storage import ReportConflict, StorageFull, Store
 
 
 class InvalidJSON(ValueError):
@@ -85,6 +85,8 @@ class Application:
     def __call__(self, environ, start_response):
         try:
             status, body, headers = self.handle(environ)
+        except ReportConflict:
+            status, body, headers = 409, {'accepted': False, 'error': 'report_conflict'}, []
         except (StorageFull, sqlite3.Error, OSError, TimeoutError):
             status, body, headers = 503, {'accepted': False, 'error': 'storage_unavailable'}, [('Retry-After', '60')]
         except Exception:
@@ -120,6 +122,10 @@ class Application:
             return error(415, 'unsupported_media_type')
         if env.get('HTTP_TRANSFER_ENCODING'):
             return error(400, 'unsupported_transfer_encoding')
+        report_id = env.get('HTTP_IDEMPOTENCY_KEY')
+        if report_id is not None and not re.fullmatch(
+                '[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}', report_id):
+            return error(400, 'invalid_report_id')
         length = env.get('CONTENT_LENGTH', '')
         if not length:
             return error(411, 'length_required')
@@ -141,5 +147,5 @@ class Application:
             return error(422, 'invalid_report')
         if time.monotonic() >= deadline:
             return error(503, 'processing_timeout', [('Retry-After', '60')])
-        receipt = self.store.save(canonical, deadline)
+        receipt = self.store.save(canonical, deadline, report_id=report_id)
         return 201, {'accepted': True, 'receipt_id': receipt}, []

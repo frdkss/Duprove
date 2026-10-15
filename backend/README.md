@@ -40,4 +40,6 @@ Get-Content contracts/fixtures/example.json -Raw | .venv/Scripts/python.exe -m b
 Для отдельного размещения нужны только `backend/` и `contracts/report.schema.json`
 с сохранением взаимного расположения. C++, Electron и Node не нужны.
 Python-библиотеки сервера — `requirements-server.txt`; Gunicorn запускается на Linux.
-Клиентский транспорт и защита от повторной отправки относятся к этапу 8.
+В этапе 8 добавлена атомарная защита от повторного учёта через `Idempotency-Key`;
+JSON v1 не изменён. Клиентская очередь и HTTPS-транспорт:
+[docs/report-delivery.md](../docs/report-delivery.md).

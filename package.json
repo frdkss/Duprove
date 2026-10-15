@@ -33,6 +33,7 @@
     "test:backend": "python -m unittest discover -s tests -p test_contract.py",
     "test:server": "python -m unittest discover -s tests -p test_server.py",
     "test:server:deployment": "python tests/test_server_deployment.py",
+    "test:delivery:deployment": "python tests/test_server_deployment.py --client-tests",
     "test:ui": "node scripts/build-tests.mjs && node --check tests/ui-smoke.cjs && node scripts/run-electron.mjs tests/ui-smoke.cjs",
     "test:startup": "node scripts/run-electron.mjs tests/app-startup.cjs"
   },

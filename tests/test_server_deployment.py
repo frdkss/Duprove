@@ -22,6 +22,9 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--tls-dir', type=Path)
+    parser.add_argument('--client-tests', action='store_true', help='Also test the Node HTTPS client and analyzer-to-server delivery')
+    parser.add_argument('--client-command', nargs=argparse.REMAINDER, default=['node'],
+                        help='Optional argv prefix for the analyzer-to-server test (for example a Linux Node runner)')
     args = parser.parse_args()
     project = 'duprove-test-' + uuid4().hex[:12]
     with tempfile.TemporaryDirectory(prefix='duprove-tls-') as temporary:
@@ -39,6 +42,10 @@ def main():
             sock.bind(('127.0.0.1', 0))
             port = sock.getsockname()[1]
         env = dict(os.environ, DUPROVE_TLS_DIR=str(tls), DUPROVE_LISTEN=f'127.0.0.1:{port}')
+        client_env = dict(env, DUPROVE_TEST_TLS_DIR=str(tls), DUPROVE_TEST_REPORT_URL=f'https://127.0.0.1:{port}/v1/reports')
+        if args.client_tests:
+            subprocess.run(['node', 'scripts/build-tests.mjs'], cwd=ROOT, check=True, timeout=60)
+            subprocess.run(['node', '--test', 'tests/https-transport.cjs'], cwd=ROOT, env=client_env, check=True, timeout=60)
         compose = ['docker', 'compose', '-p', project, '-f', str(ROOT / 'backend/deploy/compose.yaml')]
 
         def run(*command):
@@ -138,6 +145,12 @@ def main():
                 time.sleep(0.25)
             else:
                 raise AssertionError('maintenance did not expire reports')
+            if args.client_tests:
+                run('restart', 'proxy')
+                run('up', '-d', '--no-build', '--wait', '--wait-timeout', '60')
+                subprocess.run([*args.client_command, 'tests/delivery-deployment.cjs'], cwd=ROOT, env=client_env, check=True, timeout=90)
+                assert stored() == 1, 'The retry must not create a second report'
+                print('Client retry accepted once by the real HTTPS receiver: passed', flush=True)
             assert 'PRIVATE' not in run('logs')
             for service, user, memory in [('receiver', '10001:10001', 256), ('retention', '10001:10001', 64), ('proxy', '101:101', 128)]:
                 container = run('ps', '-q', service).strip()

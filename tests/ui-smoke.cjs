@@ -11,8 +11,15 @@ app.whenReady().then(async () => {
   const consentFile = path.join(app.getPath('userData'), 'statistics-consent.json')
   await fs.rm(consentFile, { force: true })
   let consentService = new ConsentService(consentFile)
+  let delivery = { revision: 0, configured: true, enabled: true, pending: 0, sending: false, sent: 0, failed: 0, excluded: 0, nextAttemptAt: null, error: null }
+  ipcMain.handle('duprove:delivery:get', () => delivery)
   ipcMain.handle('duprove:consent:get', () => consentService.snapshot())
-  ipcMain.handle('duprove:consent:set', (_event, request) => consentService.set(request))
+  ipcMain.handle('duprove:consent:set', (event, request) => {
+    const result = consentService.set(request)
+    delivery = { ...delivery, revision: delivery.revision + 1, enabled: !!consentService.current() }
+    event.sender.send('duprove:delivery:event', delivery)
+    return result
+  })
   const { emptySnapshot } = require('../.verification/tests/contracts/analysis.js')
   let analysis = emptySnapshot()
   ipcMain.handle('duprove:analysis:get', () => analysis)
@@ -84,6 +91,17 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate('document.querySelector(".brand img").naturalWidth > 0'), true)
   assert.equal(await activeDrive(), undefined, 'No disk selected initially')
   await screenshot('ui-empty')
+  delivery = { ...delivery, revision: delivery.revision + 1, sending: true }
+  window.webContents.send('duprove:delivery:event', delivery); await flush()
+  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Отправляется отчёт/)
+  delivery = { ...delivery, revision: delivery.revision + 1, sending: false, failed: 1 }
+  window.webContents.send('duprove:delivery:event', delivery); await flush()
+  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Не доставлено: 1/)
+  assert.equal(analysis.status, 'idle', 'Delivery failure is independent of analysis')
+  await screenshot('ui-delivery-failed')
+  delivery = { ...delivery, revision: delivery.revision + 1, failed: 0, sent: 1 }
+  window.webContents.send('duprove:delivery:event', delivery); await flush()
+  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Доставлено отчётов: 1/)
   await click('.sidebar-drives .drive-item:nth-child(3)')
   assert.equal(await activeDrive(), 'Диск D:', 'Card click selects and displays the same drive')
   assert.equal(await evaluate('document.querySelector(".sidebar-drives .drive-item:nth-child(3)").getAttribute("aria-checked")'), 'true')
