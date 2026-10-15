@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { analysisFinished, progressText, type AnalysisIssue, type AnalysisSnapshot, type DiskProgress } from '../../../contracts/analysis'
-import { driveName } from '../../components/DriveItem/DriveItem'
 import { operationLabels } from '../../components/DriveOverview/AnalysisActivity'
 import './AnalysisLogDialog.css'
 
@@ -28,12 +27,12 @@ export function AnalysisLogDialog({ job, disk, onClose }: { job: AnalysisSnapsho
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close() }, [])
   const finished = analysisFinished(job)
-  const drive = job.drives.find(d => d.path === disk.path)
+  const diskIndex = job.drives.findIndex(d => d.path === disk.path)
   const title = finished ? disk.errors ? 'Завершено с ошибками' : 'Анализ завершён'
     : job.status === 'stopped' ? 'Анализ остановлен' : 'Анализ прерван'
   const explained = disk.issues?.reduce((sum, issue) => sum + issue.count, 0) ?? 0
   return <dialog ref={ref} className="analysis-log-dialog" aria-labelledby="analysis-log-title" onClose={onClose}>
-    <header><div><p className="analysis-log-eyebrow">{drive ? driveName(drive) : disk.path}</p><h2 id="analysis-log-title">Журнал анализа</h2></div>
+    <header><div><p className="analysis-log-eyebrow">{diskIndex >= 0 ? `Накопитель ${diskIndex + 1}` : 'Накопитель'}</p><h2 id="analysis-log-title">Журнал анализа</h2></div>
       <button autoFocus className="analysis-log-close" aria-label="Закрыть журнал" onClick={onClose}>×</button></header>
     <div className="analysis-log-body">
       <div className="analysis-log-result"><strong>{title}</strong><b>{progressText(finished ? 100 : disk.overall_percent ?? 0)}%</b></div>
@@ -54,13 +53,12 @@ export function AnalysisLogDialog({ job, disk, onClose }: { job: AnalysisSnapsho
       <h3>События и ошибки</h3>
       {!!disk.issues?.length && <ol className="analysis-log-issues">{disk.issues.map((issue, index) => <li key={index}>
         <strong>{operationLabels[issue.operation]} · {number(issue.count)}</strong><p>{reasons[issue.code]}</p>
-        {issue.examples.length > 0 && <details><summary>Примеры путей ({issue.examples.length})</summary><ul>{issue.examples.map(path => <li key={path}>{path}</li>)}</ul></details>}
       </li>)}</ol>}
       {disk.errors > explained && <p>Для {number(disk.errors - explained)} ошибок подробности не записаны. В старых результатах сохранялось только число ошибок.</p>}
       {disk.errors === 0 && <p>{finished ? 'Проверка этого диска закончена без зарегистрированных ошибок.' : 'До остановки ошибок проверки не зарегистрировано.'}</p>}
-      {disk.errors > 0 && <p className="analysis-log-note">Число ошибок — число неудачных проверок, а не обязательно число файлов. Для каждой причины сохраняется до трёх примеров путей; слишком длинные пути не включаются.</p>}
-      {!finished && disk.work && <p>Последняя операция: {operationLabels[disk.work.operation]}.{disk.work.current && <span className="analysis-log-path">{disk.work.current}</span>}</p>}
-      <p className="analysis-log-note">Журнал хранится локально. Пути из журнала не входят в статистический отчёт.</p>
+      {disk.errors > 0 && <p className="analysis-log-note">Число ошибок — число неудачных проверок, а не обязательно число файлов.</p>}
+      {!finished && disk.work && <p>Последняя операция: {operationLabels[disk.work.operation]}.</p>}
+      <p className="analysis-log-note">Журнал хранится локально и содержит только причины, этапы и счётчики. Имена и пути файлов в журнал не записываются.</p>
       <p className="analysis-log-note">При новом запуске служебные каталоги .git и .pytest_cache исключаются из анализа. Старый журнал сохраняет ошибки прежнего запуска; для обновления результата нажмите «Повторить».</p>
     </div>
     <footer><button className="primary-button" onClick={onClose}>Закрыть</button></footer>

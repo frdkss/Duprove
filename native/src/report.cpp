@@ -20,6 +20,7 @@ void addFiles(json& value,const std::string& ext,int64_t n) {
 }
 
 json buildReport(DB& db,int diskCount,bool complete) {
+  if(diskCount<1 || diskCount>64) throw std::runtime_error("INVALID_DISK_COUNT");
   json total=summary(),disks=json::array(),categories=json::object();
   for(auto name:{"downloads","documents","videos","pictures","music","desktop"})categories[name]=summary();
   json standard=summary(),custom=summary(),groups=json::array();
@@ -31,7 +32,7 @@ json buildReport(DB& db,int diskCount,bool complete) {
     if(cat=="custom")addFiles(custom,ext,n);
     else{addFiles(categories.at(cat),ext,n);addFiles(standard,ext,n);}
   }
-  int64_t extra=0;
+  total["duplicates"]=0;
   Query grouped(db,"SELECT gid,count(*) FROM files WHERE gid>0 AND size>0 GROUP BY gid HAVING count(*)>1");
   while(grouped.next()) {
     auto copies=grouped.num(1);json exts=json::object(),locations=json::object(),cats=json::object();
@@ -51,10 +52,9 @@ json buildReport(DB& db,int diskCount,bool complete) {
     }
     if(inStandard)add(standard,"duplicate_groups",1);
     add(total,"duplicate_members",copies);add(total,"duplicate_groups",1);
-    extra+=copies-1;
+    add(total,"duplicates",copies-1);
     groups.push_back({{"copies",copies},{"duplicates",copies-1},{"extensions",exts},{"disks",locations},{"categories",cats}});
   }
-  total["duplicates"]=extra;
   return {{"schema_version",1},{"complete",complete},{"statistics",{
     {"total",total},{"disks",disks},{"locations",{{"standard",{{"total",standard},{"categories",categories}}},{"custom",custom}}}}},
     {"duplicates",groups}};

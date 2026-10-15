@@ -26,14 +26,14 @@ void discover(DB& db,const std::vector<std::string>& roots,const fs::path& worki
     auto& state=states[index];
     state["work"]={{"operation","discovering"},{"current",""},{"done",0},{"total",0},{"unit","directories"},{"read_bytes",0}};
     const auto base=fs::u8path(roots[index]);
-    auto error=[&](const char* code,const fs::path& path) { recordIssue(state,code,utf8(path),"discovering"); };
+    auto error=[&](const char* code) { recordIssue(state,code,"discovering"); };
     std::string device,rootIdentity;
     FileInfo rootInfo;
     try {
       if(excluded(base) || pathWithin(base,workingDirectory)) throw std::runtime_error("EXCLUDED_ROOT");
       Directory directory(base);
       rootInfo=directory.info(); device=rootInfo.device; rootIdentity=rootInfo.id;
-    } catch(const std::exception&) { state["phase"]="error"; error("root_unavailable",base); continue; }
+    } catch(const std::exception&) { state["phase"]="error"; error("root_unavailable"); continue; }
     queue(base,rootInfo,root);
     std::unordered_set<std::string> devices{device};
 #ifdef __APPLE__
@@ -56,15 +56,15 @@ void discover(DB& db,const std::vector<std::string>& roots,const fs::path& worki
       pending.reset();
       // Only filesystem failures are recoverable; database errors abort the job.
       try { directory=std::make_unique<Directory>(path,directory.get()); }
-      catch(const std::exception&) { error("directory_unavailable",path); directory.reset(); }
-      if(directory && (directory->info().id!=expected || !devices.count(directory->info().device))) { error("directory_changed",path); directory.reset(); }
+      catch(const std::exception&) { error("directory_unavailable"); directory.reset(); }
+      if(directory && (directory->info().id!=expected || !devices.count(directory->info().device))) { error("directory_changed"); directory.reset(); }
       if(directory) {
         const auto cat=folderCategory(path,folders);
         while(context.waitFor(root)) {
           FileEntry entry;
           try { if(!directory->next(entry)) break; }
-          catch(const std::exception&) { error("enumeration_failed",path); break; }
-          if(entry.error) error("metadata_unavailable",entry.path);
+          catch(const std::exception&) { error("enumeration_failed"); break; }
+          if(entry.error) error("metadata_unavailable");
           else if(entry.info.kind!=FileInfo::Kind::skip && !pathWithin(entry.path,workingDirectory)) {
             if(entry.info.kind==FileInfo::Kind::directory) {
               // Hidden, virtual and bind mounts are boundaries too.
@@ -96,8 +96,8 @@ void discover(DB& db,const std::vector<std::string>& roots,const fs::path& worki
     }
     directory.reset();
     transaction.commit();
-    try { Directory check(base); if(check.info().id!=rootIdentity) error("directory_changed",base); }
-    catch(const std::exception&) { error("directory_unavailable",base); }
+    try { Directory check(base); if(check.info().id!=rootIdentity) error("directory_changed"); }
+    catch(const std::exception&) { error("directory_unavailable"); }
     state["phase"]=context.controls[root]==2 ? "stopped" : "waiting";
     state["percent"]=nullptr;
   }

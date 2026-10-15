@@ -20,9 +20,6 @@
 .analysis-log-body h3 { font-size: 15px; margin-top: 20px; }
 .analysis-log-issues { list-style: none; padding: 0; }
 .analysis-log-issues>li { background: var(--color-panel); border-radius: 8px; padding: 12px; margin: 12px 0; }
-.analysis-log-issues summary { cursor: pointer; }
-.analysis-log-issues ul { padding-left: 20px; }
 .analysis-log-note { color: var(--color-muted); font-size: 12px; }
-.analysis-log-path { display: block; }
 .analysis-log-problem small { display: block; }
 .analysis-log-dialog footer button { min-width: 128px; height: 40px; font-size: 13px; }

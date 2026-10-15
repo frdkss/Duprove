@@ -31,6 +31,7 @@ jobs:
         run: xvfb-run -a npm run test:desktop
       - run: npm run test:backend
       - run: npm run test:native
+      - run: npm run test:statistics
       - run: npm run test:traversal
       - run: npm run test:comparison
       - run: npm run test:content

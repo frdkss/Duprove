@@ -1,10 +1,8 @@
 #pragma once
 #include "platform.h"
-#include <algorithm>
-
-// Local diagnostics only. Group repeats and retain at most three short examples
-// per reason/stage, so errors cannot create an unbounded stream of private paths.
-inline void recordIssue(json& state,const char* code,const std::string& path,const char* operation=nullptr) {
+// Only bounded codes, operations and counters may enter diagnostics.
+// Keep the empty examples array for compatibility with local protocol v1.
+inline void recordIssue(json& state,const char* code,const char* operation=nullptr) {
   state["errors"]=state["errors"].get<int64_t>()+1;
   if(!state.contains("issues")) state["issues"]=json::array();
   const std::string stage=operation ? operation : state.at("work").value("operation",std::string("validating"));
@@ -17,6 +15,4 @@ inline void recordIssue(json& state,const char* code,const std::string& path,con
     issue=&issues.back();
   }
   (*issue)["count"]=(*issue)["count"].get<int64_t>()+1;
-  auto& examples=(*issue)["examples"];
-  if(!path.empty() && path.size()<=1024 && examples.size()<3 && std::find(examples.begin(),examples.end(),path)==examples.end()) examples.push_back(path);
 }

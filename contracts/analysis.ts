@@ -31,6 +31,8 @@ export interface DiskProgress extends Summary {
   issues?: AnalysisIssue[]
 }
 export const issueCodes = ['root_unavailable', 'directory_unavailable', 'directory_changed', 'enumeration_failed', 'metadata_unavailable', 'file_unavailable_or_changed'] as const
+// examples is legacy input only: new diagnostics emit [], and JobService clears
+// old values before publishing or persisting them. It never enters a report.
 export interface AnalysisIssue { code: typeof issueCodes[number]; operation: AnalysisWork['operation']; count: number; examples: string[] }
 export interface StartAnalysis { version: 1; roots: string[]; mode: LoadMode; content: boolean }
 export interface AnalysisSnapshot {
