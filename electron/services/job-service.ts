@@ -4,7 +4,7 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { AnalysisTimingTracker } from './analysis-timing'
-import { activeJob, analysisFinished, emptySnapshot, isDiskProgress, isStartAnalysis, object, overallProgress, waitingDisk, type AnalysisSnapshot, type AnalysisDrive } from '../../contracts/analysis'
+import { activeJob, analysisFinished, emptySnapshot, isDiskProgress, isStartAnalysis, object, overallProgress, waitingDisk, type AnalysisSnapshot, type AnalysisDrive, type DiskProgress } from '../../contracts/analysis'
 import { isContentResult } from '../../contracts/content'
 import { listDrives, contentFromEvent, reportFromEvent } from './analyzer-service'
 import { writeLocalJson } from './local-json'
@@ -13,6 +13,13 @@ import { prepareReport, loadPreparedReport, savePreparedReport } from './report-
 
 export const WORK_FILE_THRESHOLD = 5 * 1024 * 1024
 const MAX_EVENT_BYTES = 32 * 1024 * 1024
+// Legacy snapshots/events may contain diagnostic paths. Discard these at ingress;
+// the live current path is kept in memory only and is unnecessary for resuming.
+function cleanProgress(disk: DiskProgress, persisted = false): DiskProgress {
+  return { ...disk,
+    ...(disk.issues ? { issues: disk.issues.map(issue => ({ ...issue, examples: [] })) } : {}),
+    ...(persisted && disk.work ? { work: { ...disk.work, current: '' } } : {}) }
+}
 export async function cleanupWorkFile(file: string, complete: boolean): Promise<void> {
   if (!complete) return
   try { if ((await stat(file)).size > WORK_FILE_THRESHOLD) await unlink(file) }
@@ -50,7 +57,7 @@ export class JobService extends EventEmitter {
           && typeof d.path === 'string' && d.path === (v.disks as AnalysisSnapshot['disks'])[i].path
           && Number.isSafeInteger(d.capacity) && Number(d.capacity) >= 0 && Number.isSafeInteger(d.available) && Number(d.available) >= 0)
         || !['running', 'paused', 'stopping', 'stopped', 'interrupted', 'completed', 'error'].includes(String(v.status))) throw new Error()
-      this.state = { ...emptySnapshot(), id: v.id, drives: v.drives as AnalysisDrive[], disks: v.disks,
+      this.state = { ...emptySnapshot(), id: v.id, drives: v.drives as AnalysisDrive[], disks: v.disks.map(d => cleanProgress(d, true)),
         mode: v.mode as AnalysisSnapshot['mode'], content: v.content as boolean,
         status: v.status === 'completed' ? 'completed' : 'interrupted' }
       // Restore summaries only from the separately validated report.
@@ -86,7 +93,8 @@ export class JobService extends EventEmitter {
   private publish(persist = false) {
     this.state.revision++
     if (persist || Date.now() - this.lastSave >= 1000) {
-      writeLocalJson(this.stateFile, this.state)
+      try { writeLocalJson(this.stateFile, { ...this.state, disks: this.state.disks.map(d => cleanProgress(d, true)) }) }
+      catch { throw new Error('JOB_SAVE_FAILED') }
       this.lastSave = Date.now()
     }
     this.emit('snapshot', this.snapshot())
@@ -141,6 +149,8 @@ export class JobService extends EventEmitter {
       const child = this.launchProcess(this.executable, input)
       this.child = child
       let buffer = '', result: ReturnType<typeof reportFromEvent> | null = null, failed = false
+      let prepared: ReturnType<typeof prepareReport> | null = null
+      let content: ReturnType<typeof contentFromEvent> | null = null
       const fail = (code: string) => { failed = true; this.state.error = code; child.kill() }
       child.stdin.on('error', () => { /* exit handler settles the job */ })
       child.stderr.resume() // Never log paths or arbitrary analyzer stderr.
@@ -159,18 +169,18 @@ export class JobService extends EventEmitter {
             if (event.type === 'error') { fail('ANALYZER_FAILED'); return }
             if (!Array.isArray(event.disks) || event.disks.length !== this.state.drives.length
               || !event.disks.every((d, i) => isDiskProgress(d) && path.normalize(d.path) === path.normalize(this.state.drives[i].path))) throw new Error()
-            this.state.disks = event.disks.map((d, i) => ({ ...d, path: this.state.drives[i].path,
+            this.state.disks = event.disks.map((d, i) => ({ ...cleanProgress(d), path: this.state.drives[i].path,
               overall_percent: overallProgress(d, this.state.content, this.state.disks[i]),
               timing: this.timing.observe(d, this.state.content, this.state.status === 'running') }))
             if (event.type === 'result') {
               result = reportFromEvent(event)
-              const content = contentFromEvent(event)
+              content = contentFromEvent(event)
               if (result.statistics.disks.length !== this.state.drives.length || content.enabled !== this.state.content) throw new Error()
               this.state.total = result.statistics.total
               this.state.warnings = { ...content.warning_pairs, limited: content.files.limit ?? 0 }
-              // Fresh consent at creation; all persistence stays in this worker.
-              savePreparedReport(this.reportPath(), prepareReport(result, new ConsentService(this.consentFile)))
-              writeLocalJson(path.join(this.directory, 'content.json'), content)
+              // Capture consent once at creation, but do not persist a report
+              // until a clean process exit confirms the final event.
+              prepared = prepareReport(result, new ConsentService(this.consentFile))
               // No further commands follow a final result. Release the CLI's
               // input reader so runtime shutdown cannot wait on an open pipe.
               child.stdin.end()
@@ -183,6 +193,7 @@ export class JobService extends EventEmitter {
         this.busy = true
         if (this.stopTimer) clearTimeout(this.stopTimer)
         this.child = null
+        if (!failed && buffer.trim()) { failed = true; this.state.error = 'INVALID_ANALYZER_EVENT' }
         const stopped = this.state.status === 'stopping'
         this.state.status = stopped ? 'stopped' : !failed && code === 0 && result?.complete ? 'completed' : 'error'
         if (!stopped && this.state.status === 'error' && !this.state.error) this.state.error = result && code === 0 ? 'ANALYSIS_INCOMPLETE' : 'ANALYZER_INTERRUPTED'
@@ -190,6 +201,10 @@ export class JobService extends EventEmitter {
           for (const disk of this.state.disks) { disk.overall_percent = 100; disk.percent = 100 }
         }
         try {
+          if (!failed && code === 0 && prepared && content) {
+            savePreparedReport(this.reportPath(), prepared)
+            writeLocalJson(path.join(this.directory, 'content.json'), content)
+          }
           this.publish(true) // Persist result/state before deleting the only working copy.
           await cleanupWorkFile(this.database, this.state.status === 'completed')
         } catch { this.state.error = 'JOB_SAVE_FAILED'; this.state.status = 'error'; this.emit('snapshot', this.snapshot()) }

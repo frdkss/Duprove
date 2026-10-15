@@ -39,6 +39,8 @@
 Уровни проверки файлов, критерий точного совпадения и состояние этапа 4:
 [docs/file-comparison.md](docs/file-comparison.md).
 Формат отчёта: [contracts/README.md](contracts/README.md).
+Агрегация категорий, проверка и сохранение JSON, приватность журнала:
+[docs/statistics.md](docs/statistics.md).
 
 «Настройки → Дополнительно → Отправлять анонимную статистику» — отправка статистики
 для школьного проекта. По умолчанию включено для нового профиля; ранее сохранённый
@@ -76,6 +78,7 @@ npm run build
 npm test
 npm run test:backend
 npm run test:native
+npm run test:statistics
 npm run test:traversal
 npm run test:comparison
 npm run test:content

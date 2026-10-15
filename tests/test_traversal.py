@@ -144,7 +144,7 @@ class TraversalTests(unittest.TestCase):
         self.assertGreater(event['disks'][0]['errors'], 0)
         self.assertEqual(event['report']['statistics']['total']['files'], 1)
         self.assertEqual(event['disks'][0]['issues'][0]['code'], 'root_unavailable')
-        self.assertEqual(event['disks'][0]['issues'][0]['examples'], [str(self.base / 'missing')])
+        self.assertEqual(event['disks'][0]['issues'][0]['examples'], [])
         self.assertNotIn('issues', event['report'])
 
     @unittest.skipUnless(os.name == 'nt', 'Windows sharing rules')
@@ -170,7 +170,7 @@ class TraversalTests(unittest.TestCase):
         self.assertEqual(event['report']['statistics']['total']['duplicates'], 0)
         self.assertEqual(event['disks'][0]['issues'][0]['code'], 'file_unavailable_or_changed')
         self.assertEqual(event['disks'][0]['issues'][0]['operation'], 'hashing')
-        self.assertEqual(event['disks'][0]['issues'][0]['examples'], [str(locked)])
+        self.assertEqual(event['disks'][0]['issues'][0]['examples'], [])
 
     def test_directory_links_and_cycles(self):
         outside = self.base / 'unselected'

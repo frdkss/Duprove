@@ -116,7 +116,7 @@ int scan(const json& job,ScanContext& context) {
   for(int root=0;root<count;++root) if(states[root]["phase"]=="waiting") work(root,"preparing","files",nullptr);
   send();
   Query invalidate(db,"UPDATE files SET hash='',gid=0 WHERE path=?");
-  auto invalid=[&](const std::string& path,int root) { invalidate.reset(); invalidate.bind(1,path); invalidate.next(); recordIssue(states[root],"file_unavailable_or_changed",path); };
+  auto invalid=[&](const std::string& path,int root) { invalidate.reset(); invalidate.bind(1,path); invalidate.next(); recordIssue(states[root],"file_unavailable_or_changed"); };
   // Materialize candidate sizes once, shared by all selected roots.
   db.exec("CREATE TEMP TABLE candidate_sizes(size INTEGER PRIMARY KEY); INSERT INTO candidate_sizes SELECT size FROM files WHERE size>0 GROUP BY size HAVING count(*)>1;");
   Query saveHash(db,"UPDATE files SET hash=? WHERE path=?");

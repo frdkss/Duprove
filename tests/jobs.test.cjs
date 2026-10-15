@@ -115,11 +115,23 @@ test('job runs with incremental state, refuses arbitrary roots, persists separat
   assert.ok(!JSON.stringify(report).includes('private.bin'))
   const saved = JSON.parse(await fs.readFile(path.join(f.directory, 'app/reports', `${start.id}.json`)))
   assert.equal(saved.consentGrantId, f.consent.current().grantId)
+  assert.deepEqual(saved.report, report)
+  const stateFile = path.join(f.directory, 'app/job.json')
+  const oldState = JSON.parse(await fs.readFile(stateFile, 'utf8'))
+  assert.ok(oldState.disks.every(d => !d.work || d.work.current === ''))
+  // Legacy diagnostic paths are discarded on restore and the file is rewritten.
+  oldState.disks[0].errors = 1
+  oldState.disks[0].issues = [{ code: 'metadata_unavailable', operation: 'discovering', count: 1, examples: ['PRIVATE_LEGACY_FILE'] }]
+  oldState.disks[0].work.current = 'PRIVATE_LEGACY_CURRENT'
+  await fs.writeFile(stateFile, JSON.stringify(oldState))
   const reopened = f.make(); f.services.push(reopened)
   await reopened.restore()
   assert.equal(reopened.snapshot().status, 'completed')
   assert.equal(reopened.snapshot().total.duplicates, 1)
   assert.deepEqual(reopened.snapshot().disks.map(d => d.overall_percent), [100, 100])
+  assert.deepEqual(reopened.snapshot().disks[0].issues[0].examples, [])
+  assert.equal(reopened.snapshot().disks[0].work.current, '')
+  assert.equal((await fs.readFile(stateFile, 'utf8')).includes('PRIVATE_LEGACY'), false)
   assert.equal((await fs.stat(path.join(f.directory, 'app/work/index.sqlite'))).isFile(), true)
 })
 test('pause, stop, service restart and explicit resume preserve job identity and revalidate files', async t => {
@@ -203,7 +215,7 @@ test('missing drive produces a recoverable partial result; corrupt state never a
   assert.ok(analysisFinished(result))
   assert.deepEqual(result.disks.map(d => d.overall_percent), [100, 100])
   assert.equal(result.disks[1].issues[0].code, 'root_unavailable')
-  assert.equal(result.disks[1].issues[0].examples[0], f.roots[1])
+  assert.deepEqual(result.disks[1].issues[0].examples, [])
   assert.equal((await f.service.report()).complete, false)
   assert.equal(JSON.stringify(await f.service.report()).includes('root_unavailable'), false, 'Local diagnostics stay out of public report')
   await f.service.shutdown()
@@ -262,5 +274,41 @@ test('malformed or oversized analyzer output is bounded and cannot become a save
     const result = await until(service, s => s.status === 'error')
     assert.equal(result.error, expected)
     assert.equal(await service.report(), null)
+  }
+})
+
+test('a report is persisted only after a clean exit and a complete event stream', async t => {
+  const { spawn } = require('node:child_process')
+  const f = await fixture(t, 16)
+  for (const [name, exitCode, tail, error] of [
+    ['clean', 0, '', null], ['crash', 42, '', 'ANALYZER_INTERRUPTED'],
+    ['truncated', 0, 'PRIVATE_TRAILING_DATA', 'INVALID_ANALYZER_EVENT']
+  ]) {
+    const directory = path.join(f.directory, name)
+    const source = `
+      const child = require('node:child_process').spawn(process.argv[1], process.argv.slice(2), {stdio:['pipe','pipe','pipe']});
+      child.stdout.pipe(process.stdout, {end:false}); child.stderr.resume();
+      process.stdin.pipe(child.stdin); child.stdin.on('error', () => {});
+      child.on('close', code => setTimeout(() => {
+        process.stdout.write(${JSON.stringify(tail)}); process.exitCode = code || ${exitCode};
+      }, 500));
+    `
+    const service = new JobService(binary, directory, path.join(f.directory, 'consent.json'),
+      async () => f.roots.map(p => ({ path: p, name: 'synthetic', capacity: 1, available: 1 })),
+      (executable, input) => spawn(process.execPath, ['-e', source, executable, '--job', input],
+        { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] }))
+    f.services.push(service)
+    await service.start(f.request)
+    await until(service, s => s.total !== null)
+    assert.equal(await service.report(), null, 'An event alone is not a committed report')
+    const result = await until(service, s => ['completed', 'error'].includes(s.status))
+    assert.equal(result.error, error)
+    assert.equal(result.status, error ? 'error' : 'completed')
+    assert.equal((await service.report()) !== null, !error)
+    assert.equal(JSON.stringify(result).includes('PRIVATE_TRAILING_DATA'), false)
+    if (error) {
+      await assert.rejects(fs.stat(path.join(directory, 'reports')), { code: 'ENOENT' })
+      assert.equal((await fs.stat(path.join(directory, 'work/index.sqlite'))).isFile(), true)
+    }
   }
 })
