@@ -177,8 +177,13 @@ class ServerTests(unittest.TestCase):
             self.assertEqual(result['status'], 503)
             self.assertFalse(result['body']['accepted'])
             self.assertNotIn('PRIVATE', json.dumps(result))
-        self.app = Application(replace(self.settings, processing_seconds=1e-9))
-        self.assertEqual(request(self.app)['status'], 503)
+        # Windows monotonic clocks may not tick during a short request. Advance
+        # the clock explicitly instead of relying on a nanosecond deadline.
+        with patch('duprove_backend.server.time.monotonic',
+                   side_effect=[100, 100 + self.settings.processing_seconds + 1]):
+            result = request(self.app)
+        self.assertEqual(result['status'], 503)
+        self.assertEqual(result['body']['error'], 'processing_timeout')
         with self.assertRaises(TimeoutError):
             self.app.store.save(PAYLOAD, deadline=time.monotonic() - 1)
         self.assertEqual(self.rows(), [])
