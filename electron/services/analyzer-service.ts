@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { isReport } from '../../contracts/validate'
 import type { Report } from '../../contracts/report'
+import { isContentResult, type ContentResult } from '../../contracts/content'
 import type { Drive } from '../bridge'
 
 const execute = promisify(execFile)
@@ -20,4 +21,11 @@ export function reportFromEvent(event: unknown): Report {
   if (!event || typeof event !== 'object' || !('type' in event) || event.type !== 'result' ||
     !('report' in event) || !isReport(event.report)) throw new Error('INVALID_REPORT')
   return event.report
+}
+
+export function contentFromEvent(event: unknown): ContentResult {
+  const report = reportFromEvent(event)
+  if (!event || typeof event !== 'object' || !('content' in event) || !isContentResult(event.content, report))
+    throw new Error('INVALID_CONTENT_RESULT')
+  return event.content
 }

@@ -30,6 +30,64 @@ class TraversalTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return json.loads(result.stdout.splitlines()[-1])
 
+    @unittest.skipUnless(os.name == 'nt', 'Windows extended-length paths')
+    def test_long_paths_are_discovered_and_compared(self):
+        nested = self.root
+        for index in range(4):
+            nested /= f'level-{index}-' + 'x' * 70
+        nested.mkdir(parents=True)
+        original = nested / 'first.txt'
+        copy = nested / 'second.txt'
+        self.assertGreater(len(str(original)), 300)
+        original.write_bytes(b'long path duplicate')
+        copy.write_bytes(b'long path duplicate')
+        event = self.scan()
+        self.assertTrue(event['report']['complete'])
+        self.assertEqual(event['disks'][0]['errors'], 0)
+        self.assertEqual(event['report']['statistics']['total']['files'], 2)
+        self.assertEqual(event['report']['statistics']['total']['duplicates'], 1)
+
+    def test_extensions_are_not_collapsed_into_other(self):
+        extensions = ['.my_format', '.long-' + 'x' * 30, '.данные', '.c++', '.tar.gz']
+        for ext in extensions:
+            (self.root / ('private-name' + ext)).write_bytes(b'copy')
+        event = self.scan()
+        self.assertTrue(event['report']['complete'])
+        self.assertEqual(event['disks'][0]['types'], {ext: 1 for ext in extensions})
+        self.assertEqual(event['report']['duplicates'][0]['extensions'], {ext: 1 for ext in extensions})
+
+    def test_pytest_cache_is_excluded_but_similar_names_and_environments_are_scanned(self):
+        cache = self.root / 'project' / '.pytest_cache'
+        cache.mkdir(parents=True)
+        (cache / 'cached').write_bytes(b'same')
+        for name in ('.pytest_cache-copy', '.venv', 'node_modules'):
+            folder = self.root / name
+            folder.mkdir()
+            (folder / 'file').write_bytes(b'same')
+        (self.root / 'visible').write_bytes(b'same')
+        # POSIX proves exclusion occurs before trying to open an unreadable cache.
+        if os.name != 'nt':
+            cache.chmod(0)
+        try:
+            event = self.scan()
+            self.assertTrue(event['report']['complete'])
+            self.assertEqual(event['disks'][0]['errors'], 0)
+            self.assertEqual(event['report']['statistics']['total']['files'], 4)
+            self.assertEqual(event['report']['statistics']['total']['duplicates'], 3)
+        finally:
+            if os.name != 'nt':
+                cache.chmod(0o700)
+        # A previously counted file moved into a cache must leave the reused index.
+        (self.root / '.pytest_cache-copy').rename(self.root / '.pytest_cache')
+        repeated = self.scan()
+        self.assertTrue(repeated['report']['complete'])
+        self.assertEqual(repeated['report']['statistics']['total']['files'], 3)
+        self.assertEqual(repeated['report']['statistics']['total']['duplicates'], 2)
+        import sqlite3
+        from contextlib import closing
+        with closing(sqlite3.connect(self.base / 'work/index.sqlite')) as db:
+            self.assertFalse(any('.pytest_cache/' in p.replace('\\', '/') for (p,) in db.execute('SELECT path FROM files')))
+
     def test_selection_hardlinks_and_read_only(self):
         nested = self.root / 'вложенный'
         nested.mkdir()
@@ -85,6 +143,9 @@ class TraversalTests(unittest.TestCase):
         self.assertEqual(event['disks'][0]['phase'], 'error')
         self.assertGreater(event['disks'][0]['errors'], 0)
         self.assertEqual(event['report']['statistics']['total']['files'], 1)
+        self.assertEqual(event['disks'][0]['issues'][0]['code'], 'root_unavailable')
+        self.assertEqual(event['disks'][0]['issues'][0]['examples'], [str(self.base / 'missing')])
+        self.assertNotIn('issues', event['report'])
 
     @unittest.skipUnless(os.name == 'nt', 'Windows sharing rules')
     def test_windows_locked_file_is_reported(self):
@@ -107,6 +168,9 @@ class TraversalTests(unittest.TestCase):
         self.assertFalse(event['report']['complete'])
         self.assertGreater(event['disks'][0]['errors'], 0)
         self.assertEqual(event['report']['statistics']['total']['duplicates'], 0)
+        self.assertEqual(event['disks'][0]['issues'][0]['code'], 'file_unavailable_or_changed')
+        self.assertEqual(event['disks'][0]['issues'][0]['operation'], 'hashing')
+        self.assertEqual(event['disks'][0]['issues'][0]['examples'], [str(locked)])
 
     def test_directory_links_and_cycles(self):
         outside = self.base / 'unselected'

@@ -111,7 +111,7 @@ json drives() {
 }
 bool excluded(const fs::path& p) {
   auto name=lower(utf8(p.filename()));
-  for(const auto& part:p) { const auto s=lower(utf8(part)); if(s==".git"||s=="$recycle.bin"||s=="system volume information") return true; }
+  for(const auto& part:p) { const auto s=lower(utf8(part)); if(s==".git"||s==".pytest_cache"||s=="$recycle.bin"||s=="system volume information") return true; }
 #ifdef _WIN32
   static const auto windows=[] { wchar_t win[32768]; const auto n=GetWindowsDirectoryW(win,32768); return n && n<32768 ? fs::path(win) : fs::path(); }();
   if(pathWithin(p,windows)) return true;
@@ -148,7 +148,5 @@ std::string extension(const fs::path& p) {
   auto name=lower(utf8(p.filename()));
   for(auto ext:{".tar.gz",".tar.bz2",".tar.xz",".tar.zst"}) { auto n=std::string(ext).size(); if(name.size()>n && name.compare(name.size()-n,n,ext)==0)return ext; }
   auto ext=lower(utf8(p.extension())); if(ext.empty()||ext==".")return "none";
-  if(ext.size()>20)return "other";
-  for(char c:ext) if(!(c=='.'||(c>='a'&&c<='z')||(c>='0'&&c<='9')))return "other";
   return ext;
 }

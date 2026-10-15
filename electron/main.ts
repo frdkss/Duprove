@@ -1,8 +1,30 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, Tray, Menu, Notification, nativeImage } from 'electron'
 import path from 'node:path'
 import { channels } from './bridge'
 import { listDrives } from './services/analyzer-service'
 import { ConsentService } from './services/consent-service'
+import { JobClient } from './services/job-client'
+import { activeJob } from '../contracts/analysis'
+import { getAutostart, setAutostart } from './services/autostart'
+
+let jobs: JobClient | undefined
+let tray: Tray | undefined
+let quitting = false
+let closing = false
+let notification: Notification | undefined
+function showWindow() {
+  const window = BrowserWindow.getAllWindows()[0]
+  if (window) { if (window.isMinimized()) window.restore(); window.show(); window.focus() }
+  else createWindow()
+}
+function ensureTray() {
+  if (tray) return
+  tray = new Tray(nativeImage.createFromPath(applicationIcon()).resize({ width: 20, height: 20 }))
+  tray.setToolTip('Duprove')
+  tray.setContextMenu(Menu.buildFromTemplate([{ label: 'Открыть Duprove', click: showWindow },
+    { label: 'Выйти и сохранить прогресс', click: () => app.quit() }]))
+  tray.on('click', showWindow)
+}
 
 if (process.platform === 'win32') app.setAppUserModelId('ru.duprove.desktop')
 
@@ -23,6 +45,12 @@ function createWindow() {
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', event => event.preventDefault())
+  window.on('close', event => {
+    if (!quitting && jobs && activeJob(jobs.snapshot().status)) {
+      event.preventDefault()
+      try { ensureTray(); window.hide() } catch { /* Keep the window reachable if the tray is unavailable. */ }
+    }
+  })
   const developmentUrl = !app.isPackaged && process.env.DUPROVE_DEV_URL
   if (developmentUrl === 'http://127.0.0.1:5173') void window.loadURL(developmentUrl)
   else void window.loadFile(path.join(__dirname, '../dist/index.html'))
@@ -35,9 +63,33 @@ else {
     const window = BrowserWindow.getAllWindows()[0]
     if (window) { if (window.isMinimized()) window.restore(); window.show(); window.focus() }
   })
-  void app.whenReady().then(() => {
+  void app.whenReady().then(async () => {
     if (process.platform === 'darwin') app.dock?.setIcon(applicationIcon())
     const consent = new ConsentService(path.join(app.getPath('userData'), 'statistics-consent.json'))
+    jobs = new JobClient(path.join(__dirname, 'analysis-worker.js'), { executable: executable(),
+      directory: path.join(app.getPath('userData'), 'analysis'), consentFile: path.join(app.getPath('userData'), 'statistics-consent.json') })
+    let previousStatus = 'idle'
+    jobs.on('snapshot', snapshot => {
+      for (const window of BrowserWindow.getAllWindows()) if (!window.webContents.isDestroyed()) window.webContents.send(channels.analysisEvent, snapshot)
+      if (snapshot.status === 'completed' && previousStatus !== 'completed' && BrowserWindow.getAllWindows().some(w => !w.isVisible())) {
+        tray?.setToolTip('Duprove — анализ завершён')
+        if (Notification.isSupported()) {
+          notification = new Notification({ title: 'Duprove', body: 'Анализ завершён. Результаты доступны в приложении.', icon: applicationIcon() })
+          notification.on('failed', () => { tray?.setToolTip('Duprove — анализ завершён, уведомление недоступно') })
+          notification.show()
+        }
+      }
+      previousStatus = snapshot.status
+    })
+    const trusted = (event: Electron.IpcMainInvokeEvent) => {
+      if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('INVALID_SENDER')
+    }
+    ipcMain.handle(channels.analysisGet, event => { trusted(event); return jobs!.snapshot() })
+    ipcMain.handle(channels.analysisStart, (event, request: unknown) => { trusted(event); return jobs!.call('start', request) })
+    ipcMain.handle(channels.analysisControl, (event, request: unknown) => { trusted(event); return jobs!.call('command', request) })
+    ipcMain.handle(channels.analysisReport, event => { trusted(event); return jobs!.call('report') })
+    ipcMain.handle(channels.autostartGet, event => { trusted(event); return getAutostart() })
+    ipcMain.handle(channels.autostartSet, (event, enabled: unknown) => { trusted(event); return setAutostart(enabled) })
     ipcMain.handle(channels.consentGet, event => {
       if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('INVALID_CONSENT_SENDER')
       return consent.snapshot()
@@ -46,7 +98,7 @@ else {
       if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('INVALID_CONSENT_SENDER')
       return consent.set(request)
     })
-    ipcMain.handle(channels.drives, () => listDrives(executable()))
+    ipcMain.handle(channels.drives, event => { trusted(event); return listDrives(executable()) })
     ipcMain.handle(channels.help, event => {
       if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) return
       return shell.openExternal('https://duprove.site/#instrucitons')
@@ -58,8 +110,16 @@ else {
       else if (action === 'maximize') { if (window.isMaximized()) window.unmaximize(); else window.maximize() }
       else if (action === 'close') window.close()
     })
+    await jobs.ready
     createWindow()
-    app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow() })
+    app.on('activate', showWindow)
   })
   app.on('window-all-closed', () => app.quit())
+  app.on('before-quit', event => {
+    if (quitting || !jobs) return
+    event.preventDefault()
+    if (closing) return
+    closing = true
+    void jobs.call('shutdown').catch(() => {}).finally(() => { quitting = true; tray?.destroy(); app.quit() })
+  })
 }

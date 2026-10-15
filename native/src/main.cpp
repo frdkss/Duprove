@@ -15,10 +15,15 @@ static int run(int argc,const std::vector<std::string>& argv) {
     auto context=std::make_shared<ScanContext>();
     context->emit=emit;
     context->loadMode=std::clamp(job.value("load",0),0,2);
-    std::thread([context] {std::string line;while(std::getline(std::cin,line))try {auto c=json::parse(line);auto action=c.value("action","");int root=c.value("disk",-1);
+    configureProcess(context->loadMode);
+    std::thread([context,managed=job.value("managed",false)] {std::string line;while(std::getline(std::cin,line))try {auto c=json::parse(line);auto action=c.value("action","");int root=c.value("disk",-1);
       if(action=="load")context->loadMode=std::clamp(c.value("value",0),0,2);
-      else if(root>=0&&root<64&&(action=="pause"||action=="stop"||action=="resume"))context->controls[root]=(action=="pause"?1:action=="stop"?2:0);
-    }catch(...){} }).detach();
+      else if((root==-1 || (root>=0&&root<64))&&(action=="pause"||action=="stop"||action=="resume")) {
+        const int value=action=="pause"?1:action=="stop"?2:0;
+        if(root==-1) for(auto& control:context->controls) control=value;
+        else context->controls[root]=value;
+      }
+    }catch(...){} if(managed) for(auto& control:context->controls) control=2; }).detach();
     return scan(job,*context);
   } catch(...) {emit({{"type","error"},{"message","Не удалось выполнить анализ. Проверьте доступ к рабочему каталогу."}});return 1;}
 }

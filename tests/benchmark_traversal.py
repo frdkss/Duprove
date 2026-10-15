@@ -13,8 +13,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--binary', type=Path, required=True)
 parser.add_argument('--files', type=int, default=20000)
 parser.add_argument('--runs', type=int, default=3)
+parser.add_argument('--files-per-directory', type=int, default=100)
+parser.add_argument('--depth', type=int, default=0)
 parser.add_argument('--output', type=Path)
 args = parser.parse_args()
+if args.files < 1 or args.runs < 1 or args.files_per_directory < 1 or args.depth < 0:
+    parser.error('fixture counts must be positive; depth must be nonnegative')
 fixtures = Path(__file__).resolve().parents[1] / '.verification/native-fixtures'
 fixtures.mkdir(parents=True, exist_ok=True)
 with tempfile.TemporaryDirectory(prefix='duprove-benchmark-', dir=fixtures if sys.platform == 'darwin' else None) as temporary:
@@ -22,8 +26,10 @@ with tempfile.TemporaryDirectory(prefix='duprove-benchmark-', dir=fixtures if sy
     root = base / 'data'
     root.mkdir()
     for i in range(args.files):
-        folder = root / str(i // 100)
-        folder.mkdir(exist_ok=True)
+        folder = root / str(i // args.files_per_directory)
+        for level in range(args.depth):
+            folder /= f'level-{level}'
+        folder.mkdir(parents=True, exist_ok=True)
         (folder / str(i)).touch()
     elapsed = []
     for run in range(args.runs):
@@ -38,7 +44,7 @@ with tempfile.TemporaryDirectory(prefix='duprove-benchmark-', dir=fixtures if sy
         assert report['complete'] and report['statistics']['total']['files'] == args.files
     summary = {'platform': os.name, 'files': args.files, 'runs_seconds': elapsed,
                'median_seconds': statistics.median(elapsed), 'files_per_second': args.files / statistics.median(elapsed),
-               'fixture': 'empty files, 100 per directory; fresh database; warm filesystem caches; high load'}
+               'fixture': f'empty files, {args.files_per_directory} per directory, {args.depth} extra levels; fresh database; warm filesystem caches; high load'}
     print(json.dumps(summary, indent=2))
     if args.output:
         args.output.write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')

@@ -15,7 +15,9 @@ struct FileEntry { fs::path path; FileInfo info; bool error = false; };
 // stay pinned against rename/replacement for the lifetime of the object.
 class Directory {
  public:
-  explicit Directory(const fs::path& path);
+  // Windows can share still-pinned common ancestors with the preceding directory.
+  // The new object owns those pins; the preceding object may then be destroyed.
+  explicit Directory(const fs::path& path, const Directory* preceding = nullptr);
   ~Directory();
   Directory(const Directory&) = delete;
   Directory& operator=(const Directory&) = delete;
@@ -30,7 +32,8 @@ class Directory {
 
 class FileReader {
  public:
-  explicit FileReader(const fs::path& path);
+  // A borrowed Windows parent must outlive this reader and pin the same path.
+  explicit FileReader(const fs::path& path, Directory* pinnedParent = nullptr);
   ~FileReader();
   FileReader(const FileReader&) = delete;
   FileReader& operator=(const FileReader&) = delete;
@@ -41,3 +44,14 @@ class FileReader {
   std::unique_ptr<Impl> impl;
 };
 bool inspectFile(const fs::path& path, FileInfo& result);
+
+// Reuse one pinned Windows directory chain across nearby paths. POSIX keeps
+// full path validation on each access because descriptors do not prevent rename.
+class DirectoryCursor {
+ public:
+  Directory* parent(const fs::path& path);
+  bool inspect(const fs::path& path,FileInfo& result);
+ private:
+  fs::path parentPath;
+  std::unique_ptr<Directory> directory;
+};
