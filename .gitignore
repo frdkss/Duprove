@@ -1,0 +1,14 @@
+TODO.md
+node_modules/
+dist/
+dist-electron/
+build/
+release/
+.verification/
+__pycache__/
+.venv/
+*.tsbuildinfo
+*.sqlite*
+.env
+.tools/
+service/logs/

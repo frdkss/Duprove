@@ -1,0 +1,6687 @@
+[
+  {
+    "name": "mixed extensions and cross-disk/category group",
+    "valid": true,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "partial result",
+    "valid": true,
+    "report": {
+      "schema_version": 1,
+      "complete": false,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty scan",
+    "valid": true,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 0,
+          "empty": 0,
+          "types": {},
+          "duplicate_members": 0,
+          "duplicate_groups": 0,
+          "duplicates": 0
+        },
+        "disks": [
+          {
+            "files": 0,
+            "empty": 0,
+            "types": {},
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "id": 0
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 0,
+              "empty": 0,
+              "types": {},
+              "duplicate_members": 0,
+              "duplicate_groups": 0
+            },
+            "categories": {
+              "downloads": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 0,
+            "empty": 0,
+            "types": {},
+            "duplicate_members": 0,
+            "duplicate_groups": 0
+          }
+        }
+      },
+      "duplicates": []
+    }
+  },
+  {
+    "name": "literal extension .my_format",
+    "valid": true,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 1,
+          "empty": 0,
+          "types": {
+            ".my_format": 1
+          },
+          "duplicate_members": 0,
+          "duplicate_groups": 0,
+          "duplicates": 0
+        },
+        "disks": [
+          {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".my_format": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "id": 0
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 0,
+              "empty": 0,
+              "types": {},
+              "duplicate_members": 0,
+              "duplicate_groups": 0
+            },
+            "categories": {
+              "downloads": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".my_format": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0
+          }
+        }
+      },
+      "duplicates": []
+    }
+  },
+  {
+    "name": "literal extension .long-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "valid": true,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 1,
+          "empty": 0,
+          "types": {
+            ".long-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx": 1
+          },
+          "duplicate_members": 0,
+          "duplicate_groups": 0,
+          "duplicates": 0
+        },
+        "disks": [
+          {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".long-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "id": 0
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 0,
+              "empty": 0,
+              "types": {},
+              "duplicate_members": 0,
+              "duplicate_groups": 0
+            },
+            "categories": {
+              "downloads": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".long-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0
+          }
+        }
+      },
+      "duplicates": []
+    }
+  },
+  {
+    "name": "literal extension .\u0434\u0430\u043d\u043d\u044b\u0435",
+    "valid": true,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 1,
+          "empty": 0,
+          "types": {
+            ".\u0434\u0430\u043d\u043d\u044b\u0435": 1
+          },
+          "duplicate_members": 0,
+          "duplicate_groups": 0,
+          "duplicates": 0
+        },
+        "disks": [
+          {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".\u0434\u0430\u043d\u043d\u044b\u0435": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "id": 0
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 0,
+              "empty": 0,
+              "types": {},
+              "duplicate_members": 0,
+              "duplicate_groups": 0
+            },
+            "categories": {
+              "downloads": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".\u0434\u0430\u043d\u043d\u044b\u0435": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0
+          }
+        }
+      },
+      "duplicates": []
+    }
+  },
+  {
+    "name": "literal extension .c++",
+    "valid": true,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 1,
+          "empty": 0,
+          "types": {
+            ".c++": 1
+          },
+          "duplicate_members": 0,
+          "duplicate_groups": 0,
+          "duplicates": 0
+        },
+        "disks": [
+          {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".c++": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "id": 0
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 0,
+              "empty": 0,
+              "types": {},
+              "duplicate_members": 0,
+              "duplicate_groups": 0
+            },
+            "categories": {
+              "downloads": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".c++": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0
+          }
+        }
+      },
+      "duplicates": []
+    }
+  },
+  {
+    "name": "literal extension .tar.gz",
+    "valid": true,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 1,
+          "empty": 0,
+          "types": {
+            ".tar.gz": 1
+          },
+          "duplicate_members": 0,
+          "duplicate_groups": 0,
+          "duplicates": 0
+        },
+        "disks": [
+          {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".tar.gz": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "id": 0
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 0,
+              "empty": 0,
+              "types": {},
+              "duplicate_members": 0,
+              "duplicate_groups": 0
+            },
+            "categories": {
+              "downloads": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".tar.gz": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0
+          }
+        }
+      },
+      "duplicates": []
+    }
+  },
+  {
+    "name": "literal extension .xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "valid": true,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 1,
+          "empty": 0,
+          "types": {
+            ".xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx": 1
+          },
+          "duplicate_members": 0,
+          "duplicate_groups": 0,
+          "duplicates": 0
+        },
+        "disks": [
+          {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "id": 0
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 0,
+              "empty": 0,
+              "types": {},
+              "duplicate_members": 0,
+              "duplicate_groups": 0
+            },
+            "categories": {
+              "downloads": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0
+          }
+        }
+      },
+      "duplicates": []
+    }
+  },
+  {
+    "name": "standard total counts shared group once",
+    "valid": true,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 1,
+                  ".jpg": 1
+                },
+                "duplicate_members": 1,
+                "duplicate_groups": 1
+              },
+              "documents": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".txt": 1
+                },
+                "duplicate_members": 1,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 1,
+            "downloads": 1,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "forbidden field at []",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ],
+      "path": "PRIVATE_FILENAME"
+    }
+  },
+  {
+    "name": "forbidden field at ['statistics']",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        },
+        "path": "PRIVATE_FILENAME"
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "forbidden field at ['statistics', 'total']",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2,
+          "path": "PRIVATE_FILENAME"
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "forbidden field at ['statistics', 'disks', 0]",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0,
+            "path": "PRIVATE_FILENAME"
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "forbidden field at ['statistics', 'locations']",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          },
+          "path": "PRIVATE_FILENAME"
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "forbidden field at ['statistics', 'locations', 'standard']",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            },
+            "path": "PRIVATE_FILENAME"
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "forbidden field at ['statistics', 'locations', 'standard', 'categories', 'documents']",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1,
+                "path": "PRIVATE_FILENAME"
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "forbidden field at ['statistics', 'locations', 'custom']",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "path": "PRIVATE_FILENAME"
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "forbidden field at ['duplicates', 0]",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          },
+          "path": "PRIVATE_FILENAME"
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid counter -1",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": -1,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid counter 1.5",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 1.5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid counter True",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": true,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid counter '5'",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": "5",
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid counter None",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": null,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid counter 9007199254740992",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 9007199254740992,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "version",
+    "valid": false,
+    "report": {
+      "schema_version": 2,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "missing complete",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty disks",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "noncontiguous disk ids",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 0
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "missing category",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "custom folder name",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "private": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "filename in type",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1,
+            "private.txt": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "uppercase extension",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".TXT": 3
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "oversized extension",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx": 3
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "path separator in extension",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1,
+            ".txt/private": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "windows separator in extension",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1,
+            ".txt\\private": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty file in group",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            "empty": 3
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "zero type count",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1,
+            ".zero": 0
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "copies mismatch",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 4,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "extras mismatch",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 3,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "extensions mismatch",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "unknown group disk",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "3": 3
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong group category",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "music": 3
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong total files",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 6,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong empty count",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 0,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong total groups",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 2,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong total extras",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 3
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong disk members",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong standard total",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 4,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "wrong types despite same sum",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".csv": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".txt": 2,
+            ".bin": 1
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  },
+  {
+    "name": "more duplicate type members than files",
+    "valid": false,
+    "report": {
+      "schema_version": 1,
+      "complete": true,
+      "statistics": {
+        "total": {
+          "files": 5,
+          "empty": 1,
+          "types": {
+            ".txt": 2,
+            ".bin": 1,
+            ".jpg": 1,
+            "empty": 1
+          },
+          "duplicate_members": 3,
+          "duplicate_groups": 1,
+          "duplicates": 2
+        },
+        "disks": [
+          {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "id": 0
+          },
+          {
+            "files": 3,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              ".jpg": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1,
+            "id": 1
+          }
+        ],
+        "locations": {
+          "standard": {
+            "total": {
+              "files": 3,
+              "empty": 0,
+              "types": {
+                ".txt": 2,
+                ".jpg": 1
+              },
+              "duplicate_members": 2,
+              "duplicate_groups": 1
+            },
+            "categories": {
+              "downloads": {
+                "files": 1,
+                "empty": 0,
+                "types": {
+                  ".jpg": 1
+                },
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "documents": {
+                "files": 2,
+                "empty": 0,
+                "types": {
+                  ".txt": 2
+                },
+                "duplicate_members": 2,
+                "duplicate_groups": 1
+              },
+              "videos": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "pictures": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "music": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              },
+              "desktop": {
+                "files": 0,
+                "empty": 0,
+                "types": {},
+                "duplicate_members": 0,
+                "duplicate_groups": 0
+              }
+            }
+          },
+          "custom": {
+            "files": 2,
+            "empty": 1,
+            "types": {
+              ".bin": 1,
+              "empty": 1
+            },
+            "duplicate_members": 1,
+            "duplicate_groups": 1
+          }
+        }
+      },
+      "duplicates": [
+        {
+          "copies": 3,
+          "duplicates": 2,
+          "extensions": {
+            ".bin": 3
+          },
+          "disks": {
+            "0": 2,
+            "1": 1
+          },
+          "categories": {
+            "documents": 2,
+            "custom": 1
+          }
+        }
+      ]
+    }
+  }
+]

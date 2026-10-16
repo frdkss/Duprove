@@ -1,0 +1,112 @@
+name: Publish stable desktop release
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: stable-desktop-release
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      publish: ${{ steps.plan.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Plan release from package version
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release-plan.mjs
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.publish == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04, macos-15-intel, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - if: runner.os == 'Windows'
+        shell: powershell
+        run: ./tests/test_update_windows.ps1
+      - if: runner.os == 'Windows'
+        name: Update Defender signatures before packaging
+        shell: powershell
+        run: Update-MpSignature -ErrorAction Stop
+      - run: npm run package
+      - run: npm test
+      - run: ctest --test-dir build/native -C Release --output-on-failure
+      - if: runner.os == 'Linux'
+        run: python tests/test_linux_installer.py
+      - if: runner.os == 'Linux'
+        run: python tests/test_update_linux.py
+      - if: runner.os == 'Linux'
+        run: python tests/test_linux_archive.py
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a node tests/packaged-startup.cjs release/linux-unpacked/duprove
+      - if: runner.os == 'macOS'
+        run: python tests/test_macos_package.py
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with:
+          name: defender-release-checks
+          path: .verification/defender/*.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.os }}
+          path: |
+            release/Duprove-*.exe
+            release/Duprove-*.tar.gz
+            release/Duprove-*.pkg
+            release/Duprove-*.dmg
+          if-no-files-found: error
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-22.04
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release
+          merge-multiple: true
+      - name: Sign update metadata
+        env:
+          DUPROVE_UPDATE_PRIVATE_KEY: ${{ secrets.DUPROVE_UPDATE_PRIVATE_KEY }}
+          DUPROVE_RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+        run: node scripts/release-manifest.mjs
+      - name: Publish all assets together
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "Duprove $TAG" --generate-notes
+          gh release upload "$TAG" release/*
+          gh release edit "$TAG" --draft=false --latest

@@ -1,0 +1,161 @@
+{
+  "name": "duprove",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Локальный анализ дубликатов файлов",
+  "author": "frdkss",
+  "license": "GPL-3.0-only",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "server:dev": "node scripts/server-dev.mjs up",
+    "server:check": "node scripts/server-dev.mjs check",
+    "server:stop": "node scripts/server-dev.mjs stop",
+    "build": "npm run icons && tsc --noEmit && vite build && node scripts/build-electron.mjs",
+    "icons": "node scripts/build-icons.mjs",
+    "native:configure": "cmake -S native -B build/native",
+    "native:build": "cmake --build build/native --config Release",
+    "check:defender": "node scripts/check-windows-defender.cjs",
+    "start": "node scripts/run-electron.mjs .",
+    "test": "node scripts/build-tests.mjs && node --test tests/*.test.cjs",
+    "test:native": "python tests/test_analyzer.py",
+    "test:statistics": "python tests/test_statistics.py",
+    "test:traversal": "python tests/test_traversal.py",
+    "test:comparison": "python tests/test_comparison.py",
+    "test:content": "python tests/test_content.py",
+    "test:resume": "python tests/test_resume.py",
+    "test:runtime": "python tests/test_runtime.py",
+    "test:desktop": "node scripts/build-lifecycle-test.mjs && node scripts/run-electron.mjs tests/desktop-lifecycle.cjs",
+    "package": "node scripts/package-desktop.mjs",
+    "package:linux": "node scripts/package-desktop.mjs linux",
+    "package:mac": "node scripts/package-desktop.mjs darwin",
+    "test:installer": "python tests/test_linux_installer.py",
+    "test:drives": "python tests/test_drives.py",
+    "test:backend": "python -m unittest discover -s tests -p test_contract.py",
+    "test:server": "python -m unittest discover -s tests -p test_server.py",
+    "test:server:deployment": "python tests/test_server_deployment.py",
+    "test:delivery:deployment": "python tests/test_server_deployment.py --client-tests",
+    "test:ui": "node scripts/build-tests.mjs && node --check tests/ui-smoke.cjs && node scripts/run-electron.mjs tests/ui-smoke.cjs",
+    "test:startup": "node scripts/run-electron.mjs tests/app-startup.cjs"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "electron": "44.7.1",
+    "electron-builder": "26.15.3",
+    "esbuild": "^0.27.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0"
+  },
+  "build": {
+    "appId": "ru.duprove.desktop",
+    "productName": "Duprove",
+    "icon": "public/logo.png",
+    "beforePack": "scripts/verify-package.cjs",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "installer",
+        "to": "updater",
+        "filter": ["update-linux.sh", "update-windows.ps1"]
+      },
+      {
+        "from": "build/native/licenses",
+        "to": "licenses"
+      },
+      {
+        "from": "docs/statistics-notice.txt",
+        "to": "statistics-notice.txt"
+      },
+      {
+        "from": "build/native/bin",
+        "to": "analyzer",
+        "filter": [
+          "duprove-analyzer*"
+        ]
+      }
+    ],
+    "artifactName": "Duprove-${version}-${os}-${arch}.${ext}",
+    "win": {
+      "icon": "public/logo.ico",
+      "target": [
+        "nsis"
+      ],
+      "signExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "include": "installer/installer.nsh",
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "target": [
+        "tar.gz"
+      ],
+      "executableName": "duprove",
+      "extraFiles": [
+        { "from": "installer/linux/install.sh", "to": "install.sh" },
+        { "from": "installer/linux/README.txt", "to": "INSTALL.txt" }
+      ],
+      "category": "Utility",
+      "maintainer": "frdkss"
+    },
+    "mac": {
+      "target": [
+        "pkg",
+        "dmg"
+      ],
+      "category": "public.app-category.utilities",
+      "identity": null,
+      "extendInfo": {
+        "NSDocumentsFolderUsageDescription": "Duprove читает выбранные файлы для локального поиска дубликатов.",
+        "NSDownloadsFolderUsageDescription": "Duprove читает выбранные файлы для локального поиска дубликатов.",
+        "NSDesktopFolderUsageDescription": "Duprove читает выбранные файлы для локального поиска дубликатов.",
+        "NSRemovableVolumesUsageDescription": "Duprove читает выбранные внешние накопители для локального поиска дубликатов.",
+        "NSNetworkVolumesUsageDescription": "Duprove читает выбранные сетевые тома для локального поиска дубликатов."
+      }
+    },
+    "dmg": {
+      "backgroundColor": "#f4f9f7",
+      "window": { "width": 540, "height": 380 },
+      "contents": [
+        { "x": 130, "y": 140, "type": "file" },
+        { "x": 410, "y": 140, "type": "link", "path": "/Applications" },
+        { "x": 270, "y": 280, "type": "file", "path": "docs/statistics-notice.txt", "name": "О данных.txt" }
+      ]
+    },
+    "pkg": {
+      "welcome": "build/installer/macos-welcome.html",
+      "installLocation": "/Applications",
+      "allowAnywhere": false,
+      "allowCurrentUserHome": true,
+      "allowRootDirectory": true,
+      "isRelocatable": false,
+      "mustClose": ["ru.duprove.desktop"]
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "frdkss",
+        "repo": "Duprove"
+      }
+    ]
+  }
+}

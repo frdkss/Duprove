@@ -1,0 +1,4 @@
+.brand { display: flex; align-items: center; gap: 0.625rem; padding: 1.3125rem 1.125rem 1.75rem; }
+.brand span { color: var(--color-ink); font-size: 1.75rem; font-weight: 700; letter-spacing: -0.075rem; }
+
+.brand img { width: 2.125rem; height: 2.125rem; }
