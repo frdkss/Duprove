@@ -7,8 +7,10 @@ const { waitForMain } = require('./helpers/packaged-readiness.cjs')
 if (process.argv.length !== 3) throw Error('Usage: node tests/packaged-startup.cjs <packaged executable>')
 const profile = mkdtempSync(path.join(tmpdir(), 'duprove-packaged-ui-'))
 const binary = process.argv[2]
+const environment = { ...process.env, XDG_CONFIG_HOME: profile }
+delete environment.ELECTRON_RUN_AS_NODE
 const child = spawn(binary, ['--inspect=0', `--user-data-dir=${profile}`], {
-  env: { ...process.env, XDG_CONFIG_HOME: profile, ELECTRON_RUN_AS_NODE: '' },
+  env: environment,
   stdio: ['ignore', 'pipe', 'pipe']
 })
 let socket
@@ -65,8 +67,8 @@ async function check() {
       for (let i=0; i<100; i++) {
         const window = BrowserWindow.getAllWindows()[0];
         if (window && !window.webContents.isLoading()) {
-          const result = await window.webContents.executeJavaScript('(async()=>{if(!window.duprove || !document.querySelector("h1")) return null; return {drives:await window.duprove.listDrives(),consent:await window.duprove.getStatisticsConsent()};})()');
-          if (result) return {packaged:app.isPackaged,visible:window.isVisible(),count:result.drives.length,root:result.drives.some(d=>d.path==="/"),decision:result.consent.decision};
+          const result = await window.webContents.executeJavaScript('(async()=>{if(!window.duprove || !document.querySelector("h1")) return null; return {drives:await window.duprove.listDrives(),consent:await window.duprove.getStatisticsConsent(),rendered:document.querySelectorAll(".sidebar-drives .drive-item").length};})()');
+          if (result && result.rendered === result.drives.length) return {packaged:app.isPackaged,visible:window.isVisible(),count:result.drives.length,paths:result.drives.map(d=>d.path),rendered:result.rendered,decision:result.consent.decision};
         }
         await new Promise(resolve=>setTimeout(resolve,100));
       }
@@ -76,8 +78,9 @@ async function check() {
     const value = response.result.result.value
     assert.equal(value.packaged, true)
     assert.equal(value.visible, true)
-    assert.equal(value.root, true)
+    assert.ok(process.platform === 'win32' ? value.paths.some(p => /^[a-z]:[\\/]+$/i.test(p)) : value.paths.includes('/'), 'A system drive must be listed')
     assert.ok(value.count > 0)
+    assert.equal(value.rendered, value.count, 'The actual drive list must appear in the renderer')
     assert.equal(value.decision, 'default-enabled')
     console.log('PACKAGED_STARTUP_OK: visible window; real preload/native drives; fresh profile enabled; count=' + value.count)
     finish()

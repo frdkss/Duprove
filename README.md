@@ -57,13 +57,16 @@
 подключён; без настроенного адреса отчёты остаются локально. Установщик Windows показывает информацию о данных без отдельного
 подтверждения согласия. Подробности и границы реализации: [docs/consent.md](docs/consent.md).
 
-Пакеты: Windows — NSIS, Linux — `tar.gz` с `install.sh`, macOS — `.pkg` и `.dmg` для Intel
+Пакеты: Windows — мастер NSIS с выбором папки, обязательной галочкой принятия
+GNU GPL v3 из `LICENSE` и деинсталлятором; Linux — `tar.gz` с `install.sh`, macOS — `.pkg` и `.dmg` для Intel
 и Apple Silicon. В Linux информация о данных показывается до копирования файлов,
 в macOS PKG — на первой странице установщика; в DMG рядом с приложением лежит
 файл «О данных.txt». Сборка: `npm run package` на целевой ОС;
 подробности — [docs/installation.md](docs/installation.md).
 Проверка Windows Defender при упаковке и текущее срабатывание:
 [docs/windows-defender.md](docs/windows-defender.md).
+Изолированная диагностическая лестница: `npm run diagnose:defender` на Windows;
+[результаты и аудит Authenticode](docs/windows-defender-diagnosis.md).
 Обнаружение смонтированных томов и ограничения проверки Linux/macOS:
 [docs/drive-discovery.md](docs/drive-discovery.md).
 

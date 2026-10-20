@@ -70,11 +70,9 @@ with tempfile.TemporaryDirectory(prefix='runtime-', dir=fixtures) as temporary:
                'peak_commit_mib': round(peak_private / 1024 ** 2, 2)}
         row['hash_workers'] = result['resources'].get('hash_workers', 1)
         row['cpu_percent_machine'] = round(row['cpu_percent_one_core'] / (os.cpu_count() or 1), 2)
-        if mode < 2:
-            assert row['cpu_percent_one_core'] <= [65, 90][mode], row
+        assert row['cpu_percent_one_core'] <= [40, 65, 95][mode], row
         # The limiter permits a bounded 20 ms burst; the average includes startup.
-        if mode < 2:
-            assert row['read_mib_s'] <= [64, 256][mode] * 1.05, row
+        assert row['read_mib_s'] <= [16, 64, 128][mode] * 1.05, row
         assert row['peak_rss_mib'] <= [512, 1024, 2048][mode], row
         assert row['peak_commit_mib'] <= [512, 1024, 2048][mode], row
         results.append(row)

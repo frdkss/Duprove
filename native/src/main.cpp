@@ -25,7 +25,12 @@ static int run(int argc,const std::vector<std::string>& argv) {
       }
     }catch(...){} if(managed) for(auto& control:context->controls) control=2; }).detach();
     return scan(job,*context);
-  } catch(...) {emit({{"type","error"},{"message","Не удалось выполнить анализ. Проверьте доступ к рабочему каталогу."}});return 1;}
+  } catch(const std::exception& error) {
+    if(std::string(error.what())=="ANALYSIS_STORAGE_LIMIT") {
+      emit({{"type","error"},{"code","ANALYSIS_STORAGE_LIMIT"},{"message","Анализ остановлен: достигнут предел рабочей базы или осталось менее 512 МиБ свободного места."}});
+    } else emit({{"type","error"},{"message","Не удалось выполнить анализ. Проверьте доступ к рабочему каталогу."}});
+    return 1;
+  } catch(...) {emit({{"type","error"},{"message","Не удалось выполнить анализ."}});return 1;}
 }
 #ifdef _WIN32
 int wmain(int argc,wchar_t** argv) {

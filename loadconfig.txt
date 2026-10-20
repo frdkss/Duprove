@@ -1,0 +1,175 @@
+﻿Microsoft (R) COFF/PE Dumper Version 14.44.35229.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file F:\pyproj\Duprove\build\native\bin\duprove-analyzer.exe
+
+File Type: EXECUTABLE IMAGE
+
+  Section contains the following load config:
+
+            00000140 size
+                   0 time date stamp
+                0.00 Version
+                   0 GlobalFlags Clear
+                   0 GlobalFlags Set
+                   0 Critical Section Default Timeout
+                   0 Decommit Free Block Threshold
+                   0 Decommit Total Free Threshold
+    0000000000000000 Lock Prefix Table
+                   0 Maximum Allocation Size
+                   0 Virtual Memory Threshold
+                   0 Process Affinity Mask
+                   0 Process Heap Flags
+                   0 CSD Version
+                0000 Dependent Load Flag
+    0000000000000000 Edit List
+    000000014023F340 Security Cookie
+    00000001401CE570 Guard CF address of check-function pointer
+    00000001401CE580 Guard CF address of dispatch-function pointer
+    0000000000000000 Guard CF function table
+                   0 Guard CF function count
+            00000100 Guard Flags
+                       CF instrumented
+                0000 Code Integrity Flags
+                0000 Code Integrity Catalog
+            00000000 Code Integrity Catalog Offset
+            00000000 Code Integrity Reserved
+    0000000000000000 Guard CF address taken IAT entry table
+                   0 Guard CF address taken IAT entry count
+    0000000000000000 Guard CF long jump target table
+                   0 Guard CF long jump target count
+    0000000000000000 Dynamic value relocation table
+    0000000000000000 Hybrid metadata pointer
+    0000000000000000 Guard RF address of failure-function
+    0000000000000000 Guard RF address of failure-function pointer
+            00000000 Dynamic value relocation table offset
+                0000 Dynamic value relocation table section
+                0000 Reserved2
+    0000000000000000 Guard RF address of stack pointer verification function pointer
+            00000000 Hot patching table offset
+                0000 Reserved3
+    0000000000000000 Enclave configuration pointer
+    000000014021DA64 Volatile metadata pointer
+    0000000000000000 Guard EH continuation table
+                   0 Guard EH continuation count
+    00000001401CE578 Guard XFG address of check-function pointer
+    00000001401CE588 Guard XFG address of dispatch-function pointer
+    00000001401CE590 Guard XFG address of dispatch-table-function pointer
+    00000001401CE598 CastGuard OS determined failure mode
+    00000001401CE5A0 Guard memcpy function pointer
+
+    Volatile Metadata
+
+                      18 size
+                       3 min version (8003)
+                       3 max version (8003)
+        000000000021DA7C volatile access RVA table
+                     130 volatile access RVA table size
+        000000000021DBAC volatile range info table
+                      48 volatile range info table size
+
+    Volatile Access RVA Table
+
+          Address
+          --------
+           0000000140001014
+           0000000140195059
+           0000000140195109
+           00000001401969A0
+           0000000140198934
+           0000000140198950
+           0000000140198C9B
+           0000000140198CB4
+           0000000140198D69
+           0000000140198D82
+           0000000140198F6A
+           0000000140198FB2
+           0000000140198FCF
+           0000000140199103
+           000000014019914B
+           0000000140199168
+           00000001401993C2
+           00000001401993FB
+           0000000140199414
+           0000000140199452
+           000000014019A22D
+           000000014019A23C
+           000000014019A24E
+           000000014019A408
+           000000014019A988
+           000000014019A997
+           000000014019A9FA
+           000000014019AA4A
+           000000014019AA91
+           000000014019ADD0
+           000000014019B16F
+           000000014019B1BF
+           000000014019EA46
+           000000014019ECA0
+           000000014019FBB0
+           000000014019FBC3
+           000000014019FBF0
+           000000014019FC06
+           00000001401CC300
+           00000001401CC329
+           00000001401CC390
+           00000001401CC459
+           00000001401CC547
+           00000001401CC60A
+           00000001401CC60E
+           00000001401CC615
+           00000001401CC619
+           00000001401CC625
+           00000001401CC62C
+           00000001401CC636
+           00000001401CC63D
+           00000001401CC6AA
+           00000001401CC6B4
+           00000001401CC6BB
+           00000001401CC6BF
+           00000001401CC6CB
+           00000001401CC6D5
+           00000001401CC6E2
+           00000001401CC6EF
+           00000001401CC701
+           00000001401CC709
+           00000001401CC720
+           00000001401CC727
+           00000001401CC74B
+           00000001401CC773
+           00000001401CC787
+           00000001401CC7D3
+           00000001401CC7DA
+           00000001401CC7E1
+           00000001401CC7FB
+           00000001401CC823
+           00000001401CC845
+           00000001401CC891
+           00000001401CC898
+           00000001401CC89F
+           00000001401CCF19
+
+    Volatile Info Range Table
+
+          Ranges
+          -------
+          0000000140001010 - 0000000140001920
+          0000000140195050 - 0000000140199F30
+          0000000140199F60 - 000000014019A600
+          000000014019A660 - 000000014019FB40
+          000000014019FBB0 - 000000014019FD20
+          00000001401C5450 - 00000001401C5720
+          00000001401CC100 - 00000001401CCAB9
+          00000001401CCE70 - 00000001401CCE90
+          00000001401CCF10 - 00000001401CD21C
+
+  Summary
+
+        9000 .data
+        1000 .fptable
+       13000 .pdata
+       6D000 .rdata
+        2000 .reloc
+        1000 .rsrc
+      1CD000 .text

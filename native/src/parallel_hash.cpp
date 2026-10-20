@@ -1,16 +1,21 @@
 #include "parallel_hash.h"
+#include "load_profile.h"
 
 ParallelHasher::ParallelHasher(ScanContext& context,int selectedRoot,size_t candidates,int memoryMiB):owner(context),root(selectedRoot) {
   // Reserve headroom for per-thread stacks/allocator arenas under the process
   // memory limit (including Linux RLIMIT_AS), as well as SQLite and the report.
   const auto count=std::max<size_t>(1,std::min({candidates,
-    size_t(std::max(1u,std::thread::hardware_concurrency())),size_t(std::max(1,memoryMiB/128))}));
+    hashWorkerLimit(std::thread::hardware_concurrency()),size_t(std::max(1,memoryMiB/128))}));
+  workerCount=count;
   try { for(size_t i=0;i<count;++i) threads.emplace_back([this] { run(); }); }
   catch(...) { shutdown();throw; }
 }
 ParallelHasher::~ParallelHasher() { shutdown(); }
 void ParallelHasher::shutdown() {
-  stopping=true;available.notify_all();
+  // Change the condition under the same mutex as wait(): otherwise notify can
+  // arrive between a worker's predicate check and its wait, leaving join stuck.
+  { std::lock_guard<std::mutex> lock(mutex);stopping=true; }
+  available.notify_all();
   for(auto& thread:threads) if(thread.joinable()) thread.join();
 }
 std::future<HashResult> ParallelHasher::submit(std::string path,FileInfo expected,std::string cachedHash) {
@@ -22,7 +27,10 @@ std::future<HashResult> ParallelHasher::submit(std::string path,FileInfo expecte
 void ParallelHasher::run() {
   ScanContext local;
   local.loadMode=2;
-  local.pulse=[&] { local.controls[root]=stopping ? 2 : owner.controls[root].load(); };
+  local.regulateCpu=false;
+  // Do not read threads.size() here: workers start during construction.
+  local.readBudgetShare=1.0/workerCount;
+  local.pulse=[&] { local.controls[root]=stopping ? 2 : owner.controls[root].load();local.loadMode=owner.loadMode.load(); };
   local.readProgress=[&](int,size_t n) { bytes.fetch_add(n); };
   DirectoryCursor directory;
   for(;;) {

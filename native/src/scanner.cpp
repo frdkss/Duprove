@@ -1,5 +1,6 @@
 ﻿#include "scanner.h"
 #include "storage.h"
+#include "storage_budget.h"
 #include "comparison.h"
 #include "content.h"
 #include "traversal.h"
@@ -50,7 +51,13 @@ int scan(const json& job,ScanContext& context) {
   std::error_code ec;
   const auto status=fs::symlink_status(dbPath,ec);
   if(!ec && status.type()!=fs::file_type::not_found && status.type()!=fs::file_type::regular) throw std::runtime_error("INVALID_DATABASE");
+  const auto temporaryDirectory=fs::temp_directory_path();
+  auto storageAvailable=[&] { return storage::hasReserve(dbPath.parent_path()) && storage::hasReserve(temporaryDirectory); };
+  if(!storageAvailable()) throw std::runtime_error("ANALYSIS_STORAGE_LIMIT");
   DB db(utf8(dbPath));
+  db.exec("PRAGMA temp_store=FILE;");
+  storage::limitDatabase(db,"main",storage::databaseBytes);
+  storage::limitDatabase(db,"temp",storage::temporaryBytes);
   const int count=int(roots.size());
   json states=json::array();
   for(auto& root:roots) states.push_back({{"path",root},{"phase","waiting"},{"files",0},{"empty",0},{"duplicate_members",0},{"duplicate_groups",0},{"errors",0},{"percent",nullptr},{"types",json::object()}});
@@ -58,21 +65,33 @@ int scan(const json& job,ScanContext& context) {
   auto last=std::chrono::steady_clock::now();
   // SQLite may spend seconds sorting or grouping. This callback only publishes
   // in-memory state: querying the same connection here would be reentrant.
-  std::function<void()> databasePulse=[&] {
+  auto lastStorageCheck=std::chrono::steady_clock::now();
+  std::function<int()> databasePulse=[&] {
     for(;;) {
+      if(std::chrono::steady_clock::now()-lastStorageCheck>250ms) {
+        lastStorageCheck=std::chrono::steady_clock::now();
+        if(!storageAvailable()) { db.interruptionReason="ANALYSIS_STORAGE_LIMIT";return 1; }
+      }
       if(std::chrono::steady_clock::now()-last>250ms) { last=std::chrono::steady_clock::now();send(); }
       bool paused=false,running=false;
       for(int root=0;root<count;++root) { paused|=context.controls[root]==1;running|=context.controls[root]==0; }
       if(!paused || running) break;
       std::this_thread::sleep_for(25ms);
     }
+    // SQL work must obey CPU duty too. Disable callbacks here: progress may
+    // query SQLite and must never reenter this connection from its callback.
+    context.throttle(false);
+    return 0;
   };
-  sqlite3_progress_handler(db.db,10000,[](void* p) { (*static_cast<std::function<void()>*>(p))();return 0; },&databasePulse);
+  sqlite3_progress_handler(db.db,10000,[](void* p) {
+    try { return (*static_cast<std::function<int()>*>(p))(); }
+    catch(...) { return 1; } // Never unwind a C++ exception through SQLite.
+  },&databasePulse);
   struct ClearHandler { sqlite3* db; ~ClearHandler() { sqlite3_progress_handler(db,0,nullptr,nullptr); } } clearHandler{db.db};
   for(auto& state:states) state["work"]={{"operation","initializing"},{"current",""},{"done",0},{"total",nullptr},{"unit","files"},{"read_bytes",0}};
   send();
   db.exec(("PRAGMA cache_size=-"+std::to_string(loadProfile(context.loadMode.load()).databaseCacheMiB*1024)).c_str());
-  db.exec("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA temp_store=FILE; "
+  db.exec("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; "
           "CREATE TABLE IF NOT EXISTS files(path TEXT PRIMARY KEY,identity TEXT UNIQUE,root INTEGER,size INTEGER,mtime INTEGER,ctime INTEGER DEFAULT 0,ext TEXT,cat TEXT,name TEXT DEFAULT '',hash TEXT DEFAULT '',norm TEXT DEFAULT '',gid INTEGER DEFAULT 0,seen INTEGER DEFAULT 0); "
           "CREATE INDEX IF NOT EXISTS ix_size ON files(size); CREATE INDEX IF NOT EXISTS ix_hash ON files(hash); CREATE INDEX IF NOT EXISTS ix_gid ON files(gid); CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT);");
   bool hasChangeTime=false,hasName=false;

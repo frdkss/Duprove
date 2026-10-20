@@ -6,14 +6,25 @@ import { isContentResult, type ContentResult } from '../../contracts/content'
 import type { Drive } from '../bridge'
 
 const execute = promisify(execFile)
-export async function listDrives(executable: string): Promise<Drive[]> {
+type DriveRunner = (file: string, args: string[], options: { encoding: 'utf8'; timeout: number; maxBuffer: number; windowsHide: boolean }) => Promise<{ stdout: string }>
+export async function listDrives(executable: string, run: DriveRunner = execute): Promise<Drive[]> {
+  let stdout: string
   try {
-    const { stdout } = await execute(executable, ['--drives'], { encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024, windowsHide: true })
+    const result = await run(executable, ['--drives'], { encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024, windowsHide: true })
+    stdout = result.stdout
+  } catch (cause) {
+    const error = cause as NodeJS.ErrnoException & { killed?: boolean }
+    const code = error?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' ? 'ANALYZER_INVALID_DRIVES'
+      : error?.killed ? 'ANALYZER_TIMEOUT' : error?.code === 'ENOENT' ? 'ANALYZER_NOT_FOUND'
+      : error?.code === 'EACCES' || error?.code === 'EPERM' ? 'ANALYZER_ACCESS_DENIED' : 'ANALYZER_LAUNCH_FAILED'
+    throw new Error(code, { cause })
+  }
+  try {
     const data: unknown = JSON.parse(stdout)
     if (!Array.isArray(data) || !data.every(x => x && typeof x.path === 'string' && typeof x.name === 'string' &&
       Number.isSafeInteger(x.capacity) && x.capacity >= 0 && Number.isSafeInteger(x.available) && x.available >= 0)) throw new Error()
     return data.map(x => ({ path: x.path, name: x.name, capacity: x.capacity, available: x.available }))
-  } catch { throw new Error('ANALYZER_UNAVAILABLE') }
+  } catch (cause) { throw new Error('ANALYZER_INVALID_DRIVES', { cause }) }
 }
 
 

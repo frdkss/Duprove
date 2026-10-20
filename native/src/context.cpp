@@ -46,26 +46,25 @@ bool ScanContext::waitFor(int root) const {
   while(controls.at(root)==1) { pulse(); std::this_thread::sleep_for(25ms); }
   return controls.at(root)!=2;
 }
-void ScanContext::throttle() const {
+void ScanContext::throttle(bool notify) const {
+  if(!regulateCpu) { if(notify) pulse();return; }
   const auto now=Clock::now();
   const int mode=std::clamp(loadMode.load(),0,2);
   if(budgetMode!=mode) { budgetMode=mode; budgetStart=now; cpuStart=cpuSeconds(); }
-  if(mode==2) { pulse();return; }
   const auto due=budgetStart+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>((cpuSeconds()-cpuStart)/loadProfile(mode).cpuDuty));
   while(Clock::now()<due) {
-    pulse();
+    if(notify) pulse();
     bool stopped=true; for(const auto& control:controls) if(control!=2) { stopped=false;break; }
     if(stopped) break;
     sleepFor(std::min(std::chrono::nanoseconds(25ms),std::chrono::duration_cast<std::chrono::nanoseconds>(due-Clock::now())));
   }
   if(Clock::now()-budgetStart>1s) { budgetStart=Clock::now(); cpuStart=cpuSeconds(); }
-  pulse();
+  if(notify) pulse();
 }
 void ScanContext::accountRead(int root,size_t bytes) {
   readBytes+=bytes; readProgress(root,bytes);
   const auto now=Clock::now();
-  const auto limit=loadProfile(loadMode.load()).readMiB;
-  if(limit==0) { readDue=now;throttle();return; }
+  const auto limit=loadProfile(loadMode.load()).readMiB*readBudgetShare;
   // Carry 20 ms of credit: do not sleep separately for every tiny file or add
   // a full read delay on top of time already spent hashing/reading the chunk.
   readDue=std::max(now-20ms,readDue)+std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>(bytes/(limit*1024*1024)));
@@ -78,7 +77,7 @@ void ScanContext::accountRead(int root,size_t bytes) {
 void configureProcess(int mode) {
   const uint64_t memory=uint64_t(loadProfile(mode).memoryMiB)*1024*1024;
 #ifdef _WIN32
-  if(!SetPriorityClass(GetCurrentProcess(),mode==0 ? BELOW_NORMAL_PRIORITY_CLASS : NORMAL_PRIORITY_CLASS)) throw std::runtime_error("PRIORITY_FAILED");
+  if(!SetPriorityClass(GetCurrentProcess(),BELOW_NORMAL_PRIORITY_CLASS)) throw std::runtime_error("PRIORITY_FAILED");
   // Commit limit, not working set. The handle lives until process exit.
   HANDLE job=CreateJobObjectW(nullptr,nullptr);
   JOBOBJECT_EXTENDED_LIMIT_INFORMATION info{};
@@ -87,7 +86,7 @@ void configureProcess(int mode) {
   if(!job || !SetInformationJobObject(job,JobObjectExtendedLimitInformation,&info,sizeof(info)) ||
      !AssignProcessToJobObject(job,GetCurrentProcess())) { if(job) CloseHandle(job); throw std::runtime_error("MEMORY_LIMIT_FAILED"); }
 #else
-  if(setpriority(PRIO_PROCESS,0,mode==0 ? 10 : mode==1 ? 5 : 0)!=0) throw std::runtime_error("PRIORITY_FAILED");
+  if(setpriority(PRIO_PROCESS,0,10)!=0) throw std::runtime_error("PRIORITY_FAILED");
 #ifdef __APPLE__
   // macOS reserves large virtual ranges; RLIMIT_AS would reject normal allocations.
   // A watchdog caps resident memory, with up to one sampling interval of overshoot.
