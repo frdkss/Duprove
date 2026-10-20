@@ -57,7 +57,19 @@ export function MainWindow() {
     if (!window.duprove) { setStatus('Для доступа к накопителям откройте приложение Duprove.'); return }
     window.duprove.listDrives().then(data => {
       if (active) { setDrives(previous => [...data, ...previous.filter(d => !data.some(p => p.path === d.path))]); setStatus(data.length ? '' : 'Доступных накопителей не найдено.') }
-    }).catch(() => { if (active) setStatus('Не удалось получить список накопителей. Проверьте сборку анализатора.') })
+    }).catch(error => {
+      if (!active) return
+      const message = error instanceof Error ? error.message : String(error)
+      const reasons: Record<string, string> = {
+        ANALYZER_NOT_FOUND: 'Файл анализатора отсутствует. Проверьте журнал защиты Windows и состав установленного приложения.',
+        ANALYZER_ACCESS_DENIED: 'Windows отказала в запуске анализатора. Проверьте права доступа и журналы защиты.',
+        ANALYZER_TIMEOUT: 'Анализатор не вернул список за 15 секунд. Возможна задержка при обращении к сетевым дискам.',
+        ANALYZER_LAUNCH_FAILED: 'Анализатор не запустился или завершился с ошибкой. Причину можно проверить скриптом diagnose-windows-startup.ps1.',
+        ANALYZER_INVALID_DRIVES: 'Анализатор вернул некорректный список накопителей. Проверьте соответствие версии анализатора приложению.',
+      }
+      const code = Object.keys(reasons).find(code => message.includes(code))
+      setStatus(code ? `${reasons[code]} Код: ${code}` : 'Не удалось получить список накопителей. Причина неизвестна.')
+    })
     return () => { active = false }
   }, [])
   const activeDrive = drives.find(drive => drive.path === activePath)
@@ -105,7 +117,7 @@ export function MainWindow() {
     <main className="main-window"><header className="page-heading"><h1>{view === 'disks' ? 'Ваши диски' : 'Настройки'}</h1></header>
       {view !== 'settings' && <AppUpdate api={window.duprove}/>}
       {helpError && <p className="help-error" role="alert">{helpError}</p>}
-      {(analysisError || job.error) && <p className="help-error" role="alert">{analysisError || (job.error === 'ANALYSIS_INCOMPLETE' ? 'Анализ завершён с пропусками или ошибками доступа. Доступен неполный результат.' : 'Анализ прерван или не удалось сохранить данные. Можно повторить попытку.')} {job.error && <small>Код: {job.error}</small>}</p>}
+      {(analysisError || job.error) && <p className="help-error" role="alert">{analysisError || (job.error === 'ANALYSIS_STORAGE_LIMIT' ? 'Анализ остановлен: достигнут предел рабочей базы (512 МиБ), временных таблиц (256 МиБ) или осталось менее 512 МиБ свободного места. Сохранённые контрольные точки оставлены на диске.' : job.error === 'ANALYSIS_INCOMPLETE' ? 'Анализ завершён с пропусками или ошибками доступа. Доступен неполный результат.' : 'Анализ прерван или не удалось сохранить данные. Можно повторить попытку.')} {job.error && <small>Код: {job.error}</small>}</p>}
       {view === 'settings' ? <SettingsPanel theme={theme} onTheme={setTheme} api={window.duprove}/> : <>
         {status && !drives.length ? <div className="drive-empty" role="status"><Icon name="drive" size={44}/><p>{status}</p></div> : <div className="disk-workspace">
           {activeDrive ? <DriveOverview drive={activeDrive} progress={job.disks.find(d => d.path === activePath)} paused={job.status === 'paused'} running={job.status === 'running' || job.status === 'stopping'} finished={analysisFinished(job)} onShowLog={!locked && job.disks.some(d => d.path === activePath) ? () => setLogPath(activePath) : undefined} onNext={nextDrive ? () => setActivePath(nextDrive.path) : undefined} onPrevious={previousDrive ? () => setActivePath(previousDrive.path) : undefined}/> : <div className="drive-empty"><Icon name="drive" size={44}/><h2>Выберите диск</h2><p>Отметьте нужные накопители в разделе «Ваши диски» слева.</p></div>}

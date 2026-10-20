@@ -166,7 +166,7 @@ export class JobService extends EventEmitter {
           try {
             const event: unknown = JSON.parse(line)
             if (!object(event) || !['progress', 'result', 'error'].includes(String(event.type)) || result) throw new Error()
-            if (event.type === 'error') { fail('ANALYZER_FAILED'); return }
+            if (event.type === 'error') { fail(event.code === 'ANALYSIS_STORAGE_LIMIT' ? event.code : 'ANALYZER_FAILED'); return }
             if (!Array.isArray(event.disks) || event.disks.length !== this.state.drives.length
               || !event.disks.every((d, i) => isDiskProgress(d) && path.normalize(d.path) === path.normalize(this.state.drives[i].path))) throw new Error()
             this.state.disks = event.disks.map((d, i) => ({ ...cleanProgress(d), path: this.state.drives[i].path,

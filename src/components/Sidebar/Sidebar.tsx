@@ -10,9 +10,9 @@ import type { DiskProgress } from '../../../contracts/analysis'
 export type LoadMode = 'low' | 'medium' | 'high'
 export type View = 'disks' | 'settings'
 const modes = [
-  { id: 'low', label: 'Низкий', icon: 'leaf', description: 'Фоновый приоритет. CPU: до 60% одного ядра; чтение: до 64 МиБ/с; память анализатора: до 512 МиБ.' },
-  { id: 'medium', label: 'Средний', icon: 'medium', description: 'CPU: до 85% одного ядра; чтение: до 256 МиБ/с; память анализатора: до 1 ГиБ.' },
-  { id: 'high', label: 'Высокий', icon: 'high', description: 'Максимальная скорость: параллельное хеширование по числу логических процессоров (до 16 потоков), без ограничения скорости чтения и искусственных CPU-пауз. Память анализатора: до 2 ГиБ.' },
+  { id: 'low', label: 'Низкий', icon: 'leaf', description: 'Пониженный приоритет. Цель CPU: 35% одного ядра; чтение: до 16 МиБ/с; память анализатора: до 512 МиБ.' },
+  { id: 'medium', label: 'Средний', icon: 'medium', description: 'Пониженный приоритет. Цель CPU: 60% одного ядра; чтение: до 64 МиБ/с; память анализатора: до 1 ГиБ.' },
+  { id: 'high', label: 'Высокий', icon: 'high', description: 'Пониженный приоритет. Цель CPU: 90% одного ядра; чтение: до 128 МиБ/с. Параллельное хеширование: до половины логических процессоров, максимум 4 потока (минимум 1). Память анализатора: до 2 ГиБ.' },
 ] as const
 interface Props {
   locked?: boolean; progress?: DiskProgress[]; content: boolean; onContent(value: boolean): void

@@ -270,7 +270,8 @@ test('malformed or oversized analyzer output is bounded and cannot become a save
   const f = await fixture(t, 16)
   for (const [index, source, expected] of [
     [0, 'process.stdout.write("not JSON\\n"); setInterval(()=>{},1000)', 'INVALID_ANALYZER_EVENT'],
-    [1, 'process.stdout.write("x".repeat(33*1024*1024)); setInterval(()=>{},1000)', 'ANALYZER_OUTPUT_LIMIT']
+    [1, 'process.stdout.write("x".repeat(33*1024*1024)); setInterval(()=>{},1000)', 'ANALYZER_OUTPUT_LIMIT'],
+    [2, 'console.log(JSON.stringify({type:"error",code:"ANALYSIS_STORAGE_LIMIT"})); setInterval(()=>{},1000)', 'ANALYSIS_STORAGE_LIMIT']
   ]) {
     const service = new JobService(binary, path.join(f.directory, `bad-${index}`), path.join(f.directory, 'consent.json'),
       async () => f.roots.map(p => ({ path: p, name: 'synthetic', capacity: 1, available: 1 })),

@@ -1,5 +1,12 @@
 !include "nsDialogs.nsh"
 
+; electron-builder inserts the standard license page before the directory page.
+; Require an explicit check; do not combine license acceptance with statistics.
+!ifndef BUILD_UNINSTALLER
+  !define MUI_LICENSEPAGE_CHECKBOX
+  !define MUI_LICENSEPAGE_CHECKBOX_TEXT "Я принимаю условия GNU GPL v3."
+!endif
+
 ; Only this installer-owned marker permits automatic replacement. Unpacked and
 ; machine-wide installations are deliberately not treated as per-user NSIS.
 !macro customInstall
@@ -11,7 +18,7 @@
 !macroend
 
 ; Information only. No checkbox, consent write, or acceptance callback.
-; The future license flow must not treat installation as statistics consent.
+; The separate GPL license page must not be treated as statistics consent.
 !macro customWelcomePage
   Page custom DuproveDataNotice
   Function DuproveDataNotice

@@ -1,0 +1,217 @@
+﻿Microsoft (R) COFF/PE Dumper Version 14.44.35229.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file F:\pyproj\Duprove\build\native\bin\duprove-analyzer.exe
+
+File Type: EXECUTABLE IMAGE
+
+  Section contains the following imports:
+
+    SHELL32.dll
+             1401CE510 Import Address Table
+             140239E68 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         15A SHGetKnownFolderPath
+
+    ole32.dll
+             1401CE560 Import Address Table
+             140239EB8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          8C CoTaskMemFree
+
+    bcrypt.dll
+             1401CE520 Import Address Table
+             140239E78 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          25 BCryptHashData
+                           6 BCryptCreateHash
+                          1D BCryptFinishHash
+                           E BCryptDestroyHash
+                          23 BCryptGetProperty
+                          29 BCryptOpenAlgorithmProvider
+                           2 BCryptCloseAlgorithmProvider
+
+    KERNEL32.dll
+             1401CE000 Import Address Table
+             140239958 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         5F4 TryEnterCriticalSection
+                         1D3 FreeEnvironmentStringsW
+                         262 GetEnvironmentStringsW
+                         2C6 GetOEMCP
+                         1DB GetACP
+                         3BE IsValidCodePage
+                         55A SetEnvironmentVariableW
+                         593 SetStdHandle
+                         343 GetTimeZoneInformation
+                         4A6 ReadConsoleW
+                         569 SetFilePointerEx
+                         1AE FindFirstVolumeW
+                         1B9 FindNextVolumeW
+                         1C0 FindVolumeClose
+                         25A GetDriveTypeW
+                         293 GetLogicalDriveStringsW
+                         35B GetVolumePathNamesForVolumeNameW
+                         35D GetWindowsDirectoryW
+                          B2 CompareStringOrdinal
+                         3E3 LCMapStringEx
+                          9D CloseHandle
+                         625 WaitForSingleObject
+                         5C1 SetWaitableTimer
+                         11D CreateWaitableTimerExW
+                         2EE GetProcessTimes
+                         241 GetCurrentProcess
+                         582 SetPriorityClass
+                          EE CreateJobObjectW
+                          27 AssignProcessToJobObject
+                         574 SetInformationJobObject
+                          E6 CreateFileW
+                         19D FindClose
+                         1A3 FindFirstFileExW
+                         1B4 FindNextFileW
+                         272 GetFileInformationByHandle
+                         27A GetFileType
+                         4A9 ReadFile
+                         357 GetVolumeNameForVolumeMountPointW
+                         28D GetLastError
+                         273 GetFileInformationByHandleEx
+                         1C8 FlushFileBuffers
+                         33C GetTickCount
+                         481 QueryPerformanceCounter
+                         412 MapViewOfFile
+                          E3 CreateFileMappingW
+                         1CF FormatMessageA
+                         318 GetSystemTime
+                         31A GetSystemTimeAsFileTime
+                         64C WideCharToMultiByte
+                         1D4 FreeLibrary
+                         2A5 GetModuleHandleW
+                         5D4 SystemTimeToFileTime
+                         2E4 GetProcessHeap
+                         242 GetCurrentProcessId
+                         277 GetFileSize
+                         40D LockFileEx
+                         402 LocalFree
+                         2DD GetProcAddress
+                         5FC UnlockFile
+                         37F HeapDestroy
+                         37D HeapCompact
+                         37C HeapAlloc
+                         3F7 LoadLibraryW
+                         314 GetSystemInfo
+                         383 HeapReAlloc
+                         136 DeleteFileW
+                         133 DeleteFileA
+                         626 WaitForSingleObjectEx
+                         3F4 LoadLibraryA
+                          DE CreateFileA
+                         1CB FlushViewOfFile
+                         44B OutputDebugStringW
+                         26D GetFileAttributesExW
+                         26B GetFileAttributesA
+                         251 GetDiskFreeSpaceA
+                         1D0 FormatMessageW
+                         328 GetTempPathA
+                         5C8 Sleep
+                         423 MultiByteToWideChar
+                         385 HeapSize
+                         388 HeapValidate
+                         5FE UnmapViewOfFile
+                         270 GetFileAttributesW
+                          F6 CreateMutexW
+                         329 GetTempPathW
+                         5FD UnlockFileEx
+                         556 SetEndOfFile
+                         282 GetFullPathNameA
+                         568 SetFilePointer
+                         40C LockFile
+                         44A OutputDebugStringA
+                         254 GetDiskFreeSpaceW
+                         660 WriteFile
+                         285 GetFullPathNameW
+                         380 HeapFree
+                         37E HeapCreate
+                          25 AreFileApisANSI
+                         498 RaiseException
+                         395 InitializeCriticalSection
+                         157 EnterCriticalSection
+                         3F0 LeaveCriticalSection
+                         65F WriteConsoleW
+                         12F DeleteCriticalSection
+                         246 GetCurrentThreadId
+                         278 GetFileSizeEx
+                         290 GetLocaleInfoEx
+                         268 GetExitCodeThread
+                         296 GetLogicalProcessorInformationEx
+                         4EA ReleaseSRWLockExclusive
+                           0 AcquireSRWLockExclusive
+                          D4 CreateDirectoryW
+                         1A8 FindFirstFileW
+                         253 GetDiskFreeSpaceExW
+                         27C GetFinalPathNameByHandleW
+                          DC CreateFile2
+                         482 QueryPerformanceFrequency
+                         5CA SleepConditionVariableSRW
+                         513 RtlPcToFileHeader
+                         62E WakeConditionVariable
+                         62D WakeAllConditionVariable
+                         308 GetStringTypeW
+                         397 InitializeCriticalSectionEx
+                         153 EncodePointer
+                         128 DecodePointer
+                         1EA GetCPInfo
+                         39A InitializeSListHead
+                         5B8 SetUnhandledExceptionFilter
+                         301 GetStartupInfoW
+                         511 RtlLookupFunctionEntry
+                         517 RtlUnwindEx
+                         578 SetLastError
+                         1C2 FlsAlloc
+                         1C4 FlsGetValue
+                         1C6 FlsSetValue
+                         1C3 FlsFree
+                         516 RtlUnwind
+                         10F CreateThread
+                         187 ExitThread
+                         1D5 FreeLibraryAndExitThread
+                         2A4 GetModuleHandleExW
+                         3B8 IsProcessorFeaturePresent
+                         186 ExitProcess
+                         5D8 TerminateProcess
+                         303 GetStdHandle
+                         2A1 GetModuleFileNameW
+                         1FF GetCommandLineA
+                         200 GetCommandLineW
+                         509 RtlCaptureContext
+                         518 RtlVirtualUnwind
+                         3B0 IsDebuggerPresent
+                         5FB UnhandledExceptionFilter
+                         61A VirtualProtect
+                         3F6 LoadLibraryExW
+                          B3 CompareStringW
+                         3E4 LCMapStringW
+                         291 GetLocaleInfoW
+                         3C0 IsValidLocale
+                         349 GetUserDefaultLCID
+                         17B EnumSystemLocalesW
+                         229 GetConsoleOutputCP
+                         225 GetConsoleMode
+
+  Summary
+
+        9000 .data
+        1000 .fptable
+       13000 .pdata
+       6D000 .rdata
+        2000 .reloc
+        1000 .rsrc
+      1CD000 .text

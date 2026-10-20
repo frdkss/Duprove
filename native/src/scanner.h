@@ -13,8 +13,11 @@ struct ScanContext {
   std::function<void(int)> fileProgress = [](int) {};
   std::function<void(int,const std::string&)> currentFile = [](int,const std::string&) {};
   uint64_t readBytes=0, reusedHashes=0;
+  // Parallel readers divide the I/O budget; only their owner regulates CPU.
+  double readBudgetShare=1.0;
+  bool regulateCpu=true;
   bool waitFor(int root) const;
-  void throttle() const;
+  void throttle(bool notify=true) const;
   void accountRead(int root,size_t bytes);
  private:
   mutable int budgetMode=-1;

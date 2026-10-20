@@ -34,6 +34,7 @@ class ParallelHasher {
   void shutdown();
   ScanContext& owner;
   int root;
+  size_t workerCount=1;
   std::atomic<bool> stopping{false};
   std::atomic<uint64_t> bytes{0};
   std::mutex mutex;

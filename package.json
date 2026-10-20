@@ -16,6 +16,7 @@
     "native:configure": "cmake -S native -B build/native",
     "native:build": "cmake --build build/native --config Release",
     "check:defender": "node scripts/check-windows-defender.cjs",
+    "diagnose:defender": "node scripts/diagnose-defender.cjs",
     "start": "node scripts/run-electron.mjs .",
     "test": "node scripts/build-tests.mjs && node --test tests/*.test.cjs",
     "test:native": "python tests/test_analyzer.py",
@@ -93,6 +94,9 @@
     "artifactName": "Duprove-${version}-${os}-${arch}.${ext}",
     "win": {
       "icon": "public/logo.ico",
+      "extraFiles": [
+        { "from": "LICENSE", "to": "LICENSE.txt" }
+      ],
       "target": [
         "nsis"
       ],
@@ -103,6 +107,13 @@
       "perMachine": false,
       "allowElevation": false,
       "include": "installer/installer.nsh",
+      "license": "LICENSE",
+      "installerLanguages": ["ru_RU"],
+      "uninstallDisplayName": "Duprove ${version}",
+      "removeDefaultUninstallWelcomePage": false,
+      "deleteAppDataOnUninstall": false,
+      "createStartMenuShortcut": true,
+      "createDesktopShortcut": false,
       "allowToChangeInstallationDirectory": true
     },
     "linux": {

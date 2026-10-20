@@ -1,4 +1,5 @@
 #include "parallel_hash.h"
+#include "load_profile.h"
 #include <fstream>
 #include <iostream>
 using namespace std::chrono_literals;
@@ -25,13 +26,15 @@ int main() {
     owner.readProgress=[&](int,size_t) { calledOwner=true; };
     {
       ParallelHasher pool(owner,0,8);
-      require(pool.size()==std::min(8u,std::max(1u,std::thread::hardware_concurrency())),"worker sizing");
+      require(pool.size()==hashWorkerLimit(std::thread::hardware_concurrency()),"worker sizing");
       std::vector<std::future<HashResult>> jobs;
       for(int i=0;i<16;++i) jobs.push_back(pool.submit(utf8(file),expected,""));
       require(jobs.front().wait_for(100ms)==std::future_status::timeout,"paused worker ran");
       require(pool.takeReadBytes()==0,"paused worker read bytes");
+      const auto readStart=std::chrono::steady_clock::now();
       owner.controls[0]=0;
       for(auto& job:jobs) { const auto value=result(job);require(value.hash==known && value.readBytes==1000000 && !value.cacheHit,"parallel digest"); }
+      require(std::chrono::steady_clock::now()-readStart>=85ms,"parallel readers multiplied the I/O budget");
       require(pool.takeReadBytes()==16000000 && pool.takeReadBytes()==0,"aggregate reads counted once");
       auto cached=pool.submit(utf8(file),expected,known);
       const auto hit=result(cached);require(hit.hash==known && hit.cacheHit && hit.readBytes==0,"cached validation");
@@ -48,7 +51,9 @@ int main() {
     }
     owner.controls[0]=1;
     const auto before=std::chrono::steady_clock::now();
-    { ParallelHasher pool(owner,0,2);auto abandoned=pool.submit(utf8(file),info(file),""); }
+    for(int attempt=0;attempt<32;++attempt) {
+      ParallelHasher pool(owner,0,2);auto abandoned=pool.submit(utf8(file),info(file),"");
+    }
     require(std::chrono::steady_clock::now()-before<2s,"destructor stuck on paused worker");
     require(!calledOwner,"worker accessed main-thread callbacks");
     fs::remove_all(base);return 0;
