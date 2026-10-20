@@ -1,0 +1,392 @@
+const { app, BrowserWindow, ipcMain } = require('electron')
+const assert = require('node:assert/strict')
+const path = require('node:path')
+const fs = require('node:fs/promises')
+const root = path.resolve(__dirname, '..')
+app.setPath('userData', path.join(root, '.verification/ui-profile'))
+app.disableHardwareAcceleration()
+const timeout = setTimeout(() => { console.error('UI_TEST_TIMEOUT'); app.exit(1) }, 60000)
+app.whenReady().then(async () => {
+  const { ConsentService } = require('../.verification/tests/electron/services/consent-service.js')
+  const consentFile = path.join(app.getPath('userData'), 'statistics-consent.json')
+  await fs.rm(consentFile, { force: true })
+  let consentService = new ConsentService(consentFile)
+  let delivery = { revision: 0, configured: true, enabled: true, pending: 0, sending: false, sent: 0, failed: 0, excluded: 0, nextAttemptAt: null, error: null }
+  ipcMain.handle('duprove:delivery:get', () => delivery)
+  let update = { revision: 0, status: 'idle', currentVersion: '1.0.0', availableVersion: null, percent: null, restartAt: null, nextCheckAt: null, error: null }
+  ipcMain.handle('duprove:update:get', () => update)
+  ipcMain.handle('duprove:consent:get', () => consentService.snapshot())
+  ipcMain.handle('duprove:consent:set', (event, request) => {
+    const result = consentService.set(request)
+    delivery = { ...delivery, revision: delivery.revision + 1, enabled: !!consentService.current() }
+    event.sender.send('duprove:delivery:event', delivery)
+    return result
+  })
+  const { emptySnapshot } = require('../.verification/tests/contracts/analysis.js')
+  let analysis = emptySnapshot()
+  ipcMain.handle('duprove:analysis:get', () => analysis)
+  ipcMain.handle('duprove:autostart:get', () => ({ enabled: false, supported: true }))
+  ipcMain.handle('duprove:autostart:set', (_event, enabled) => ({ enabled, supported: true }))
+  ipcMain.handle('duprove:drives', () => ['C:', 'D:', 'E:'].map((name, i) => ({ path: name + String.fromCharCode(92), name: name + String.fromCharCode(92), capacity: (256 + i * 256) * 1024 ** 3, available: 128 * 1024 ** 3 })))
+  const actions = []
+  let helpOpened = 0
+  ipcMain.handle('duprove:window', (_event, action) => { actions.push(action) })
+  ipcMain.handle('duprove:help', () => { helpOpened++ })
+  const window = new BrowserWindow({ show: false, frame: false, width: 1280, height: 800,
+    webPreferences: { preload: path.join(root, 'dist-electron/preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, offscreen: true, backgroundThrottling: false } })
+  const evaluate = script => window.webContents.executeJavaScript(script).catch(error => { throw new Error(`${error.message}\nRenderer script: ${script}`) })
+  const flush = () => evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+  const settle = () => evaluate('new Promise(resolve => setTimeout(resolve, 300))')
+  const clickText = async text => { await evaluate(`Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === ${JSON.stringify(text)}).click()`); await flush() }
+  const click = async selector => { await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`); await flush() }
+  const activeDrive = () => evaluate('document.querySelector(".overview-heading h2")?.textContent')
+  const sectorColors = () => evaluate('Object.fromEntries(Array.from(document.querySelectorAll(".type-sector"), e => [e.dataset.type, e.getAttribute("stroke")]))')
+  const arrows = () => evaluate('Array.from(document.querySelectorAll(".drive-arrow")).map(button => button.getAttribute("aria-label"))')
+  const selectedDrives = () => evaluate('Array.from(document.querySelectorAll(".sidebar-drives .drive-item[aria-checked=true] strong")).map(label => label.textContent)')
+  const theme = async value => {
+    await evaluate(`(() => { const t = document.querySelector('[aria-label="Тема оформления"]'); t.value = ${JSON.stringify(value)}; t.dispatchEvent(new Event('change', { bubbles: true })); })()`)
+    await flush()
+  }
+  const screenshot = async name => {
+    await settle()
+    const buttonSizes = await evaluate('Array.from(document.querySelectorAll(".analysis-buttons button"), e => { const r = e.getBoundingClientRect(); return [r.width, r.height] })')
+    if (buttonSizes.length === 2) assert.deepEqual(buttonSizes[0], buttonSizes[1], `${name}: analysis buttons have identical width and height`)
+    assert.equal(await evaluate('document.documentElement.scrollWidth > innerWidth || document.querySelector("main").scrollWidth > document.querySelector("main").clientWidth'), false, `${name}: horizontal overflow`)
+    const clipped = await evaluate(`Array.from(document.querySelectorAll('.chart-row button,.overview-heading,.scan-footer,.page-heading')).filter(e => { const r=e.getBoundingClientRect(); return r.left < 0 || r.right > innerWidth; }).map(e => e.className)`)
+    assert.deepEqual(clipped, [], `${name}: controls outside window`)
+    assert.deepEqual(await evaluate(`(() => {
+      const workspace = document.querySelector('.disk-workspace');
+      if (!workspace) return [];
+      const bounds = workspace.getBoundingClientRect();
+      const issues = Array.from(workspace.querySelectorAll('.overview-summary,.scan-ring,.ring-content,.overview-progress,.extension-panel,.chart-legend,.drive-arrow'))
+        .filter(e => { const r = e.getBoundingClientRect(); return r.top < bounds.top - 1 || r.bottom > bounds.bottom + 1 || r.left < bounds.left - 1 || r.right > bounds.right + 1; }).map(e => e.className);
+      if (workspace.scrollHeight > workspace.clientHeight + 1 || workspace.scrollWidth > workspace.clientWidth + 1) issues.push('workspace overflow');
+      const ring = workspace.querySelector('.ring-content');
+      if (ring && ring.scrollHeight > ring.clientHeight + 1) issues.push('ring text overflow');
+      const panel = workspace.querySelector('.extension-panel');
+      if (panel && ring && panel.getBoundingClientRect().right > workspace.querySelector('.scan-ring').getBoundingClientRect().left) issues.push('legend must stay left of chart');
+      return issues;
+    })()`), [], `${name}: whole overview must fit without scrolling or clipping`)
+    await fs.writeFile(path.join(root, `.verification/${name}.png`), (await window.webContents.capturePage(undefined, { stayHidden: true, stayAwake: true })).toPNG())
+  }
+  const resize = (width, height) => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(Error('RESIZE_PAINT_TIMEOUT')), 5000)
+    const painted = (_event, _dirty, image) => {
+      if (image.getSize().width !== width) return
+      clearTimeout(timer); window.webContents.removeListener('paint', painted); resolve()
+    }
+    window.webContents.on('paint', painted)
+    window.setSize(width, height)
+    window.webContents.invalidate()
+  })
+  await window.loadFile(path.join(root, 'dist/index.html'))
+  await evaluate('localStorage.clear()')
+  await window.loadFile(path.join(root, 'dist/index.html'))
+  await evaluate(`new Promise((resolve, reject) => {
+    const until = Date.now() + 5000;
+    const check = () => document.querySelector('.drive-item') ? resolve() : Date.now() > until ? reject(Error('NO_DRIVE')) : setTimeout(check, 25);
+    check();
+  })`)
+  await fs.mkdir(path.join(root, '.verification'), { recursive: true })
+  assert.equal(await evaluate('typeof require'), 'undefined')
+  assert.equal(await evaluate('document.querySelector("[data-action=scan]").disabled'), true)
+  assert.equal(await evaluate('document.querySelector(".brand img").naturalWidth > 0'), true)
+  assert.equal(await activeDrive(), undefined, 'No disk selected initially')
+  await screenshot('ui-empty')
+  delivery = { ...delivery, revision: delivery.revision + 1, sending: true }
+  window.webContents.send('duprove:delivery:event', delivery); await flush()
+  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Отправляется отчёт/)
+  delivery = { ...delivery, revision: delivery.revision + 1, sending: false, failed: 1 }
+  window.webContents.send('duprove:delivery:event', delivery); await flush()
+  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Не доставлено: 1/)
+  assert.equal(analysis.status, 'idle', 'Delivery failure is independent of analysis')
+  await screenshot('ui-delivery-failed')
+  delivery = { ...delivery, revision: delivery.revision + 1, failed: 0, sent: 1 }
+  window.webContents.send('duprove:delivery:event', delivery); await flush()
+  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Доставлено отчётов: 1/)
+  await click('.sidebar-drives .drive-item:nth-child(3)')
+  assert.equal(await activeDrive(), 'Диск D:', 'Card click selects and displays the same drive')
+  assert.equal(await evaluate('document.querySelector(".sidebar-drives .drive-item:nth-child(3)").getAttribute("aria-checked")'), 'true')
+  assert.equal(await evaluate('document.querySelector(".sidebar-drives .select-all input").indeterminate'), true)
+  assert.deepEqual(await arrows(), [], 'A single selected disk has no navigation arrows')
+  await screenshot('ui-disks')
+  await click('.sidebar-drives .drive-item:nth-child(2)')
+  assert.equal(await activeDrive(), 'Диск C:')
+  assert.deepEqual(await arrows(), ['Следующий диск'], 'First selected disk has only a next arrow')
+  await screenshot('ui-first-selected')
+  await click('.next-drive')
+  assert.equal(await activeDrive(), 'Диск D:')
+  assert.deepEqual(await arrows(), ['Предыдущий диск'], 'Last selected disk has only a previous arrow')
+  assert.deepEqual(await selectedDrives(), ['Диск C:', 'Диск D:'], 'Navigation preserves selection')
+  await screenshot('ui-last-selected')
+  await click('.sidebar-drives .drive-item:nth-child(4)')
+  await click('.previous-drive')
+  assert.equal(await activeDrive(), 'Диск D:')
+  assert.deepEqual(await arrows(), ['Предыдущий диск', 'Следующий диск'], 'Middle selected disk has both arrows')
+  await click('.sidebar-drives .drive-item:nth-child(3)')
+  assert.equal(await activeDrive(), 'Диск C:', 'Deselecting the active disk chooses a remaining disk')
+  await click('.next-drive')
+  assert.equal(await activeDrive(), 'Диск E:', 'Navigation skips unselected disks')
+  await click('.previous-drive')
+  assert.equal(await activeDrive(), 'Диск C:', 'Back navigation skips unselected disks')
+  assert.deepEqual(await selectedDrives(), ['Диск C:', 'Диск E:'], 'Navigation does not select skipped disks')
+  await click('.sidebar-drives .drive-item:nth-child(2)')
+  assert.equal(await activeDrive(), 'Диск E:')
+  assert.deepEqual(await arrows(), [], 'Deselecting down to one disk removes both arrows')
+  await click('.sidebar-drives .drive-item:nth-child(4)')
+  assert.equal(await activeDrive(), undefined, 'Deselecting the last disk clears the overview')
+  await click('.sidebar-drives .select-all input')
+  assert.equal(await evaluate('document.querySelectorAll(".sidebar-drives .drive-item[aria-checked=true]").length'), 3)
+  await click('.sidebar-drives .select-all input')
+  assert.equal(await activeDrive(), undefined)
+  await click('.sidebar-drives .drive-item:nth-child(3)')
+  await click('.sidebar-drives .drive-item:nth-child(2)')
+  assert.equal(await evaluate('document.querySelector(".select-all").getBoundingClientRect().bottom <= document.querySelector(".drive-item").getBoundingClientRect().top'), true)
+  const expandedHeight = await evaluate('document.querySelector("#sidebar-drives").getBoundingClientRect().height')
+  await clickText('Ваши диски')
+  await evaluate('new Promise(resolve => setTimeout(resolve, 80))')
+  const midHeight = await evaluate('document.querySelector("#sidebar-drives").getBoundingClientRect().height')
+  assert.ok(midHeight > 0 && midHeight < expandedHeight, 'Drive list actually animates closed')
+  await settle()
+  assert.equal(await evaluate('document.querySelector("#sidebar-drives").getBoundingClientRect().height'), 0)
+  assert.equal(await evaluate('document.querySelector("#sidebar-drives").inert'), true)
+  await clickText('Ваши диски')
+  await evaluate('new Promise(resolve => setTimeout(resolve, 80))')
+  const openingHeight = await evaluate('document.querySelector("#sidebar-drives").getBoundingClientRect().height')
+  assert.ok(openingHeight > 0 && openingHeight < expandedHeight, 'Drive list actually animates open')
+  await settle()
+  await clickText('Режим работы')
+  await screenshot('ui-modes')
+  assert.equal(await evaluate('document.querySelectorAll("main .drive-list").length'), 0, 'Drive list stays only in the sidebar when modes are open')
+  assert.equal(await activeDrive(), 'Диск C:', 'Opening modes preserves the selected overview')
+  await click('.next-drive')
+  assert.equal(await activeDrive(), 'Диск D:')
+  const helpPoint = await evaluate('(() => { const r = document.querySelector(".help-trigger").getBoundingClientRect(); return {x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2)}; })()')
+  window.webContents.sendInputEvent({ type: 'mouseMove', ...helpPoint })
+  await flush()
+  assert.match(await evaluate('document.querySelector("[role=tooltip]").textContent'), /побайтово/)
+  await screenshot('ui-tooltip')
+  window.webContents.sendInputEvent({ type: 'mouseMove', x: 600, y: 20 })
+  await clickText('Средний')
+  assert.equal(await evaluate('localStorage.getItem("duprove.load")'), 'medium')
+  await clickText('Режим работы')
+  await settle()
+  assert.equal(await evaluate('document.querySelector("#sidebar-modes").getBoundingClientRect().height'), 0)
+  assert.equal(await evaluate('document.querySelector("#sidebar-modes").inert'), true)
+  await clickText('Настройки')
+  const consentSelector = '.statistics-consent [role=switch]'
+  assert.equal(await evaluate(`document.querySelector(${JSON.stringify(consentSelector)}).disabled`), false)
+  assert.equal(await evaluate(`document.querySelector(${JSON.stringify(consentSelector)}).getAttribute('aria-checked')`), 'true')
+  assert.equal(consentService.snapshot().decision, 'default-enabled', 'The default must not be recorded as explicit consent')
+  assert.equal(await evaluate('document.querySelector("dialog[open],[role=dialog]") !== null'), false, 'No unsolicited consent dialog')
+  await screenshot('ui-settings')
+  await click('.statistics-consent summary')
+  await evaluate('document.querySelector(".statistics-consent").scrollIntoView({block:"start"})')
+  await screenshot('ui-consent')
+  assert.match(await evaluate('document.querySelector(".statistics-consent").textContent'), /школьного проекта/)
+  assert.match(await evaluate('document.querySelector(".statistics-consent details").textContent'), /полные пути.*не отправляются/)
+  await click(consentSelector)
+  assert.equal(consentService.snapshot().decision, 'declined', 'The enabled default can be disabled in one click')
+  assert.equal(await evaluate('document.querySelector("dialog[open],[role=dialog]") !== null'), false)
+  await click(consentSelector)
+  assert.equal(consentService.snapshot().decision, 'granted')
+  assert.equal(JSON.parse(await fs.readFile(consentFile, 'utf8')).decision, 'granted')
+  await click(consentSelector)
+  assert.equal(consentService.snapshot().decision, 'declined', 'Revocation takes one click without confirmation')
+  assert.equal(await evaluate('document.querySelector("dialog[open],[role=dialog]") !== null'), false)
+  await click('.statistics-consent summary')
+  await theme('dark')
+  assert.equal(await evaluate('document.documentElement.dataset.theme'), 'dark')
+  await screenshot('ui-dark')
+  await clickText('Ваши диски')
+  await screenshot('ui-dark-disks')
+  const point = await evaluate('(() => { const r = document.querySelector(".sidebar-drives .drive-item:last-child").getBoundingClientRect(); return {x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2)}; })()')
+  const beforeHover = await evaluate('getComputedStyle(document.querySelector(".sidebar-drives .drive-item:last-child")).backgroundColor')
+  window.webContents.sendInputEvent({ type: 'mouseMove', ...point })
+  await settle()
+  assert.notEqual(await evaluate('getComputedStyle(document.querySelector(".sidebar-drives .drive-item:last-child")).backgroundColor'), beforeHover)
+  await screenshot('ui-dark-hover')
+  window.webContents.sendInputEvent({ type: 'mouseMove', x: 600, y: 20 })
+  await clickText('Помощь')
+  assert.equal(helpOpened, 1, 'Help uses the external-browser bridge')
+  assert.equal(await evaluate('document.querySelector("dialog[open]") !== null'), false)
+  await click('[aria-label="Свернуть окно"]')
+  assert.deepEqual(actions, ['minimize'])
+  for (const [width, height] of [[960, 640], [640, 480], [1920, 1080], [1280, 480]]) {
+    await resize(width, height)
+    await screenshot(`ui-disks-${width}x${height}`)
+    await clickText('Режим работы')
+    await screenshot(`ui-modes-${width}x${height}`)
+    await clickText('Настройки')
+    await screenshot(`ui-settings-${width}x${height}`)
+    await click('.statistics-consent summary')
+    await evaluate('document.querySelector(".statistics-consent").scrollIntoView({block:"start"})')
+    await screenshot(`ui-consent-${width}x${height}`)
+    await clickText('Ваши диски')
+  }
+  await clickText('Настройки')
+  await theme('light')
+  await click(consentSelector)
+  consentService = new ConsentService(consentFile)
+  await window.loadFile(path.join(root, 'dist/index.html'))
+  await flush()
+  await clickText('Настройки')
+  assert.equal(await evaluate(`document.querySelector(${JSON.stringify(consentSelector)}).getAttribute('aria-checked')`), 'true', 'Consent survives UI reload and service restart')
+  await click(consentSelector)
+  consentService = new ConsentService(consentFile)
+  await window.loadFile(path.join(root, 'dist/index.html'))
+  await flush()
+  await clickText('Настройки')
+  assert.equal(await evaluate(`document.querySelector(${JSON.stringify(consentSelector)}).getAttribute('aria-checked')`), 'false', 'Revocation survives restart')
+  await clickText('Ваши диски')
+  const { waitingDisk } = require('../.verification/tests/contracts/analysis.js')
+  const sampleDrives = ['C:', 'D:'].map(name => ({ path: name + String.fromCharCode(92), name, capacity: 256 * 1024 ** 3, available: 128 * 1024 ** 3 }))
+  analysis = { ...emptySnapshot(), revision: 10, id: 'test-analysis', status: 'running', mode: 'medium', drives: sampleDrives,
+    disks: sampleDrives.map(d => ({ ...waitingDisk(d.path), phase: 'hashing', files: 10, empty: 2, types: { '.txt': 6, '.png': 2, empty: 2 }, percent: .032, overall_percent: 25.008,
+      work: { operation: 'hashing', current: d.path + 'fixtures/large-file.bin', done: 16 * 1024 ** 2, total: 128 * 1024 ** 2, unit: 'bytes', read_bytes: 16 * 1024 ** 2, files_done: 3, files_total: 8, cached_files: 2 },
+      timing: { updated_at: Date.now(), advanced_at: Date.now(), rate: 1024 ** 2, eta_seconds: 112, total_eta_seconds: 368 } })) }
+  window.webContents.send('duprove:analysis:event', analysis)
+  await settle()
+  assert.equal(await evaluate('document.querySelector(".scan-percentage").textContent'), '25,01%')
+  assert.match(await evaluate('document.querySelector(".drive-item-active .drive-info").textContent'), /25,01%/)
+  assert.match(await evaluate('document.querySelector(".current-operation").textContent'), /large-file.bin/)
+  assert.match(await evaluate('document.querySelector(".work-amount").textContent'), /3 \/ 8.*16 МиБ.*128 МиБ.*МиБ\/с/)
+  assert.match(await evaluate('document.querySelector(".cache-details").textContent'), /Из кэша: 2 файлов.*Прочитано: 16 МиБ/)
+  assert.match(await evaluate('document.querySelector(".scan-eta").textContent'), /До конца этапа ≈ 2 мин.*Весь анализ диска ≈ 7 мин/)
+  assert.equal(await evaluate('document.querySelectorAll(".type-sector").length'), 3)
+  assert.match(await evaluate('document.querySelector(\'.type-sector[data-type=".txt"] title\').textContent'), /6 файлов.*60/)
+  const originalColors = await sectorColors()
+  analysis = { ...analysis, revision: analysis.revision + 1, disks: analysis.disks.map((d, i) => i ? d : { ...d, types: { '.png': 6, '.txt': 2, empty: 2 } }) }
+  window.webContents.send('duprove:analysis:event', analysis)
+  await settle()
+  assert.deepEqual(await sectorColors(), originalColors, 'Colors do not depend on counts or input order')
+  await click('.next-drive')
+  assert.deepEqual(await sectorColors(), originalColors, 'An extension keeps its color on another disk')
+  await click('.previous-drive')
+  await screenshot('ui-analysis-running')
+  await window.loadFile(path.join(root, 'dist/index.html'))
+  await settle()
+  assert.equal(await evaluate('document.querySelector(".scan-percentage").textContent'), '25,01%', 'Renderer reload restores active analysis')
+  assert.deepEqual(await sectorColors(), originalColors, 'Colors survive renderer reload')
+  analysis = { ...analysis, revision: analysis.revision + 1, disks: analysis.disks.map(d => ({ ...d,
+    timing: { ...d.timing, updated_at: Date.now() - 20000, advanced_at: Date.now() - 40000 } })) }
+  window.webContents.send('duprove:analysis:event', analysis)
+  await settle()
+  assert.match(await evaluate('document.querySelector(".activity-warning").textContent'), /Нет ответа анализатора/)
+  assert.doesNotMatch(await evaluate('document.querySelector(".scan-eta").textContent'), /≈/)
+  await screenshot('ui-analysis-no-response')
+  analysis = { ...analysis, revision: analysis.revision + 1, status: 'paused' }
+  window.webContents.send('duprove:analysis:event', analysis)
+  await settle()
+  assert.equal(await evaluate('document.querySelector(".activity-warning")'), null)
+  assert.match(await evaluate('document.querySelector(".scan-eta").textContent'), /приостановлен/)
+  analysis = { ...analysis, revision: analysis.revision + 1, status: 'stopped' }
+  window.webContents.send('duprove:analysis:event', analysis)
+  await settle()
+  assert.equal(await evaluate('document.querySelector(".scan-percentage").textContent'), '25,01%', 'Stopping must not report completed work')
+  assert.equal(await evaluate('document.querySelector(".analysis-buttons .primary-button").textContent'), 'Повторить')
+  for (const [width, height] of [[1280, 800], [960, 640], [640, 480], [1920, 1080], [1280, 480]]) {
+    await resize(width, height)
+    await screenshot(`ui-analysis-resume-${width}x${height}`)
+  }
+  const rareTypes = { ...Object.fromEntries(Array.from({ length: 41 }, (_, i) => [`.format${String(i).padStart(3, '0')}`, 1])), '.tar.gz': 1, none: 1 }
+  analysis = { ...analysis, status: 'running', revision: analysis.revision + 1, disks: analysis.disks.map(d => ({ ...d, phase: 'discovering', percent: 40, overall_percent: 10, files: 112782 + Object.keys(rareTypes).length, empty: 1154, errors: 5,
+    work: { operation: 'discovering', current: d.path + 'fixtures/catalog', done: 200, total: 500, unit: 'directories', read_bytes: 0 },
+    timing: { updated_at: Date.now(), advanced_at: Date.now(), rate: 20, eta_seconds: 15, total_eta_seconds: null },
+    types: { '.txt': 40000, '.png': 22000, '.jpg': 17000, '.pdf': 12000, '.docx': 10000, '.mp4': 8000, '.zip': 2628, empty: 1154, ...rareTypes } })) }
+  window.webContents.send('duprove:analysis:event', analysis)
+  await settle()
+  assert.equal(await evaluate('document.querySelector(".scan-percentage").textContent'), '10%')
+  assert.match(await evaluate('document.querySelector(".drive-item-active .drive-info").textContent'), /10%/)
+  assert.match(await evaluate('document.querySelector(".scan-caption").textContent'), /оценка по найденным каталогам/)
+  const expectedTypes = Object.keys(analysis.disks[0].types).sort()
+  assert.deepEqual(Object.keys(await sectorColors()).sort(), expectedTypes, 'Every extension has its own sector, including rare ones')
+  for (const [type, color] of Object.entries(originalColors)) assert.equal((await sectorColors())[type], color)
+  assert.equal(await evaluate('document.querySelector("main").textContent.includes("Другие типы")'), false)
+  const legendTypes = []
+  for (;;) {
+    legendTypes.push(...await evaluate('Array.from(document.querySelectorAll(".legend-type"), e => e.dataset.type)'))
+    assert.equal(await evaluate(`Array.from(document.querySelectorAll('.legend-type')).every(e => {
+      const sector = Array.from(document.querySelectorAll('.type-sector')).find(s => s.dataset.type === e.dataset.type);
+      return getComputedStyle(e.querySelector('i')).backgroundColor === getComputedStyle(sector).stroke;
+    })`), true, 'Legend and sectors use the same fixed color')
+    if (await evaluate('document.querySelector(\'[aria-label="Следующие типы файлов"]\').disabled')) break
+    await click('[aria-label="Следующие типы файлов"]')
+  }
+  assert.deepEqual(legendTypes.sort(), expectedTypes, 'Every exact extension is accessible in the paged legend')
+  await click('.next-drive')
+  assert.equal(await evaluate('document.querySelector(\'[aria-label="Предыдущие типы файлов"]\').disabled'), true, 'Changing disks opens the first legend page')
+  await click('.previous-drive')
+  for (const [width, height] of [[1280, 800], [960, 640], [640, 480], [1920, 1080], [1280, 480]]) {
+    await resize(width, height)
+    await screenshot(`ui-analysis-discovering-${width}x${height}`)
+  }
+  analysis = { ...analysis, revision: analysis.revision + 1, status: 'completed', disks: analysis.disks.map(d => ({ ...d, phase: 'completed', errors: 0, percent: 100, overall_percent: 100, duplicate_members: 3, duplicate_groups: 1 })),
+    total: { files: 20, empty: 4, types: { '.txt': 12, '.png': 4, empty: 4 }, duplicate_members: 6, duplicate_groups: 1, duplicates: 5 }, warnings: { text: 2, image: 1, limited: 1 } }
+  window.webContents.send('duprove:analysis:event', analysis)
+  await settle()
+  assert.equal(await evaluate('document.querySelector(".duplicate-count").textContent'), '3')
+  assert.match(await evaluate('document.querySelector(".analysis-summary").textContent'), /5 лишних копий/)
+  assert.match(await evaluate('document.querySelector(".analysis-warning").textContent'), /требуют ручной проверки/)
+  for (const [width, height] of [[1280, 800], [960, 640], [640, 480], [1920, 1080], [1280, 480]]) {
+    await resize(width, height)
+    await screenshot(`ui-analysis-completed-${width}x${height}`)
+  }
+  await click('.scan-caption .analysis-status-link')
+  assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /без зарегистрированных ошибок/)
+  await click('.analysis-log-close')
+  analysis = { ...analysis, revision: analysis.revision + 1, status: 'error', error: 'ANALYSIS_INCOMPLETE', disks: analysis.disks.map(d => ({ ...d,
+    phase: 'error', errors: 3, percent: 100, overall_percent: 99.99,
+    issues: [{ code: 'metadata_unavailable', operation: 'discovering', count: 2, examples: [d.path + 'fixtures/unavailable.txt'] },
+      { code: 'file_unavailable_or_changed', operation: 'validating', count: 1, examples: [d.path + 'fixtures/changed.bin'] }] })) }
+  window.webContents.send('duprove:analysis:event', analysis)
+  await settle()
+  assert.equal(await evaluate('document.querySelector(".scan-percentage").textContent'), '100%', 'Finished result with recoverable errors reaches 100%')
+  assert.match(await evaluate('document.querySelector(".drive-item-active .drive-info").textContent'), /100%/, 'Sidebar also shows completed work')
+  assert.equal(await evaluate('document.querySelector("dialog[open]")'), null, 'Log opens on status click')
+  for (const [width, height] of [[1280, 800], [640, 480]]) {
+    await resize(width, height)
+    await evaluate('document.querySelector(".scan-caption .analysis-status-link").focus()')
+    await click('.scan-caption .analysis-status-link')
+    assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /Завершено с ошибками.*100%/s)
+    assert.match(await evaluate('document.querySelector(".analysis-log-issues").textContent'), /Не удалось получить сведения/)
+    assert.doesNotMatch(await evaluate('document.querySelector("dialog[open]").textContent'), /unavailable\.txt|changed\.bin|fixtures\//)
+    assert.equal(await evaluate('document.querySelector(".analysis-log-issues details")'), null)
+    assert.equal(await evaluate('document.activeElement.closest("dialog") !== null'), true)
+    assert.equal(await evaluate('(() => { const d=document.querySelector("dialog[open]").getBoundingClientRect(); return d.top >= 0 && d.left >= 0 && d.right <= innerWidth && d.bottom <= innerHeight })()'), true)
+    await screenshot(`ui-analysis-log-${width}x${height}`)
+    window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' })
+    window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Escape' })
+    await settle()
+    assert.equal(await evaluate('document.querySelector("dialog[open]")'), null, 'Escape closes the modal')
+    assert.equal(await evaluate('document.activeElement.matches(".scan-caption .analysis-status-link")'), true, 'Closing restores focus to the status')
+  }
+  analysis = { ...analysis, revision: analysis.revision + 1, disks: analysis.disks.map(({ issues, ...d }) => d) }
+  window.webContents.send('duprove:analysis:event', analysis)
+  await settle()
+  await click('.scan-caption .analysis-status-link')
+  assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /Для 3 ошибок подробности не записаны/)
+  await click('.analysis-log-close')
+  await clickText('Настройки')
+  await theme('dark')
+  await clickText('Ваши диски')
+  await resize(1280, 800)
+  await click('.scan-caption .analysis-status-link')
+  await screenshot('ui-analysis-log-dark')
+  await click('.analysis-log-close')
+  clearTimeout(timeout)
+  update = { ...update, revision: 1, status: 'scheduled', availableVersion: '1.1.0', restartAt: Date.now() + 60000 }
+  window.webContents.send('duprove:update:event', update)
+  await settle()
+  assert.match(await evaluate('document.querySelector(".app-update").textContent'), /1\.1\.0.*Перезапуск/s)
+  for (const [width, height] of [[1280, 800], [640, 480]]) {
+    await resize(width, height)
+    await screenshot(`ui-update-scheduled-${width}x${height}`)
+  }
+  await clickText('Настройки')
+  await settle()
+  assert.match(await evaluate('document.querySelector(".app-update").textContent'), /не зависят от отправки статистики/)
+  assert.equal(await evaluate('typeof window.duprove.installUpdate'), 'undefined', 'Renderer cannot install arbitrary packages')
+  console.log('UI_SMOKE_OK: consent, quiet revocation, persistence, selection, navigation, animations, help, themes and 5 viewport sizes')
+  app.exit(0)
+}).catch(error => { console.error(error); app.exit(1) })

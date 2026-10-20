@@ -1,0 +1,11 @@
+.help-dialog { width: min(450px, calc(100vw - 40px)); border: 1px solid var(--color-line); border-radius: 20px; padding: 32px; background: var(--color-paper); color: var(--color-ink); box-shadow: 0 25px 100px #0c322c22; }
+.help-dialog::backdrop { background: #18322e38; backdrop-filter: blur(4px); }
+.help-dialog h2 { font-size: 25px; letter-spacing: -.8px; margin: 14px 0 8px; }
+.help-dialog>p { color: var(--color-muted); font-size: 13px; margin-bottom: 25px; }
+.dialog-close { position: absolute; top: 16px; right: 16px; padding: 5px; border: 0; background: transparent; border-radius: 6px; }
+.help-step { display: flex; gap: 15px; margin: 15px 0; }
+.help-step b { color: var(--color-green-ink); padding-top: 3px; font-size: 12px; }
+.help-step p, .help-status p { margin: 0; font-size: 13px; line-height: 1.6; }
+.help-status { display: flex; gap: 10px; background: var(--color-panel); padding: 14px; border-radius: 10px; margin: 23px 0; color: var(--color-secondary); }
+.help-status>.icon { margin-top: 3px; }
+.help-dialog>.primary-button { width: 100%; }

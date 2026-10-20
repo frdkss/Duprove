@@ -1,0 +1,4 @@
+.drive-list { display: flex; flex-direction: column; gap: .5rem; }
+.select-all { display: flex; align-items: center; gap: .5rem; padding: .625rem .75rem; border-radius: .5rem; font-size: .75rem; color: var(--color-secondary); cursor: pointer; }
+.select-all:hover { background: var(--color-hover); }
+.selection-count { margin-left: auto; color: var(--color-muted); font-size: .625rem; font-variant-numeric: tabular-nums; }

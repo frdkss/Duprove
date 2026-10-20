@@ -1,0 +1,19 @@
+bind = '0.0.0.0:8000'
+workers = 1
+worker_class = 'sync'
+threads = 1
+timeout = 10
+graceful_timeout = 10
+backlog = 16
+max_requests = 1000
+max_requests_jitter = 100
+limit_request_line = 1024
+limit_request_fields = 16
+limit_request_field_size = 1024
+accesslog = None
+# Gunicorn parser/timeout errors can include request data: discard those too.
+errorlog = '/dev/null'
+capture_output = False
+forwarded_allow_ips = ''
+worker_tmp_dir = '/tmp'
+umask = 0o077

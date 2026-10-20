@@ -1,0 +1,3 @@
+.collapse { display: grid; grid-template-rows: 0fr; opacity: 0; flex-shrink: 0; transition: grid-template-rows .24s ease, opacity .2s ease; }
+.collapse.is-open { grid-template-rows: 1fr; opacity: 1; }
+.collapse-inner { min-height: 0; overflow: hidden; }
