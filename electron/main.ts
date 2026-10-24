@@ -113,6 +113,7 @@ else {
       if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('INVALID_SENDER')
     }
     ipcMain.handle(channels.analysisGet, event => { trusted(event); return jobs!.snapshot() })
+    ipcMain.handle(channels.catalog, (event, request: unknown) => { trusted(event); return jobs!.call('catalog', request) })
     ipcMain.handle(channels.analysisStart, (event, request: unknown) => { trusted(event); return analysisCall('start', request) })
     ipcMain.handle(channels.analysisControl, (event, request: unknown) => { trusted(event); return analysisCall('command', request) })
     ipcMain.handle(channels.analysisReport, event => { trusted(event); return jobs!.call('report') })

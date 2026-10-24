@@ -20,6 +20,7 @@ export type CatalogRequest =
   | { action: 'info'; analysisId: string }
   | { action: 'groups'; analysisId: string; kind: GroupKind; offset: number }
   | { action: 'members'; analysisId: string; groupId: string; offset: number }
+  | { action: 'original'; analysisId: string; groupId: string; fileId: number | null }
 export const PAGE_SIZE = 25
 export const idValid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)
 export const groupValid = (v: unknown): v is string => typeof v === 'string' && /^(e|t|i):[1-9][0-9]{0,14}$/.test(v)
@@ -30,6 +31,7 @@ export function exactKeys(v: Record<string, unknown>, keys: string[]): boolean {
 export function isCatalogRequest(v: unknown): v is CatalogRequest {
   if (!object(v) || !idValid(v.analysisId)) return false
   if (v.action === 'info') return exactKeys(v, ['action', 'analysisId'])
+  if (v.action === 'original') return exactKeys(v, ['action', 'analysisId', 'groupId', 'fileId']) && groupValid(v.groupId) && (v.fileId === null || fileValid(v.fileId))
   if (!Number.isSafeInteger(v.offset) || Number(v.offset) < 0 || Number(v.offset) > 1e9) return false
   if (v.action === 'groups') return exactKeys(v, ['action', 'analysisId', 'kind', 'offset']) && groupKinds.includes(v.kind as GroupKind)
   return v.action === 'members' && exactKeys(v, ['action', 'analysisId', 'groupId', 'offset']) && groupValid(v.groupId)

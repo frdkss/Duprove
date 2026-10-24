@@ -13,6 +13,7 @@ parentPort!.on('message', ({ id, method, value }) => {
       else if (method === 'report') result = await service.report()
       else if (method === 'catalog') {
         if (['running', 'paused', 'stopping'].includes(service.snapshot().status)) throw Error('ANALYSIS_BUSY')
+        if (value?.analysisId !== service.snapshot().id) throw Error('CATALOG_UNAVAILABLE')
         result = await service.catalog.request(value)
       }
       else if (method === 'shutdown') result = await service.shutdown()

@@ -11,6 +11,7 @@ import './MainWindow.css'
 import { activeJob, analysisFinished, emptySnapshot, type AnalysisCommand } from '../../../contracts/analysis'
 import { AnalysisLogDialog } from '../../modal/AnalysisLogDialog/AnalysisLogDialog'
 import { AnalysisControls } from '../../components/AnalysisControls/AnalysisControls'
+import { ResultsDialog } from '../../modal/ResultsDialog/ResultsDialog'
 
 function preference(key: string, choices: string[], fallback: string) {
   try { const value = localStorage.getItem(key); return value && choices.includes(value) ? value : fallback } catch { return fallback }
@@ -30,6 +31,7 @@ export function MainWindow() {
   const [busy, setBusy] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
   const [logPath, setLogPath] = useState<string | null>(null)
+  const [showResults, setShowResults] = useState(false)
   const logDisk = job.disks.find(d => d.path === logPath)
   const locked = activeJob(job.status)
   useEffect(() => {
@@ -42,6 +44,7 @@ export function MainWindow() {
   }, [])
   useEffect(() => {
     setLogPath(null)
+    setShowResults(false)
     if (job.id) {
       setSelected(job.drives.map(d => d.path)); setActivePath(job.drives[0]?.path ?? '')
       setMode(job.mode); setContent(job.content)
@@ -114,7 +117,7 @@ export function MainWindow() {
     onSelect: select, onSelectAll: selectAll }
   return <div className="app-shell"><TitleBar/><div className="app-body">
     <Sidebar {...driveListProps} content={content} onContent={setContent} view={view} expanded={expanded} mode={mode} onView={navigate} onExpand={() => setExpanded(previous => previous === 'mode' ? null : 'mode')} onMode={setMode} onHelp={openHelp}/>
-    <main className="main-window"><header className="page-heading"><h1>{view === 'disks' ? 'Ваши диски' : 'Настройки'}</h1></header>
+    <main className="main-window"><header className="page-heading"><h1>{view === 'disks' ? 'Ваши диски' : 'Настройки'}</h1>{analysisFinished(job) && <button className="primary-button" onClick={() => setShowResults(true)}>Группы файлов</button>}</header>
       {view !== 'settings' && <AppUpdate api={window.duprove}/>}
       {helpError && <p className="help-error" role="alert">{helpError}</p>}
       {(analysisError || job.error) && <p className="help-error" role="alert">{analysisError || (job.error === 'ANALYSIS_STORAGE_LIMIT' ? 'Анализ остановлен: достигнут предел рабочей базы (512 МиБ), временных таблиц (256 МиБ) или осталось менее 512 МиБ свободного места. Сохранённые контрольные точки оставлены на диске.' : job.error === 'ANALYSIS_INCOMPLETE' ? 'Анализ завершён с пропусками или ошибками доступа. Доступен неполный результат.' : 'Анализ прерван или не удалось сохранить данные. Можно повторить попытку.')} {job.error && <small>Код: {job.error}</small>}</p>}
@@ -125,5 +128,5 @@ export function MainWindow() {
         <AnalysisControls job={job} selected={selected.length} busy={busy} onStart={() => void run()} onCommand={command => void run(command)}/>
         <ReportDelivery api={window.duprove}/>
       </>}
-    </main></div>{logDisk && <AnalysisLogDialog job={job} disk={logDisk} onClose={() => setLogPath(null)}/>}</div>
+    </main></div>{showResults && job.id && window.duprove && <ResultsDialog api={window.duprove} analysisId={job.id} onClose={() => setShowResults(false)}/>} {logDisk && <AnalysisLogDialog job={job} disk={logDisk} onClose={() => setLogPath(null)}/>}</div>
 }

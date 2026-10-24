@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { channels, type DesktopBridge } from './bridge'
 const bridge: DesktopBridge = {
+  requestCatalog: request => ipcRenderer.invoke(channels.catalog, request),
   listDrives: () => ipcRenderer.invoke(channels.drives),
   windowAction: action => ipcRenderer.invoke(channels.window, action),
   openHelp: () => ipcRenderer.invoke(channels.help),

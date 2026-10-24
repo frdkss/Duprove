@@ -70,6 +70,15 @@ export class CatalogService {
     try { return await this.read(db, value) } finally { db.close() }
   }
   private async read(db: DatabaseSync, request: CatalogRequest) {
+    if (request.action === 'original') {
+      if (!db.prepare('SELECT 1 FROM groups WHERE id=?').get(request.groupId)) throw Error('GROUP_UNAVAILABLE')
+      if (request.fileId !== null && !db.prepare(`SELECT 1 FROM members m JOIN files f ON f.id=m.file_id
+        WHERE m.group_id=? AND f.id=? AND f.decision<>'trashed'`).get(request.groupId, request.fileId)) throw Error('FILE_UNAVAILABLE')
+      db.prepare('UPDATE groups SET original_id=? WHERE id=?').run(request.fileId, request.groupId)
+      if (request.fileId !== null) db.prepare("UPDATE files SET decision='keep' WHERE id=?").run(request.fileId)
+      return { originalId: request.fileId }
+    }
+
     if (request.action === 'info') {
       const meta = db.prepare('SELECT * FROM meta').get() as Row
       const groups: Record<GroupKind, number> = { exact: 0, warn_text: 0, warn_image: 0 }

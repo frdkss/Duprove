@@ -70,4 +70,23 @@ test('catalog rejects injected paths, SQL, wrong analyses, missing and expired r
   await assert.rejects(f.catalog.request({ action: 'info', analysisId: f.analysisId }), /CATALOG_UNAVAILABLE/)
 })
 
+test('original selection is explicit, persists across restart and protects overlapping pairs', async t => {
+  const f = await fixture(t, 4)
+  const request = { action: 'original', analysisId: f.analysisId, groupId: 'e:1', fileId: 1 }
+  await f.catalog.request(request)
+  const restored = new CatalogService(f.directory)
+  assert.equal((await restored.request({ action: 'groups', analysisId: f.analysisId, kind: 'exact', offset: 0 })).items[0].originalId, 1)
+  let members = await restored.request({ action: 'members', analysisId: f.analysisId, groupId: 't:1', offset: 0 })
+  assert.equal(members.items[0].protected, true)
+  assert.equal(members.items[0].decision, 'keep')
+  await restored.request({ ...request, fileId: 2 })
+  members = await restored.request({ action: 'members', analysisId: f.analysisId, groupId: 'e:1', offset: 0 })
+  assert.equal(members.items.filter(f => f.protected).length, 1)
+  await restored.request({ ...request, fileId: null })
+  assert.equal((await restored.request({ action: 'groups', analysisId: f.analysisId, kind: 'exact', offset: 0 })).items[0].originalId, null)
+  await assert.rejects(restored.request({ ...request, fileId: 99999 }), /FILE_UNAVAILABLE/)
+  await restored.capture(f.source, randomUUID(), [f.directory], true)
+  await assert.rejects(restored.request(request), /CATALOG_UNAVAILABLE/)
+})
+
 module.exports = { fixture }
