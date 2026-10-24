@@ -144,3 +144,32 @@ test('a replaced parent junction/symlink is rejected before calling the OS adapt
   assert.ok(result.results.every(r => r.status === 'error')); assert.equal(calls, 0)
   assert.equal(await fs.readFile(path.join(movedParent, '1.txt'), 'utf8'), 'abc')
 })
+
+test('an unknown native result leaves a pending intent and never permits a blind retry', async t => {
+  const f = await fixture(t)
+  let calls = 0
+  const service = new TrashService(f.rpc, async () => true, async () => { calls++; throw Error('TRASH_RESULT_UNCERTAIN') }, () => false)
+  const result = await service.run({ ...f.request, fileIds: [2] })
+  assert.equal(result.results[0].error, 'TRASH_RESULT_UNCERTAIN')
+  await assert.rejects(service.run({ ...f.request, fileIds: [2] }), /TRASH_RESULT_UNCERTAIN/)
+  assert.equal(calls, 1)
+  assert.equal(await fs.readFile(f.files[1], 'utf8'), 'abc')
+})
+
+test('Windows execution requires an established lease and binds both current verified digests', async t => {
+  const f = await fixture(t)
+  let nativeRequest
+  const native = async (exe, request) => {
+    if (request.action === 'trash') { nativeRequest = request; return { status: 'trashed' } }
+    return f.inspect(exe, request)
+  }
+  const catalog = new CatalogService(f.directory, 'simulated-native-inspector', native)
+  const plan = await catalog.prepareTrash({ ...f.request, fileIds: [2] })
+  const lease = { token: plan.token, fileId: 2 }
+  await assert.rejects(catalog.executeTrash(lease), /TRASH_NOT_STARTED/)
+  await catalog.verifyTrash(lease)
+  assert.equal((await catalog.executeTrash(lease)).trashed, true)
+  assert.equal(nativeRequest.right.path, f.files[1]); assert.equal(nativeRequest.left.path, f.files[0])
+  assert.equal(nativeRequest.expected_left_sha256, 'a'.repeat(64)); assert.equal(nativeRequest.expected_right_sha256, 'a'.repeat(64))
+  await catalog.recordTrash({ ...lease, success: true }); catalog.releaseTrash({ token: plan.token })
+})

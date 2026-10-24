@@ -10,9 +10,10 @@ import { fileGuard } from './file-guard'
 export const CATALOG_BYTES = 128 * 1024 * 1024
 export const CATALOG_AGE = 30 * 24 * 60 * 60 * 1000
 type Row = Record<string, any>
+interface LeaseEntry { file: Row; original: Row; kind: GroupKind; verified?: { left: string; right: string } }
 // This service runs in the analysis worker. SQL and filesystem paths never cross IPC from the renderer.
 export class CatalogService {
-  private lease: { token: string; analysisId: string; groupId: string; entries: Map<number, { file: Row; original: Row; kind: GroupKind }> } | null = null
+  private lease: { token: string; analysisId: string; groupId: string; entries: Map<number, LeaseEntry> } | null = null
   get locked() { return this.lease !== null }
   readonly file: string
   constructor(readonly directory: string, readonly executable?: string,
@@ -159,7 +160,7 @@ export class CatalogService {
     if (!isTrashRequest(value)) throw Error('INVALID_TRASH_REQUEST')
     if (this.locked) throw Error('CATALOG_BUSY')
     const lease = { token: randomUUID(), analysisId: value.analysisId, groupId: value.groupId,
-      entries: new Map<number, { file: Row; original: Row; kind: GroupKind }>() }
+      entries: new Map<number, LeaseEntry>() }
     this.lease = lease
     let db: DatabaseSync | undefined
     try {
@@ -206,7 +207,25 @@ export class CatalogService {
       }
       if (guard !== await fileGuard(entry.file.path) || originalGuard !== await fileGuard(entry.original.path)) throw Error('FILE_CHANGED')
       db.prepare("INSERT OR REPLACE INTO trash_attempts VALUES(?,'pending')").run(entry.file.id)
+      entry.verified = { left: result.sha256, right: result.otherSha256 }
       return { path: entry.file.path, originalPath: entry.original.path, guard, originalGuard }
+    } finally { db.close() }
+  }
+  async executeTrash(value: unknown) {
+    const { lease, entry } = this.leased(value)
+    if (!this.executable || !entry.verified) throw Error('TRASH_NOT_STARTED')
+    const db = await this.open(lease.analysisId)
+    try {
+      if (!db.prepare("SELECT 1 FROM trash_attempts WHERE file_id=? AND state='pending'").get(entry.file.id)) throw Error('TRASH_NOT_STARTED')
+      let result
+      try {
+        result = await this.inspector(this.executable, { action: 'trash', exact: entry.kind === 'exact',
+          left: this.nativeRequest(db, entry.original), right: this.nativeRequest(db, entry.file),
+          expected_left_sha256: entry.verified.left, expected_right_sha256: entry.verified.right })
+      } catch { throw Error('TRASH_RESULT_UNCERTAIN') }
+      if (result.status === 'refused') throw Error('TRASH_REFUSED')
+      if (result.status !== 'trashed') throw Error('TRASH_RESULT_UNCERTAIN')
+      return { trashed: true }
     } finally { db.close() }
   }
   async recordTrash(value: unknown) {

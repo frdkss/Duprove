@@ -22,6 +22,7 @@ parentPort!.on('message', ({ id, method, value }) => {
         result = await service.catalog.prepareTrash(value)
       }
       else if (method === 'trashVerify') result = await service.catalog.verifyTrash(value)
+      else if (method === 'trashExecute') result = await service.catalog.executeTrash(value)
       else if (method === 'trashRecord') result = await service.catalog.recordTrash(value)
       else if (method === 'trashRelease') result = service.catalog.releaseTrash(value)
       else if (method === 'shutdown') result = await service.shutdown()

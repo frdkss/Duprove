@@ -146,6 +146,27 @@ class LocalFileTests(unittest.TestCase):
         file.chmod(0o600)
         self.assertEqual(file.read_bytes(), b'protected bytes')
 
+    def test_trash_requires_verified_digests_and_never_removes_connected_files(self):
+        left = self.record('preserved.html', b'<p>identical test bytes</p>')
+        right = self.record('candidate.html', b'<p>identical test bytes</p>')
+        related = self.root / 'candidate_files'
+        related.mkdir(); (related / 'must-remain.txt').write_text('unselected resource', encoding='utf-8')
+        pair = self.inspect({'action': 'pair', 'left': left, 'right': right, 'exact': True})
+        request = {'action': 'trash', 'left': left, 'right': right, 'exact': True,
+                   'expected_left_sha256': pair['sha256'], 'expected_right_sha256': '0' * 64}
+        self.assertEqual(self.inspect(request)['status'], 'refused')
+        self.assertTrue(Path(right['path']).is_file())
+        request['expected_right_sha256'] = pair['otherSha256']
+        result = self.inspect(request)
+        if os.name == 'nt':
+            self.assertEqual(result['status'], 'trashed')
+            self.assertFalse(Path(right['path']).exists())
+        else:
+            self.assertEqual(result['status'], 'refused', 'Windows adapter is unavailable on this platform')
+            self.assertTrue(Path(right['path']).is_file())
+        self.assertEqual(Path(left['path']).read_bytes(), b'<p>identical test bytes</p>')
+        self.assertEqual((related / 'must-remain.txt').read_text(encoding='utf-8'), 'unselected resource')
+
 
 if __name__ == '__main__':
     unittest.main()

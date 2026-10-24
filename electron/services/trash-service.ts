@@ -5,7 +5,7 @@ type Rpc = (method: 'trashPrepare' | 'trashVerify' | 'trashRecord' | 'trashRelea
 export class TrashService {
   busy = false
   constructor(private readonly rpc: Rpc, private readonly confirm: (plan: TrashPlan) => Promise<boolean>,
-    private readonly trash: (file: string) => Promise<void>, private readonly blocked: () => boolean) {}
+    private readonly trash: (file: string, lease: { token: string; fileId: number }) => Promise<void>, private readonly blocked: () => boolean) {}
   async run(value: unknown): Promise<TrashResult> {
     if (!isTrashRequest(value)) throw Error('INVALID_TRASH_REQUEST')
     if (this.busy || this.blocked()) throw Error('CATALOG_BUSY')
@@ -22,18 +22,19 @@ export class TrashService {
           const verified = await this.rpc('trashVerify', request) as { path: string; originalPath: string; guard: string; originalGuard: string }
           if (verified.path !== entry.path || verified.originalPath !== entry.originalPath
             || await fileGuard(verified.path) !== verified.guard || await fileGuard(verified.originalPath) !== verified.originalGuard) throw Error('FILE_CHANGED')
-          await this.trash(verified.path)
+          await this.trash(verified.path, request)
           moved = true
           await this.rpc('trashRecord', { ...request, success: true })
           results.push({ fileId: entry.fileId, status: 'trashed' })
-        } catch {
+        } catch (error) {
+          const uncertain = error instanceof Error && error.message.includes('TRASH_RESULT_UNCERTAIN')
           if (moved) {
             // Retrying the local acknowledgement never repeats the OS operation.
             try { await this.rpc('trashRecord', { ...request, success: true }); results.push({ fileId: entry.fileId, status: 'trashed' }); continue } catch { /* uncertain durable state */ }
-          } else {
+          } else if (!uncertain) {
             try { await this.rpc('trashRecord', { ...request, success: false }) } catch { /* pending intent remains blocked */ }
           }
-          results.push({ fileId: entry.fileId, status: 'error', error: moved ? 'TRASH_RESULT_UNCERTAIN' : 'TRASH_FAILED_OR_FILE_CHANGED' })
+          results.push({ fileId: entry.fileId, status: 'error', error: moved || uncertain ? 'TRASH_RESULT_UNCERTAIN' : 'TRASH_FAILED_OR_FILE_CHANGED' })
         }
       }
       return { cancelled: false, results }

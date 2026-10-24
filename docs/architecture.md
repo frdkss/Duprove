@@ -29,6 +29,7 @@
 | `electron/services/job-client.ts` | Кэш снимка и команды worker | worker_threads; main не обрабатывает большие отчёты |
 | `contracts/catalog.ts`, `electron/services/catalog-service.ts` | Постраничный каталог, оригиналы, решения и намерения переноса | Node SQLite в worker; отдельный локальный контракт |
 | `native/src/local_file.*`, `electron/services/local-file-service.ts` | Ограниченный предпросмотр, точные метаданные, повторные хеши и байты | Отдельный native-процесс; без React/сети |
+| `native/src/recycle.*` | Windows-корзина без запроса повышения прав, связанных файлов и безвозвратного удаления | IFileOperation с ограниченными флагами и проверкой в PreDeleteItem |
 | `electron/services/trash-service.ts`, `file-guard.ts`, `trash-confirmation.ts` | Согласование блокировок, подтверждение, последняя проверка путей и учёт ответов ОС | Внедряемые RPC/подтверждение/адаптер корзины; Electron только в main |
 | `electron/services/report-service.ts` | Проверка JSON и текущего согласия перед передачей | Внедряемый транспорт; без адреса и сетевой реализации |
 | `electron/services/consent-service.ts` | Сохранение решения, периоды согласия и отмена отправок | Локальный JSON; независим от UI и ядра |

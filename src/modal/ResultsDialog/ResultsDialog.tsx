@@ -109,13 +109,13 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
     {error && <p className="results-error" role="alert">{error} <button onClick={() => refresh(v => v + 1)} disabled={busy}>Повторить</button></p>}
     {info && <p className="results-note">{info.complete ? 'Завершённый анализ.' : 'Неполный результат: часть файлов не проверена.'} Статистика показывает исходный анализ. Каталог хранится до {new Date(info.expiresAt).toLocaleDateString('ru-RU')}.</p>}
     {trashResult && <p className="results-note" role="status">{trashResult.cancelled ? 'Перенос отменён. Файлы не изменены.' : `В корзине: ${trashResult.results.filter(r => r.status === 'trashed').length}. Ошибок: ${trashResult.results.filter(r => r.status === 'error').length}.`}
-      {trashResult.results.some(r => r.status === 'error') && ' Часть файлов не перенесена. Проверьте доступ, актуальность файлов и корзину; безвозвратное удаление не выполняется.'}</p>}
+      {trashResult.results.some(r => r.status === 'error') && ' Для части операций успех не подтверждён. Проверьте файлы и корзину; при неопределённом результате повтор блокируется до нового анализа.'}</p>}
     <div className="results-tabs" role="group" aria-label="Тип совпадения">{(Object.keys(labels) as GroupKind[]).map(k => <button key={k} aria-pressed={kind === k} disabled={busy} onClick={() => { setKind(k); setOffset(0); setGroup(null) }}>{labels[k]}{info ? ` (${info.groups[k]})` : ''}</button>)}</div>
     <div className="results-body" aria-busy={busy}>
       <section className="results-groups" aria-label="Список групп">
         {groups?.items.map(g => <button className="result-group" key={g.id} disabled={busy} aria-pressed={group?.id === g.id} onClick={() => setGroup(g)}><strong>{g.id}</strong><span>{g.count.toLocaleString('ru-RU')} файлов · {g.bytes.toLocaleString('ru-RU')} байт</span></button>)}
         {groups && !groups.total && <p>Совпадений этого типа нет.</p>}
-        {busy && <p role="status">Загрузка…</p>}
+        {busy && <p role="status">{transferring ? 'Проверка файлов и перенос в корзину…' : 'Загрузка…'}</p>}
         {groups && <Pager {...groups} busy={busy} label="Страницы групп" onPage={setOffset}/>}
       </section>
       <section className="results-members" aria-label="Участники группы">

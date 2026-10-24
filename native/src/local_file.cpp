@@ -1,11 +1,16 @@
 #include "local_file.h"
 #include "file_access.h"
 #include "content.h"
+#include "recycle.h"
 #include <picosha2.h>
 #include <fstream>
 
 namespace content { std::string docxText(const std::vector<unsigned char>&); }
 namespace {
+FileInfo expectedInfo(const json& file) {
+  FileInfo value;value.kind=FileInfo::Kind::regular;value.id=file.at("identity").get<std::string>();value.size=file.at("size").get<int64_t>();
+  value.modified=std::stoll(file.at("mtime").get<std::string>());value.changed=std::stoll(file.at("ctime").get<std::string>());return value;
+}
 std::string base64(const std::vector<unsigned char>& bytes) {
   constexpr char alphabet[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
   std::string out;out.reserve((bytes.size()+2)/3*4);
@@ -18,18 +23,23 @@ std::string base64(const std::vector<unsigned char>& bytes) {
 }
 json localFile(const json& request) {
   try {
+    if(request.at("action")=="trash") {
+      auto verify=request;verify["action"]="pair";
+      const auto proof=localFile(verify);
+      if(proof.at("status")!="ready" || proof.at("sha256")!=request.at("expected_left_sha256")
+         || proof.at("otherSha256")!=request.at("expected_right_sha256")) return {{"status","refused"}};
+      const auto& left=request.at("left");const auto& right=request.at("right");
+      return {{"status",recycleWindows(fs::u8path(right.at("path").get<std::string>()),expectedInfo(right),
+        fs::u8path(left.at("path").get<std::string>()),expectedInfo(left))}};
+    }
     if(request.at("action")=="pair") {
       auto left=request.at("left"),right=request.at("right");left["action"]="verify";right["action"]="verify";
       const auto a=localFile(left),b=localFile(right);
       if(a.at("status")!="ready" || b.at("status")!="ready") return {{"status","unavailable"},{"kind","none"}};
       bool equal=false;
       if(request.at("exact").get<bool>()) {
-        auto info=[](const json& file) {
-          FileInfo value;value.kind=FileInfo::Kind::regular;value.id=file.at("identity").get<std::string>();value.size=file.at("size").get<int64_t>();
-          value.modified=std::stoll(file.at("mtime").get<std::string>());value.changed=std::stoll(file.at("ctime").get<std::string>());return value;
-        };
         ScanContext context;context.loadMode=2;
-        equal=equalBytes(fs::u8path(left.at("path").get<std::string>()),info(left),fs::u8path(right.at("path").get<std::string>()),info(right),0,context)==ByteMatch::equal;
+        equal=equalBytes(fs::u8path(left.at("path").get<std::string>()),expectedInfo(left),fs::u8path(right.at("path").get<std::string>()),expectedInfo(right),0,context)==ByteMatch::equal;
         if(!equal) return {{"status","unavailable"},{"kind","none"}};
       }
       return {{"status","ready"},{"sha256",a.at("sha256")},{"otherSha256",b.at("sha256")},{"equal",equal}};

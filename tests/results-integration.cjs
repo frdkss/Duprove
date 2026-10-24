@@ -73,7 +73,11 @@ app.whenReady().then(async () => {
     assert.equal(plan.entries[0].path, plan.entries[0].kind === 'exact' ? duplicate : warnRight)
     assert.equal(plan.entries[0].originalPath, plan.entries[0].kind === 'exact' ? original : warnLeft)
     return accepted
-  }, async file => { osCalls++; await shell.trashItem(file) }, () => false)
+  }, async (file, lease) => {
+    osCalls++
+    if (process.platform === 'win32') await catalog.executeTrash(lease)
+    else await shell.trashItem(file)
+  }, () => false)
   assert.equal((await service.run(request)).cancelled, true)
   assert.equal(await fs.readFile(duplicate, 'utf8'), exactBytes)
   accepted = true
@@ -110,7 +114,7 @@ app.whenReady().then(async () => {
   assert.equal(page.items.find(v => v.id === duplicateId).decision, 'trashed')
   const digest = createHash('sha256').update(await fs.readFile(binary)).digest('hex')
   const proof = { passed: true, platform: process.platform, analyzerSha256: digest, confirmations: 'injected cancel/accept only',
-    nativeScan: 'real', previews: 'real', pairVerification: 'real', trash: 'real shell.trashItem; one disposable file', originalPreserved: true,
+    nativeScan: 'real', previews: 'real', pairVerification: 'real', trash: process.platform === 'win32' ? 'real non-elevating Windows adapter; one disposable file' : 'real shell.trashItem; one disposable file', originalPreserved: true,
     stalePreviewRefused: true, statisticalReportUnchanged: true }
   await fs.writeFile(path.join(root, `.verification/results-integration-${process.platform}.json`), JSON.stringify(proof, null, 2))
   await fs.writeFile(path.join(root, '.verification/results-integration-public.json'), reportBytes)

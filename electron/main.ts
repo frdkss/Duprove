@@ -120,7 +120,10 @@ else {
     trashService = new TrashService((method, value) => jobs!.call(method, value), async plan => {
       const result = await dialog.showMessageBox(trashConfirmationOptions(plan))
       return result.response === 1
-    }, file => shell.trashItem(file), () => closing || !!updates?.blocksAnalysis || analysisCommands > 0 || activeJob(jobs!.snapshot().status))
+    }, async (file, lease) => {
+      if (process.platform === 'win32') await jobs!.call('trashExecute', lease)
+      else await shell.trashItem(file)
+    }, () => closing || !!updates?.blocksAnalysis || analysisCommands > 0 || activeJob(jobs!.snapshot().status))
     ipcMain.handle(channels.catalog, (event, request: unknown) => {
       trusted(event)
       if (closing || updates?.blocksAnalysis || trashService!.busy) throw Error('CATALOG_BUSY')

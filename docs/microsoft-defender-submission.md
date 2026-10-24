@@ -19,8 +19,9 @@ them.
 
 Iteration 2 adds a separate, explicitly confirmed recycle-bin operation for
 user-marked duplicates. It resolves paths from a local results catalog, protects
-the selected original and rechecks both files before calling Electron
-`shell.trashItem`. It has no permanent-deletion fallback. This operation is
+the selected original and rechecks both files. Linux/macOS use Electron
+`shell.trashItem`; Windows uses a separate native IFileOperation adapter without
+an elevation prompt or connected-file deletion. It has no permanent-deletion fallback. This operation is
 separate from scanning; current verification and limitations are recorded in
 `docs/iteration2-results.md`. The draft is not a clean verdict for the current EXE.
 
@@ -31,6 +32,11 @@ selected locations. They exchange JSON through local standard-input/output
 pipes. No network client or child-process launcher is implemented in the native
 analyzer; HTTPS operations and update installation belong to the Electron
 application.
+
+The same bundled native executable also implements bounded previews, paired
+revalidation and the Windows-only recycle operation described above. The Windows
+operation uses IFileOperation with an explicit no-elevation policy and checks
+whether the item can be recycled before allowing the delete operation to proceed.
 
 ## Libraries and build tools
 
