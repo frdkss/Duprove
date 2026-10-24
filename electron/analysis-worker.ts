@@ -11,6 +11,10 @@ parentPort!.on('message', ({ id, method, value }) => {
       if (method === 'start') result = await service.start(value)
       else if (method === 'command') result = await service.command(value)
       else if (method === 'report') result = await service.report()
+      else if (method === 'catalog') {
+        if (['running', 'paused', 'stopping'].includes(service.snapshot().status)) throw Error('ANALYSIS_BUSY')
+        result = await service.catalog.request(value)
+      }
       else if (method === 'shutdown') result = await service.shutdown()
       else throw new Error('INVALID_ANALYSIS_METHOD')
       parentPort!.postMessage({ id, result })

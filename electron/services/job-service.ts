@@ -10,6 +10,7 @@ import { listDrives, contentFromEvent, reportFromEvent } from './analyzer-servic
 import { writeLocalJson } from './local-json'
 import { ConsentService } from './consent-service'
 import { prepareReport, loadPreparedReport, savePreparedReport } from './report-service'
+import { CatalogService } from './catalog-service'
 
 export const WORK_FILE_THRESHOLD = 5 * 1024 * 1024
 const MAX_EVENT_BYTES = 32 * 1024 * 1024
@@ -28,6 +29,7 @@ export async function cleanupWorkFile(file: string, complete: boolean): Promise<
 
 // No Electron or renderer dependencies. Production runs this service in a worker.
 export class JobService extends EventEmitter {
+  readonly catalog: CatalogService
   private timing = new AnalysisTimingTracker()
   private state = emptySnapshot()
   private child: ChildProcessWithoutNullStreams | null = null
@@ -42,6 +44,7 @@ export class JobService extends EventEmitter {
     private readonly launchProcess: (file: string, input: string) => ChildProcessWithoutNullStreams = (file, input) =>
       spawn(file, ['--job', input], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })) {
     super()
+    this.catalog = new CatalogService(directory)
     this.stateFile = path.join(directory, 'job.json')
     this.database = path.join(directory, 'work', 'index.sqlite')
   }
@@ -204,6 +207,8 @@ export class JobService extends EventEmitter {
           if (!failed && code === 0 && prepared && content) {
             savePreparedReport(this.reportPath(), prepared)
             writeLocalJson(path.join(this.directory, 'content.json'), content)
+            try { await this.catalog.capture(this.database, this.state.id!, this.state.drives.map(d => d.path), !!result?.complete) }
+            catch { this.state.error = 'CATALOG_SAVE_FAILED' }
           }
           this.publish(true) // Persist result/state before deleting the only working copy.
           await cleanupWorkFile(this.database, this.state.status === 'completed')
