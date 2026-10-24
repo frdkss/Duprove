@@ -12,7 +12,9 @@ const timer = setTimeout(() => { console.error('RESULTS_UI_TIMEOUT'); app.exit(1
 app.whenReady().then(async () => {
   await fs.mkdir(directory, { recursive: true })
   const { CatalogService } = require('../.verification/tests/electron/services/catalog-service.js')
-  const catalog = new CatalogService(directory)
+  const catalog = new CatalogService(directory, 'simulated-native-preview', async () => ({
+    status: 'ready', kind: 'text', text: '<script>globalThis.PREVIEW_EXECUTED=true</script>\nLiteral text preview', sha256: 'a'.repeat(64), truncated: false,
+  }))
   const analysisId = randomUUID()
   const source = path.join(directory, 'work.sqlite')
   const db = new DatabaseSync(source)
@@ -74,6 +76,13 @@ app.whenReady().then(async () => {
   await click('[aria-label="Страницы участников: назад"]')
   await click('[aria-label="Страницы участников: назад"]')
   await waitFor(`document.querySelector('.result-original input')?.checked`)
+  await evaluate(`Array.from(document.querySelectorAll('.result-member'))[1].querySelector('.result-actions button').click()`)
+  await waitFor(`document.querySelectorAll('.file-preview pre').length===2`)
+  assert.equal(await evaluate('globalThis.PREVIEW_EXECUTED'), undefined)
+  assert.match(await evaluate(`document.querySelector('.file-preview pre').textContent`), /<script>/)
+  await textButton('Оба экземпляра проверены: отметить для удаления')
+  await waitFor(`Array.from(document.querySelectorAll('.result-member'))[1]?.textContent.includes('Отмечен для удаления')`)
+  assert.equal(await fs.readFile(names[1], 'utf8'), 'abc', 'a verdict does not delete the disposable file')
   for (const theme of ['light', 'dark']) for (const [width, height] of [[640,480],[960,640],[1280,800],[1920,1080]]) {
     await resize(width, height)
     await evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`)
@@ -98,6 +107,6 @@ app.whenReady().then(async () => {
   await textButton('Группы файлов')
   await waitFor(`document.querySelector('.results-error')?.textContent.includes('новый анализ')`)
   clearTimeout(timer)
-  await fs.writeFile(path.join(root, '.verification/results-ui-report.json'), JSON.stringify({ analysisId, passed: true, themes: ['light','dark'], sizes: ['640x480','960x640','1280x800','1920x1080'], fixtures: 'synthetic SQLite catalog and disposable files; real Electron/preload/React', trash: 'not tested at this stage' }, null, 2))
+  await fs.writeFile(path.join(root, '.verification/results-ui-report.json'), JSON.stringify({ analysisId, passed: true, themes: ['light','dark'], sizes: ['640x480','960x640','1280x800','1920x1080'], fixtures: 'synthetic SQLite catalog and disposable files; real Electron/preload/React; simulated native preview', trash: 'not tested at this stage' }, null, 2))
   console.log('RESULTS_UI_OK'); window.destroy(); app.exit(0)
 }).catch(e => { clearTimeout(timer); console.error(e); app.exit(1) })

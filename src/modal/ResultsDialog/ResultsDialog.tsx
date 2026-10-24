@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DesktopBridge } from '../../../electron/bridge'
-import { PAGE_SIZE, type CatalogInfo, type FileGroup, type GroupKind, type GroupMember, type Page } from '../../../contracts/catalog'
+import { PAGE_SIZE, type CatalogInfo, type FileGroup, type GroupKind, type GroupMember, type Page, type PreviewPair, type FilePreview } from '../../../contracts/catalog'
 import './ResultsDialog.css'
 
 const labels: Record<GroupKind, string> = { exact: 'Точные дубликаты', warn_text: 'Похожие тексты', warn_image: 'Похожие изображения' }
@@ -14,6 +14,8 @@ export function catalogError(error: unknown): string {
     ORIGINAL_PROTECTED: 'Этот файл выбран оригиналом в одной из групп. Сначала пересмотрите выбор.',
     FILE_UNAVAILABLE: 'Файл отсутствует, изменился или недоступен. Обновите анализ.',
     ANALYSIS_BUSY: 'Дождитесь окончания анализа.',
+    ORIGINAL_REQUIRED: 'Сначала выберите сохраняемый оригинал и другой экземпляр для сравнения.',
+    MANUAL_REVIEW_REQUIRED: 'Для похожих файлов откройте оба предпросмотра и подтвердите ручную проверку.',
   }
   return Object.entries(reasons).find(([code]) => text.includes(code))?.[1] ?? 'Не удалось выполнить действие. Повторите попытку. ' + text.replace(/^Error: /, '')
 }
@@ -37,6 +39,7 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [revision, refresh] = useState(0)
+  const [preview, setPreview] = useState<PreviewPair | null>(null)
   useEffect(() => {
     const dialog = ref.current!
     dialog.showModal()
@@ -53,7 +56,7 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
       }).catch(e => { if (current) { setError(catalogError(e)); setGroup(null) } }).finally(() => { if (current) setBusy(false) })
     return () => { current = false }
   }, [api, analysisId, kind, offset, revision])
-  useEffect(() => { setMemberOffset(0) }, [group?.id])
+  useEffect(() => { setMemberOffset(0); setPreview(null) }, [group?.id])
   useEffect(() => {
     if (!group) { setMembers(null); return }
     let current = true
@@ -64,8 +67,22 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
   }, [api, analysisId, group, memberOffset, revision])
   const original = async (fileId: number | null) => {
     if (!group) return
-    setBusy(true); setError('')
+    setBusy(true); setError(''); setPreview(null)
     try { await api.requestCatalog({ action: 'original', analysisId, groupId: group.id, fileId }); refresh(v => v + 1) }
+    catch (e) { setError(catalogError(e)) }
+    finally { setBusy(false) }
+  }
+  const compare = async (fileId: number) => {
+    if (!group) return
+    setBusy(true); setError(''); setPreview(null)
+    try { setPreview(await api.requestCatalog({ action: 'compare', analysisId, groupId: group.id, fileId }) as PreviewPair) }
+    catch (e) { setError(catalogError(e)) }
+    finally { setBusy(false) }
+  }
+  const decide = async (fileId: number, decision: 'unresolved' | 'keep' | 'review' | 'delete', reviewed = false) => {
+    if (!group) return
+    setBusy(true); setError('')
+    try { await api.requestCatalog({ action: 'decision', analysisId, groupId: group.id, fileId, decision, reviewed }); refresh(v => v + 1) }
     catch (e) { setError(catalogError(e)) }
     finally { setBusy(false) }
   }
@@ -89,11 +106,25 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
         {group && <><h3>{labels[group.kind]} · {group.id}</h3>
           {group.kind !== 'exact' && <p className="results-note">Содержимое может различаться. Сходство не подтверждает точное равенство.</p>}
           <p>Оригинал: {group.originalId === null ? 'не выбран' : `экземпляр №${group.originalId}`}. {group.originalId !== null && <button disabled={busy} onClick={() => void original(null)}>Снять выбор</button>}</p>
+          {preview && <section className="results-comparison" aria-label="Сравнение двух экземпляров">
+            <h3>Ручная проверка</h3><div className="preview-pair"><Preview value={preview.original} title="Сохраняемый оригинал"/><Preview value={preview.candidate} title="Проверяемый экземпляр"/></div>
+            <div className="result-actions"><button disabled={busy} onClick={() => void decide(preview.candidate.id, 'keep')}>Оставить</button>
+              <button disabled={busy || preview.original.status !== 'ready' || preview.candidate.status !== 'ready'} onClick={() => void decide(preview.candidate.id, 'delete', true)}>Оба экземпляра проверены: отметить для удаления</button>
+              <button onClick={() => setPreview(null)}>Скрыть просмотр</button></div>
+            <p className="results-note">Вердикт сохраняет решение. Файл остаётся на диске до отдельного подтверждения переноса в корзину.</p>
+          </section>}
           {members?.items.map(member => <article className="result-member" key={member.id}>
             <label className="result-original"><input type="radio" name="original" aria-label={`Сохранять ${member.path}`} checked={group.originalId === member.id} disabled={busy || member.decision === 'trashed' || member.availability !== 'available'} onChange={() => void original(member.id)}/>Сохранять как оригинал{member.protected && <strong> · защищён</strong>}</label>
             <p className="result-path" tabIndex={0}>{member.path}</p>
             <p>{member.size.toLocaleString('ru-RU')} байт · {availability[member.availability]} · {decisionLabels[member.decision]}</p>
             <button onClick={() => void copy(member.path)}>Копировать путь</button>
+            {member.decision !== 'trashed' && <div className="result-actions">
+              <label>Решение <select aria-label={`Решение для ${member.path}`} value={member.decision} disabled={busy} onChange={e => void decide(member.id, e.target.value as 'unresolved' | 'keep' | 'review' | 'delete')}>
+                <option value="unresolved">Не решено</option><option value="keep">Оставить</option><option value="review">Проверить вручную</option>
+                <option value="delete" disabled={member.protected || !group.originalId || group.kind !== 'exact'}>Отметить для удаления</option>
+              </select></label>
+              {group.originalId !== member.id && <button disabled={busy || !group.originalId || member.availability !== 'available'} onClick={() => void compare(member.id)}>Сравнить с оригиналом</button>}
+            </div>}
           </article>)}
           {!members && <p role="status">Загрузка участников…</p>}
           {members && <Pager {...members} busy={busy} label="Страницы участников" onPage={setMemberOffset}/>}</>}
@@ -101,4 +132,15 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
     </div>
     <footer><button onClick={onClose}>Закрыть</button></footer>
   </dialog>
+}
+
+function Preview({ value, title }: { value: FilePreview; title: string }) {
+  const reasons: Record<string, string> = { unsupported: 'Предпросмотр этого формата не поддерживается. PDF, аудио и видео здесь не открываются.',
+    invalid: 'Файл повреждён или кодировка не поддерживается.', limit: 'Превышен лимит размера, распаковки или декодирования.',
+    unavailable: 'Файл изменился, отсутствует или недоступен.', protected: 'Защищённый документ не поддерживается.' }
+  return <article className="file-preview"><h4>{title}</h4><p className="result-path">{value.path}</p>
+    {value.status !== 'ready' ? <p role="status">{reasons[value.status] ?? 'Не удалось показать содержимое.'}</p>
+      : value.kind === 'text' ? <><pre tabIndex={0}>{value.text}</pre><p>{value.truncated ? 'Показан фрагмент, текст усечён.' : 'Текст показан без оформления.'}</p></>
+        : value.kind === 'image' ? <img src={value.data} alt={`Предпросмотр: ${value.path}`}/> : <p>Предпросмотр отсутствует.</p>}
+  </article>
 }

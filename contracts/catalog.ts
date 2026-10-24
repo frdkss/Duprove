@@ -16,11 +16,18 @@ export interface GroupMember {
   decision: Decision; protected: boolean
 }
 export interface Page<T> { items: T[]; total: number; offset: number; limit: number }
+export interface FilePreview {
+  id: number; path: string; status: string; kind: 'text' | 'image' | 'none'
+  text?: string; data?: string; truncated?: boolean; width?: number; height?: number
+}
+export interface PreviewPair { original: FilePreview; candidate: FilePreview }
 export type CatalogRequest =
   | { action: 'info'; analysisId: string }
   | { action: 'groups'; analysisId: string; kind: GroupKind; offset: number }
   | { action: 'members'; analysisId: string; groupId: string; offset: number }
   | { action: 'original'; analysisId: string; groupId: string; fileId: number | null }
+  | { action: 'compare'; analysisId: string; groupId: string; fileId: number }
+  | { action: 'decision'; analysisId: string; groupId: string; fileId: number; decision: 'unresolved' | 'keep' | 'review' | 'delete'; reviewed: boolean }
 export const PAGE_SIZE = 25
 export const idValid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v)
 export const groupValid = (v: unknown): v is string => typeof v === 'string' && /^(e|t|i):[1-9][0-9]{0,14}$/.test(v)
@@ -32,6 +39,9 @@ export function isCatalogRequest(v: unknown): v is CatalogRequest {
   if (!object(v) || !idValid(v.analysisId)) return false
   if (v.action === 'info') return exactKeys(v, ['action', 'analysisId'])
   if (v.action === 'original') return exactKeys(v, ['action', 'analysisId', 'groupId', 'fileId']) && groupValid(v.groupId) && (v.fileId === null || fileValid(v.fileId))
+  if (v.action === 'compare') return exactKeys(v, ['action', 'analysisId', 'groupId', 'fileId']) && groupValid(v.groupId) && fileValid(v.fileId)
+  if (v.action === 'decision') return exactKeys(v, ['action', 'analysisId', 'groupId', 'fileId', 'decision', 'reviewed']) && groupValid(v.groupId) && fileValid(v.fileId)
+    && ['unresolved', 'keep', 'review', 'delete'].includes(String(v.decision)) && typeof v.reviewed === 'boolean'
   if (!Number.isSafeInteger(v.offset) || Number(v.offset) < 0 || Number(v.offset) > 1e9) return false
   if (v.action === 'groups') return exactKeys(v, ['action', 'analysisId', 'kind', 'offset']) && groupKinds.includes(v.kind as GroupKind)
   return v.action === 'members' && exactKeys(v, ['action', 'analysisId', 'groupId', 'offset']) && groupValid(v.groupId)

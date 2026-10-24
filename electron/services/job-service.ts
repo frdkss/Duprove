@@ -44,7 +44,7 @@ export class JobService extends EventEmitter {
     private readonly launchProcess: (file: string, input: string) => ChildProcessWithoutNullStreams = (file, input) =>
       spawn(file, ['--job', input], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })) {
     super()
-    this.catalog = new CatalogService(directory)
+    this.catalog = new CatalogService(directory, executable)
     this.stateFile = path.join(directory, 'job.json')
     this.database = path.join(directory, 'work', 'index.sqlite')
   }
