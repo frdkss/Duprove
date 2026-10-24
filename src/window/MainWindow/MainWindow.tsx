@@ -13,6 +13,13 @@ import { AnalysisLogDialog } from '../../modal/AnalysisLogDialog/AnalysisLogDial
 import { AnalysisControls } from '../../components/AnalysisControls/AnalysisControls'
 import { ResultsDialog } from '../../modal/ResultsDialog/ResultsDialog'
 
+const analysisFailures: Record<string, string> = {
+  ANALYSIS_STORAGE_LIMIT: 'Анализ остановлен: достигнут предел рабочей базы (512 МиБ), временных таблиц (256 МиБ) или осталось менее 512 МиБ свободного места. Сохранённые контрольные точки оставлены на диске.',
+  ANALYSIS_INCOMPLETE: 'Анализ завершён с пропусками или ошибками доступа. Доступен неполный результат.',
+  CATALOG_SAVE_FAILED: 'Анализ завершён, но каталог групп не сохранён. Статистика и рабочая база оставлены на диске. Проверьте свободное место и доступ, затем повторите анализ.',
+  ANALYZER_INTERRUPTED: 'Анализатор завершился без итогового результата. Подробности и последний этап — в журнале анализа.',
+}
+
 function preference(key: string, choices: string[], fallback: string) {
   try { const value = localStorage.getItem(key); return value && choices.includes(value) ? value : fallback } catch { return fallback }
 }
@@ -113,17 +120,22 @@ export function MainWindow() {
     finally { setBusy(false) }
   }
   const driveListProps = { drives, activePath, selected, locked,
-    progress: analysisFinished(job) ? job.disks.map(d => ({ ...d, overall_percent: 100 })) : job.disks,
+    progress: job.disks.map(d => ({ ...d,
+      ...(analysisFinished(job) ? { overall_percent: 100 } : {}),
+      ...(!locked && !analysisFinished(job) ? { phase: job.status === 'error' ? 'error' as const : 'stopped' as const } : {}) })),
     onSelect: select, onSelectAll: selectAll }
   return <div className="app-shell"><TitleBar/><div className="app-body">
     <Sidebar {...driveListProps} content={content} onContent={setContent} view={view} expanded={expanded} mode={mode} onView={navigate} onExpand={() => setExpanded(previous => previous === 'mode' ? null : 'mode')} onMode={setMode} onHelp={openHelp}/>
-    <main className="main-window"><header className="page-heading"><h1>{view === 'disks' ? 'Ваши диски' : 'Настройки'}</h1>{analysisFinished(job) && <button className="primary-button" onClick={() => setShowResults(true)}>Группы файлов</button>}</header>
+    <main className="main-window"><header className="page-heading"><h1>{view === 'disks' ? 'Ваши диски' : 'Настройки'}</h1><div className="page-actions">
+      {view === 'disks' && job.disks.some(d => d.path === activePath) && <button className="subtle-button" onClick={() => setLogPath(activePath)}>Журнал анализа</button>}
+      {analysisFinished(job) && <button className="primary-button" onClick={() => setShowResults(true)}>Группы файлов</button>}
+    </div></header>
       {view !== 'settings' && <AppUpdate api={window.duprove}/>}
       {helpError && <p className="help-error" role="alert">{helpError}</p>}
-      {(analysisError || job.error) && <p className="help-error" role="alert">{analysisError || (job.error === 'ANALYSIS_STORAGE_LIMIT' ? 'Анализ остановлен: достигнут предел рабочей базы (512 МиБ), временных таблиц (256 МиБ) или осталось менее 512 МиБ свободного места. Сохранённые контрольные точки оставлены на диске.' : job.error === 'ANALYSIS_INCOMPLETE' ? 'Анализ завершён с пропусками или ошибками доступа. Доступен неполный результат.' : job.error === 'CATALOG_SAVE_FAILED' ? 'Анализ завершён, но каталог групп не сохранён. Статистика и рабочая база оставлены на диске. Проверьте свободное место и доступ, затем повторите анализ.' : 'Анализ прерван или не удалось сохранить данные. Можно повторить попытку.')} {job.error && <small>Код: {job.error}</small>}</p>}
+      {(analysisError || job.error) && <p className="help-error" role="alert">{analysisError || (job.error && analysisFailures[job.error]) || 'Анализ прерван или не удалось сохранить данные. Можно повторить попытку.'} {job.error && <small>Код: {job.error}</small>}</p>}
       {view === 'settings' ? <SettingsPanel theme={theme} onTheme={setTheme} api={window.duprove}/> : <>
         {status && !drives.length ? <div className="drive-empty" role="status"><Icon name="drive" size={44}/><p>{status}</p></div> : <div className="disk-workspace">
-          {activeDrive ? <DriveOverview drive={activeDrive} progress={job.disks.find(d => d.path === activePath)} paused={job.status === 'paused'} running={job.status === 'running' || job.status === 'stopping'} finished={analysisFinished(job)} onShowLog={!locked && job.disks.some(d => d.path === activePath) ? () => setLogPath(activePath) : undefined} onNext={nextDrive ? () => setActivePath(nextDrive.path) : undefined} onPrevious={previousDrive ? () => setActivePath(previousDrive.path) : undefined}/> : <div className="drive-empty"><Icon name="drive" size={44}/><h2>Выберите диск</h2><p>Отметьте нужные накопители в разделе «Ваши диски» слева.</p></div>}
+          {activeDrive ? <DriveOverview drive={activeDrive} progress={job.disks.find(d => d.path === activePath)} status={job.status} paused={job.status === 'paused'} running={job.status === 'running' || job.status === 'stopping'} finished={analysisFinished(job)} onShowLog={job.disks.some(d => d.path === activePath) ? () => setLogPath(activePath) : undefined} onNext={nextDrive ? () => setActivePath(nextDrive.path) : undefined} onPrevious={previousDrive ? () => setActivePath(previousDrive.path) : undefined}/> : <div className="drive-empty"><Icon name="drive" size={44}/><h2>Выберите диск</h2><p>Отметьте нужные накопители в разделе «Ваши диски» слева.</p></div>}
         </div>}
         <AnalysisControls job={job} selected={selected.length} busy={busy} onStart={() => void run()} onCommand={command => void run(command)}/>
         <ReportDelivery api={window.duprove}/>

@@ -4,7 +4,7 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { AnalysisTimingTracker } from './analysis-timing'
-import { activeJob, analysisFinished, emptySnapshot, isDiskProgress, isStartAnalysis, object, overallProgress, waitingDisk, type AnalysisSnapshot, type AnalysisDrive, type DiskProgress } from '../../contracts/analysis'
+import { activeJob, analysisFinished, emptySnapshot, isAnalysisExit, isDiskProgress, isStartAnalysis, object, overallProgress, waitingDisk, type AnalysisSnapshot, type AnalysisDrive, type DiskProgress } from '../../contracts/analysis'
 import { isContentResult } from '../../contracts/content'
 import { listDrives, contentFromEvent, reportFromEvent } from './analyzer-service'
 import { writeLocalJson } from './local-json'
@@ -62,7 +62,8 @@ export class JobService extends EventEmitter {
         || !['running', 'paused', 'stopping', 'stopped', 'interrupted', 'completed', 'error'].includes(String(v.status))) throw new Error()
       this.state = { ...emptySnapshot(), id: v.id, drives: v.drives as AnalysisDrive[], disks: v.disks.map(d => cleanProgress(d, true)),
         mode: v.mode as AnalysisSnapshot['mode'], content: v.content as boolean,
-        status: v.status === 'completed' ? 'completed' : 'interrupted' }
+        status: v.status === 'completed' ? 'completed' : 'interrupted',
+        ...(v.status !== 'completed' && isAnalysisExit(v.exit) ? { exit: v.exit } : {}) }
       // Restore summaries only from the separately validated report.
       try {
         const report = loadPreparedReport(this.reportPath()).report
@@ -147,6 +148,7 @@ export class JobService extends EventEmitter {
   }
   private async launch(): Promise<void> {
     try {
+      delete this.state.exit
       this.timing.reset()
       await mkdir(path.dirname(this.database), { recursive: true, mode: 0o700 })
       const input = path.join(this.directory, 'input.json')
@@ -196,7 +198,7 @@ export class JobService extends EventEmitter {
           } catch { fail('INVALID_ANALYZER_EVENT'); return }
         }
       })
-      this.completion = new Promise(resolve => child.once('close', async code => {
+      this.completion = new Promise(resolve => child.once('close', async (code, signal) => {
         this.busy = true
         if (this.stopTimer) clearTimeout(this.stopTimer)
         this.child = null
@@ -204,6 +206,7 @@ export class JobService extends EventEmitter {
         const stopped = this.state.status === 'stopping'
         this.state.status = stopped ? 'stopped' : !failed && code === 0 && result?.complete ? 'completed' : 'error'
         if (!stopped && this.state.status === 'error' && !this.state.error) this.state.error = result && code === 0 ? 'ANALYSIS_INCOMPLETE' : 'ANALYZER_INTERRUPTED'
+        if (!stopped && this.state.status === 'error' && this.state.error !== 'ANALYSIS_INCOMPLETE') this.state.exit = { code, signal }
         if (!stopped && !failed && code === 0 && result) {
           for (const disk of this.state.disks) { disk.overall_percent = 100; disk.percent = 100 }
         }

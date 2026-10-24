@@ -3,12 +3,12 @@ import { driveName, gib } from '../DriveItem/DriveItem'
 import { Icon } from '../Icon/Icon'
 import './DriveOverview.css'
 import { useEffect, useState } from 'react'
-import { progressText, type DiskProgress, type Phase } from '../../../contracts/analysis'
+import { progressText, type DiskProgress, type JobStatus, type Phase } from '../../../contracts/analysis'
 import { fileTypeColor, fileTypeName } from './file-types'
 import { AnalysisActivity, operationLabels } from './AnalysisActivity'
 const phaseLabels: Record<Phase, string> = { waiting: 'Ожидание очереди', discovering: 'Обход и метаданные', hashing: 'Проверка SHA-256', comparing: 'Побайтовое сравнение', content: 'Чтение содержимого', content_comparing: 'Сравнение содержимого', validating: 'Проверка актуальности', completed: 'Анализ завершён', stopped: 'Анализ остановлен', error: 'Завершено с ошибками' }
 const legendPageSize = 8
-export function DriveOverview({ drive, onNext, onPrevious, progress, paused, running, finished, onShowLog }: { drive: Drive; onNext?(): void; onPrevious?(): void; progress?: DiskProgress; paused?: boolean; running?: boolean; finished?: boolean; onShowLog?(): void }) {
+export function DriveOverview({ drive, onNext, onPrevious, progress, status, paused, running, finished, onShowLog }: { drive: Drive; onNext?(): void; onPrevious?(): void; progress?: DiskProgress; status?: JobStatus; paused?: boolean; running?: boolean; finished?: boolean; onShowLog?(): void }) {
   const [hover, setHover] = useState<string | null>(null)
   const [legendPage, setLegendPage] = useState(0)
   useEffect(() => { setLegendPage(0); setHover(null) }, [drive.path])
@@ -18,9 +18,10 @@ export function DriveOverview({ drive, onNext, onPrevious, progress, paused, run
   const describeType = (type: string, count: number) => `${fileTypeName(type)}: ${count.toLocaleString('ru-RU')} файлов · ${(count / (progress?.files || 1) * 100).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`
   const hovered = sectors.find(([type]) => type === hover)
   let offset = 0
-  const label = progress ? paused ? 'Пауза' : phaseLabels[progress.phase] : 'Ожидание запуска'
+  const interrupted = status === 'interrupted' || status === 'error' && !finished
+  const label = progress ? interrupted ? 'Анализ прерван' : status === 'stopped' ? 'Анализ остановлен' : paused ? 'Пауза' : phaseLabels[progress.phase] : 'Ожидание запуска'
   const percentage = progress && (finished || progress.phase === 'completed') ? 100 : progress?.overall_percent ?? 0
-  const caption = !progress ? 'Анализ не начат' : paused ? label : progress.phase === 'discovering'
+  const caption = !progress ? 'Анализ не начат' : paused || interrupted || status === 'stopped' ? label : progress.phase === 'discovering'
     ? `${label} · оценка по найденным каталогам` : running && progress.work && (progress.phase !== 'waiting' || ['initializing', 'preparing'].includes(progress.work.operation)) ? operationLabels[progress.work.operation] : label
   return <section className="drive-overview" aria-label={`Обзор: ${driveName(drive)}`}>
     <aside className="extension-panel" aria-label="Расширения файлов">

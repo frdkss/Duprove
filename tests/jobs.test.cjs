@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs/promises')
 const path = require('node:path')
 const { JobService, cleanupWorkFile, WORK_FILE_THRESHOLD } = require('../.verification/tests/electron/services/job-service.js')
-const { isStartAnalysis, isDiskProgress, overallProgress, waitingDisk, analysisFinished, emptySnapshot } = require('../.verification/tests/contracts/analysis.js')
+const { isStartAnalysis, isDiskProgress, isAnalysisExit, overallProgress, waitingDisk, analysisFinished, emptySnapshot } = require('../.verification/tests/contracts/analysis.js')
 const { ConsentService } = require('../.verification/tests/electron/services/consent-service.js')
 const root = path.resolve(__dirname, '..')
 const binary = process.env.DUPROVE_ANALYZER || path.join(root, 'build/native/bin', process.platform === 'win32' ? 'duprove-analyzer.exe' : 'duprove-analyzer')
@@ -47,6 +47,8 @@ test('analysis contract rejects unknown versions, paths, modes and malformed pro
   for (const invalid of [{ ...issue, count: 2 }, { ...issue, code: 'unknown' }, { ...issue, examples: ['x'.repeat(1025)] }, { ...issue, extra: true }]) {
     assert.equal(isDiskProgress({ ...waitingDisk('x'), errors: 1, issues: [invalid] }), false)
   }
+  for (const code of [-1073741819, 0xC0000005, 42, null]) assert.ok(isAnalysisExit({ code, signal: null }))
+  for (const exit of [{ code: NaN, signal: null }, { code: 2 ** 32, signal: null }, { code: 42, signal: 'PRIVATE_PATH' }]) assert.equal(isAnalysisExit(exit), false)
 })
 
 test('overall progress keeps completed stages across waits and never resets at phase boundaries', () => {
@@ -290,6 +292,25 @@ test('a final result closes the command pipe before waiting for process exit', a
   assert.equal(result.status, 'completed', result.error)
 })
 
+test('an analyzer crash retains unfinished progress and a local exit code without creating a final report', async t => {
+  const { spawn } = require('node:child_process')
+  const f = await fixture(t, 16)
+  const disks = f.roots.map(p => ({ ...waitingDisk(p), phase: 'comparing', percent: 67.84, overall_percent: 66.96 }))
+  const source = `console.log(${JSON.stringify(JSON.stringify({ type: 'progress', disks }))}); process.exitCode = 42;`
+  const directory = path.join(f.directory, 'early-crash')
+  const service = new JobService(binary, directory, path.join(f.directory, 'consent.json'),
+    async () => f.roots.map(p => ({ path: p, name: 'synthetic', capacity: 1, available: 1 })),
+    () => spawn(process.execPath, ['-e', source], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] }))
+  f.services.push(service)
+  await service.start(f.request)
+  const result = await until(service, s => s.status === 'error')
+  assert.equal(result.error, 'ANALYZER_INTERRUPTED')
+  assert.deepEqual(result.exit, { code: 42, signal: null })
+  assert.deepEqual(result.disks.map(d => d.overall_percent), [66.96, 66.96])
+  assert.equal(analysisFinished(result), false)
+  assert.equal(await service.report(), null)
+})
+
 test('malformed or oversized analyzer output is bounded and cannot become a saved report', async t => {
   const { spawn } = require('node:child_process')
   const f = await fixture(t, 16)
@@ -339,8 +360,13 @@ test('a report is persisted only after a clean exit and a complete event stream'
     assert.equal((await service.report()) !== null, !error)
     assert.equal(JSON.stringify(result).includes('PRIVATE_TRAILING_DATA'), false)
     if (error) {
+      if (name === 'crash') assert.deepEqual(result.exit, { code: exitCode, signal: null })
       await assert.rejects(fs.stat(path.join(directory, 'reports')), { code: 'ENOENT' })
       assert.equal((await fs.stat(path.join(directory, 'work/index.sqlite'))).isFile(), true)
+      const restored = new JobService(binary, directory, path.join(f.directory, 'consent.json'))
+      f.services.push(restored)
+      await restored.restore()
+      assert.deepEqual(restored.snapshot().exit, result.exit, 'Crash diagnostics survive restart')
     }
   }
 })
