@@ -157,6 +157,31 @@ test('pause, stop, service restart and explicit resume preserve job identity and
   assert.equal(result.id, started.id)
   assert.equal(result.total.duplicates, 0)
 })
+
+test('failed catalog capture retains a valid working database larger than the cleanup threshold and survives restart', async t => {
+  const f = await fixture(t)
+  const working = path.join(f.directory, 'app/work/index.sqlite')
+  f.service.catalog.capture = async () => {
+    const { DatabaseSync } = require('node:sqlite')
+    const db = new DatabaseSync(working)
+    try {
+      db.exec('CREATE TABLE retention_probe(payload BLOB)')
+      db.prepare('INSERT INTO retention_probe VALUES(zeroblob(?))').run(WORK_FILE_THRESHOLD + 4096)
+    } finally { db.close() }
+    throw Error('SIMULATED_CATALOG_STORAGE_FAILURE')
+  }
+  await f.service.start(f.request)
+  const result = await until(f.service, s => s.status === 'completed')
+  await f.service.shutdown()
+  assert.equal(result.error, 'CATALOG_SAVE_FAILED')
+  assert.ok((await fs.stat(working)).size > WORK_FILE_THRESHOLD)
+  assert.equal((await f.service.report()).complete, true)
+  const restored = f.make(); f.services.push(restored)
+  await restored.restore()
+  assert.equal(restored.snapshot().status, 'completed')
+  assert.equal(restored.snapshot().error, 'CATALOG_SAVE_FAILED')
+  assert.equal((await fs.stat(working)).isFile(), true)
+})
 test('cleanup preserves interrupted work and exactly 5 MiB; removes only successful larger work', async t => {
   const f = await fixture(t, 16)
   const file = path.join(f.directory, 'threshold.sqlite')

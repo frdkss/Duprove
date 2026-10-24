@@ -68,6 +68,7 @@ export class JobService extends EventEmitter {
         const report = loadPreparedReport(this.reportPath()).report
         if (report.statistics.disks.length !== this.state.drives.length || this.state.status === 'completed' && !report.complete) throw new Error()
         this.state.total = report.statistics.total
+        if (this.state.status === 'completed' && v.error === 'CATALOG_SAVE_FAILED') this.state.error = 'CATALOG_SAVE_FAILED'
         if (v.status === 'error' && v.error === 'ANALYSIS_INCOMPLETE' && !report.complete) {
           this.state.status = 'error'; this.state.error = 'ANALYSIS_INCOMPLETE'
         }
@@ -214,7 +215,7 @@ export class JobService extends EventEmitter {
             catch { this.state.error = 'CATALOG_SAVE_FAILED' }
           }
           this.publish(true) // Persist result/state before deleting the only working copy.
-          await cleanupWorkFile(this.database, this.state.status === 'completed')
+          await cleanupWorkFile(this.database, this.state.status === 'completed' && this.state.error !== 'CATALOG_SAVE_FAILED')
         } catch { this.state.error = 'JOB_SAVE_FAILED'; this.state.status = 'error'; this.emit('snapshot', this.snapshot()) }
         this.busy = false
         resolve()

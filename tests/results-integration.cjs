@@ -7,7 +7,8 @@ const path = require('node:path')
 const { spawn } = require('node:child_process')
 const { randomUUID, createHash } = require('node:crypto')
 const root = path.resolve(__dirname, '..')
-const directory = path.join(root, '.verification', 'results-integration-' + randomUUID())
+const unavailableTrash = process.env.DUPROVE_TEST_UNAVAILABLE_TRASH === '1'
+const directory = path.join(process.env.DUPROVE_RESULTS_FIXTURES || path.join(root, '.verification'), 'results-integration-' + randomUUID())
 app.setPath('userData', path.join(directory, 'profile'))
 app.disableHardwareAcceleration()
 const timeout = setTimeout(() => { console.error('RESULTS_INTEGRATION_TIMEOUT'); app.exit(1) }, 120000)
@@ -76,7 +77,19 @@ app.whenReady().then(async () => {
   assert.equal((await service.run(request)).cancelled, true)
   assert.equal(await fs.readFile(duplicate, 'utf8'), exactBytes)
   accepted = true
-  assert.equal((await service.run(request)).results[0].status, 'trashed')
+  const transferred = await service.run(request)
+  if (unavailableTrash) {
+    assert.equal(transferred.results[0].status, 'error')
+    assert.equal(osCalls, 1, 'native checks passed and the real OS adapter was called')
+    assert.equal(await fs.readFile(duplicate, 'utf8'), exactBytes)
+    assert.equal(await fs.readFile(original, 'utf8'), exactBytes)
+    const proof = { passed: true, platform: process.platform, administrator: process.getuid?.() === 0,
+      nativeVerification: 'real', osAdapter: 'real shell.trashItem refused transfer', osCalls,
+      candidatePreserved: true, originalPreserved: true, permanentDeleteFallback: false }
+    await fs.writeFile(path.join(root, '.verification/results-trash-unavailable-linux.json'), JSON.stringify(proof, null, 2))
+    clearTimeout(timeout); console.log('RESULTS_TRASH_UNAVAILABLE_OK ' + JSON.stringify(proof)); app.exit(0); return
+  }
+  assert.equal(transferred.results[0].status, 'trashed')
   assert.equal(osCalls, 1)
   await assert.rejects(fs.stat(duplicate), /ENOENT/)
   assert.equal(await fs.readFile(original, 'utf8'), exactBytes)
@@ -100,5 +113,6 @@ app.whenReady().then(async () => {
     nativeScan: 'real', previews: 'real', pairVerification: 'real', trash: 'real shell.trashItem; one disposable file', originalPreserved: true,
     stalePreviewRefused: true, statisticalReportUnchanged: true }
   await fs.writeFile(path.join(root, `.verification/results-integration-${process.platform}.json`), JSON.stringify(proof, null, 2))
+  await fs.writeFile(path.join(root, '.verification/results-integration-public.json'), reportBytes)
   clearTimeout(timeout); console.log('RESULTS_INTEGRATION_OK ' + JSON.stringify(proof)); app.exit(0)
 }).catch(error => { clearTimeout(timeout); console.error(error); app.exit(1) })

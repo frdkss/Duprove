@@ -65,7 +65,7 @@ export class CatalogService {
     } catch { throw Error('CATALOG_UNAVAILABLE') }
     const db = new DatabaseSync(this.file)
     try {
-      db.exec('PRAGMA trusted_schema=OFF; PRAGMA cache_size=-4096; PRAGMA busy_timeout=1000;')
+      db.exec('PRAGMA trusted_schema=OFF; PRAGMA cache_size=-4096; PRAGMA busy_timeout=1000; PRAGMA max_page_count=32768;')
       db.exec('CREATE TABLE IF NOT EXISTS previews(group_id TEXT,file_id INTEGER,sha256 TEXT,PRIMARY KEY(group_id,file_id));')
       db.exec('CREATE TABLE IF NOT EXISTS trash_attempts(file_id INTEGER PRIMARY KEY,state TEXT);')
       const meta = db.prepare('SELECT * FROM meta').get() as Row | undefined

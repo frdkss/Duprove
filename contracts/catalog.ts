@@ -49,7 +49,7 @@ export function isCatalogRequest(v: unknown): v is CatalogRequest {
   if (v.action === 'original') return exactKeys(v, ['action', 'analysisId', 'groupId', 'fileId']) && groupValid(v.groupId) && (v.fileId === null || fileValid(v.fileId))
   if (v.action === 'compare') return exactKeys(v, ['action', 'analysisId', 'groupId', 'fileId']) && groupValid(v.groupId) && fileValid(v.fileId)
   if (v.action === 'decision') return exactKeys(v, ['action', 'analysisId', 'groupId', 'fileId', 'decision', 'reviewed']) && groupValid(v.groupId) && fileValid(v.fileId)
-    && ['unresolved', 'keep', 'review', 'delete'].includes(String(v.decision)) && typeof v.reviewed === 'boolean'
+    && typeof v.decision === 'string' && ['unresolved', 'keep', 'review', 'delete'].includes(v.decision) && typeof v.reviewed === 'boolean'
   if (!Number.isSafeInteger(v.offset) || Number(v.offset) < 0 || Number(v.offset) > 1e9) return false
   if (v.action === 'groups') return exactKeys(v, ['action', 'analysisId', 'kind', 'offset']) && groupKinds.includes(v.kind as GroupKind)
   return v.action === 'members' && exactKeys(v, ['action', 'analysisId', 'groupId', 'offset']) && groupValid(v.groupId)

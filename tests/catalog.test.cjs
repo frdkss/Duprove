@@ -45,6 +45,8 @@ test('catalog retains precise metadata, large cross-root groups and separate war
   assert.equal((await restored.request({ action: 'members', analysisId: f.analysisId, groupId: 'e:1', offset: 1025 })).items[0].availability, 'available')
   const db = await restored.open(f.analysisId)
   assert.equal(db.prepare('SELECT mtime FROM files LIMIT 1').get().mtime, '134000000000000001')
+  assert.equal(db.prepare('PRAGMA max_page_count').get().max_page_count * 4096, 128 * 1024 * 1024,
+    'the storage limit also applies after reopening the catalog for decisions and trash intents')
   db.close()
   const warn = await restored.request({ action: 'groups', analysisId: f.analysisId, kind: 'warn_text', offset: 0 })
   assert.ok(warn.items.every(g => g.count === 2 && g.kind === 'warn_text'))
@@ -114,6 +116,7 @@ test('decisions preserve evidence, warn deletion requires both previews and orig
   assert.equal(db.prepare('SELECT hash FROM files WHERE id=2').get().hash, 'a'.repeat(64), 'user decisions never rewrite scan hashes')
   db.close()
   await assert.rejects(catalog.request({ ...decision, decision: 'trashed' }), /INVALID_CATALOG_REQUEST/)
+  await assert.rejects(catalog.request({ ...decision, decision: { toString: null, valueOf: null } }), /INVALID_CATALOG_REQUEST/)
   await catalog.request({ action: 'original', analysisId: f.analysisId, groupId: 't:1', fileId: 2 })
   await catalog.request({ action: 'original', analysisId: f.analysisId, groupId: 't:1', fileId: 1 })
   await assert.rejects(catalog.request({ ...decision, groupId: 't:1', reviewed: true }), /MANUAL_REVIEW_REQUIRED/)

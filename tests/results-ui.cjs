@@ -42,7 +42,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('duprove:drives', () => [])
   ipcMain.handle('duprove:update:get', () => ({ revision: 0, status: 'idle' }))
   ipcMain.handle('duprove:delivery:get', () => ({ revision: 0, configured: false }))
-  const window = new BrowserWindow({ show: false, frame: false, width: 1280, height: 800, webPreferences: {
+  const window = new BrowserWindow({ show: false, frame: false, width: 1280, height: 800, enableLargerThanScreen: true, webPreferences: {
     preload: path.join(root, 'dist-electron/preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false,
     offscreen: true, backgroundThrottling: false,
   } })
@@ -55,23 +55,31 @@ app.whenReady().then(async () => {
   }
   const click = async s => { await evaluate(`document.querySelector(${JSON.stringify(s)}).click()`); await new Promise(r => setTimeout(r, 60)) }
   const textButton = async text => { await evaluate(`(() => { const b=Array.from(document.querySelectorAll('button')).find(b=>b.textContent.trim()===${JSON.stringify(text)}); b.focus(); b.click(); })()`); await new Promise(r => setTimeout(r, 100)) }
-  const resize = (width, height) => new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => { window.webContents.removeListener('paint', painted); reject(Error('RESULTS_RESIZE_TIMEOUT')) }, 5000)
+  const resize = async (width, height) => {
+    const scale = await evaluate('devicePixelRatio')
+    return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      window.webContents.removeListener('paint', painted)
+      reject(Error(`RESULTS_RESIZE_TIMEOUT: requested=${width}x${height}; window=${window.getSize().join('x')}; frame=${JSON.stringify(latestFrame?.getSize())}; scale=${scale}`))
+    }, 5000)
     const painted = (_event, _dirty, image) => {
-      if (image.getSize().width !== width) return
+      if (![width, Math.round(width * scale)].includes(image.getSize().width)) return
       clearTimeout(timeout); window.webContents.removeListener('paint', painted); resolve()
     }
     window.webContents.on('paint', painted); window.setSize(width, height); window.webContents.invalidate()
-  })
+    })
+  }
   await window.loadFile(path.join(root, 'dist/index.html'))
   await waitFor(`Array.from(document.querySelectorAll('button')).some(b=>b.textContent==='Группы файлов')`)
   await textButton('Группы файлов')
   await waitFor(`document.querySelectorAll('.result-member').length===25`)
   console.log('RESULTS_UI: loaded')
+  await assert.rejects(evaluate(`window.duprove.trashCatalog({ analysisId:${JSON.stringify(analysisId)}, groupId:'e:1', fileIds:[1], path:'arbitrary-renderer-path' })`), /INVALID_TRASH_REQUEST/)
   assert.match(await evaluate(`document.querySelector('.results-dialog').textContent`), /Неполный результат/)
   assert.equal(await evaluate(`document.activeElement.getAttribute('aria-label')`), 'Закрыть группы')
   assert.equal(await evaluate(`document.querySelectorAll('.result-original input:checked').length`), 0)
-  await click('.result-original input')
+  await evaluate(`document.querySelector('.result-original input').focus()`)
+  window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Space' }); window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Space' })
   await waitFor(`document.querySelector('.result-original input')?.checked`)
   console.log('RESULTS_UI: original selected')
   assert.equal((await catalog.request({ action: 'groups', analysisId, kind: 'exact', offset: 0 })).items[0].originalId, 1)
@@ -102,7 +110,7 @@ app.whenReady().then(async () => {
       for(const el of d.querySelectorAll('.results-members,.results-groups')) if(el.scrollWidth>el.clientWidth+1) problems.push(el.className+' overflow');
       return problems;
     })()`), [], `${theme} ${width}x${height}`)
-    assert.equal(latestFrame?.getSize().width, width, 'screenshot comes from the resized Electron paint event')
+    assert.ok([width, Math.round(width * await evaluate('devicePixelRatio'))].includes(latestFrame?.getSize().width), 'screenshot comes from the resized Electron paint event')
     await fs.writeFile(path.join(root, `.verification/results-${theme}-${width}x${height}.png`), latestFrame.toPNG())
     console.log(`RESULTS_UI: ${theme} ${width}x${height}`)
   }

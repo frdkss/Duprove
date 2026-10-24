@@ -11,7 +11,8 @@ const { trashConfirmationOptions } = require('../.verification/tests/electron/se
 async function fixture(t) {
   const directory = await fs.mkdtemp(path.join(__dirname, '../.verification/trash-'))
   t.after(() => fs.rm(directory, { recursive: true, force: true }))
-  const files = [1,2,3].map(n => path.join(directory, n + '.txt'))
+  const files = [1,2,3].map(n => path.join(directory, 'files', n + '.txt'))
+  await fs.mkdir(path.dirname(files[0]))
   for (const file of files) await fs.writeFile(file, 'abc')
   const source = path.join(directory, 'source.sqlite'), db = new DatabaseSync(source)
   db.exec(`CREATE TABLE files(path TEXT,identity TEXT,root INTEGER,size INTEGER,mtime INTEGER,ctime INTEGER,hash TEXT,gid INTEGER);
@@ -130,4 +131,16 @@ test('confirmation defaults to cancellation, shows both full paths and distingui
   assert.ok(options.detail.includes(plan.entries[0].path) && options.detail.includes(plan.entries[0].originalPath))
   assert.match(options.detail, /содержимое может различаться/)
   assert.throws(() => trashConfirmationOptions({ ...plan, entries: [{ ...plan.entries[0], path: 'x'.repeat(60001) }] }), /CONFIRMATION_TOO_LARGE/)
+})
+
+test('a replaced parent junction/symlink is rejected before calling the OS adapter', async t => {
+  const f = await fixture(t)
+  const parent = path.dirname(f.files[0]), movedParent = path.join(f.directory, 'moved-files')
+  await fs.rename(parent, movedParent)
+  await fs.symlink(movedParent, parent, 'junction')
+  let calls = 0
+  const service = new TrashService(f.rpc, async () => true, async () => { calls++ }, () => false)
+  const result = await service.run(f.request)
+  assert.ok(result.results.every(r => r.status === 'error')); assert.equal(calls, 0)
+  assert.equal(await fs.readFile(path.join(movedParent, '1.txt'), 'utf8'), 'abc')
 })

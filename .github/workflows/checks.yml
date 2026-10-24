@@ -27,6 +27,18 @@ jobs:
       - run: ctest --test-dir build/native -C Release --output-on-failure
       - run: npm run build
       - run: npm test
+      - run: npm run test:local-files
+      - if: runner.os != 'Linux'
+        run: npm run test:results-ui
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a -s '-screen 0 1920x1080x24' npm run test:results-ui
+      - if: runner.os != 'Linux'
+        run: npm run test:results-integration
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:results-integration
+      - run: npm run test:results-privacy
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:trash-unavailable
       - if: runner.os == 'Windows'
         shell: powershell
         run: ./tests/test_update_windows.ps1

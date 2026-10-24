@@ -4,7 +4,7 @@ import { PAGE_SIZE, type CatalogInfo, type FileGroup, type GroupKind, type Group
 import './ResultsDialog.css'
 
 const labels: Record<GroupKind, string> = { exact: 'Точные дубликаты', warn_text: 'Похожие тексты', warn_image: 'Похожие изображения' }
-const availability = { available: 'Доступен', missing: 'Файл отсутствует', changed: 'Файл изменился', unavailable: 'Нет доступа' }
+const availability = { available: 'Найден', missing: 'Файл отсутствует', changed: 'Файл изменился', unavailable: 'Нет доступа' }
 export const decisionLabels = { unresolved: 'Не решено', keep: 'Оставить', review: 'Проверить вручную', delete: 'Отмечен для удаления', trashed: 'В корзине' }
 export function catalogError(error: unknown): string {
   const text = String(error)

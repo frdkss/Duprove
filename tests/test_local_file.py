@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlite3
 import struct
 import subprocess
+import sys
 import tempfile
 import unittest
 from test_content import docx, png, chunk
@@ -121,6 +122,29 @@ class LocalFileTests(unittest.TestCase):
         self.assertNotEqual(warning['sha256'], warning['otherSha256'])
         Path(left['path']).write_bytes(b'bad')
         self.assertEqual(self.inspect(request)['status'], 'unavailable')
+
+    @unittest.skipIf(os.name == 'nt', 'Windows access denial is exercised separately using ACLs')
+    def test_read_denial_without_administrator_never_changes_the_file(self):
+        self.assertNotEqual(os.geteuid(), 0, 'run the access-denial check as an ordinary user')
+        if sys.platform == 'linux':
+            # DrvFS/NTFS can ignore POSIX read-mode bits; use Linux's temporary
+            # filesystem so chmod actually exercises a denied read.
+            temporary = tempfile.TemporaryDirectory(prefix='duprove-results-access-')
+            self.addCleanup(temporary.cleanup)
+            self.root = Path(temporary.name) / 'files'
+            self.root.mkdir()
+            self.private = Path(temporary.name) / 'private'
+            self.database = self.private / 'work/index.sqlite'
+        request = self.record('protected.txt', b'protected bytes')
+        file = Path(request['path'])
+        file.chmod(0)
+        self.addCleanup(file.chmod, 0o600)
+        # Use current metadata to isolate an actual read denial from stale metadata.
+        info = file.stat()
+        request.update(identity=f'{info.st_dev}:{info.st_ino}', mtime=str(info.st_mtime_ns), ctime=str(info.st_ctime_ns))
+        self.assertEqual(self.inspect(request)['status'], 'unavailable')
+        file.chmod(0o600)
+        self.assertEqual(file.read_bytes(), b'protected bytes')
 
 
 if __name__ == '__main__':

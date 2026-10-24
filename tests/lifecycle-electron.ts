@@ -1,6 +1,6 @@
 import electron from 'electron'
 import { EventEmitter } from 'node:events'
-export const { app, BrowserWindow, ipcMain, shell, Menu, nativeImage } = electron
+export const { app, BrowserWindow, ipcMain, shell, Menu, nativeImage, dialog } = electron
 // Inject this module only into the test bundle; do not mutate Electron exports.
 export const Tray = function (image: Electron.NativeImage) {
   const tray = new electron.Tray(image)

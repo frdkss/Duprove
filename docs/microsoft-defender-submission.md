@@ -17,6 +17,13 @@ under GPL-3.0-only. The user selects drives and starts the analysis. The current
 analysis reads scanned files without modifying, deleting, moving or encrypting
 them.
 
+Iteration 2 adds a separate, explicitly confirmed recycle-bin operation for
+user-marked duplicates. It resolves paths from a local results catalog, protects
+the selected original and rechecks both files before calling Electron
+`shell.trashItem`. It has no permanent-deletion fallback. This operation is
+separate from scanning; current verification and limitations are recorded in
+`docs/iteration2-results.md`. The draft is not a clean verdict for the current EXE.
+
 The desktop interface and application services use TypeScript, React 19.2.0,
 React DOM 19.2.0, HTML/CSS, Electron 44.7.1 and Ajv 8.20.0. Electron starts the
 bundled C++17 executable `duprove-analyzer.exe` to enumerate drives and analyze
@@ -81,6 +88,9 @@ directory, normally `%APPDATA%\Duprove` on Windows:
   are not stored in this index as document/image copies.
 - `analysis/job.json`, `analysis/input.json` and `analysis/content.json`: selected
   roots, job settings/progress, recovery state and content-comparison results.
+- `analysis/results/catalog.sqlite`: the latest local groups, paths, metadata,
+  original selections, decisions and recycle-bin attempt states, limited to
+  128 MiB and 30 days of access; expired catalogs are removed when accessed.
 - `analysis/reports/*.json` and `analysis/delivery/*.json`: statistical reports,
   local authorization metadata and delivery/retry state.
 - `statistics-consent.json`: the statistics setting and its local authorization
@@ -93,8 +103,9 @@ files and replacement. Diagnostic records use fixed codes and counts; arbitrary
 analyzer stderr and example file paths are not logged. Selected roots and file
 paths still exist in the private records listed above.
 
-After a successfully completed analysis, the working index is deleted if larger
-than 5 MiB. Smaller completed indexes and interrupted indexes are retained.
+After a successfully completed analysis and successful results-catalog capture,
+the working index is deleted if larger than 5 MiB. Smaller completed indexes,
+interrupted indexes and indexes whose catalog could not be saved are retained.
 There is no general time-based expiration for local reports or unfinished work.
 SQLite can also create temporary work files in the operating system's temporary
 directory.
