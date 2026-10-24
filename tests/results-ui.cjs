@@ -31,8 +31,10 @@ app.whenReady().then(async () => {
   for (let gid = 2; gid <= 30; gid++) for (let i = 1; i <= 2; i++) insert.run(path.join(directory, `${gid}-${i}.txt`), `${gid}:${i}`, i % 2, 3, 1, 2, 'a'.repeat(64), gid)
   db.close()
   await catalog.capture(source, analysisId, [directory], false)
-  const { emptySnapshot } = require('../.verification/tests/contracts/analysis.js')
-  const analysis = { ...emptySnapshot(), id: analysisId, status: 'completed', revision: 1 }
+  const { emptySnapshot, waitingDisk } = require('../.verification/tests/contracts/analysis.js')
+  const drives = [{ path: directory, name: 'Тестовый диск', capacity: 1024 ** 3, available: 512 * 1024 ** 2 }]
+  const analysis = { ...emptySnapshot(), id: analysisId, status: 'completed', revision: 1, drives,
+    disks: drives.map(d => ({ ...waitingDisk(d.path), phase: 'completed', percent: 100, overall_percent: 100 })) }
   ipcMain.handle('duprove:analysis:get', () => analysis)
   ipcMain.handle('duprove:catalog', (_event, request) => catalog.request(request))
   const confirmationResults = [false, true]
@@ -75,7 +77,9 @@ app.whenReady().then(async () => {
   await waitFor(`document.querySelectorAll('.result-member').length===25`)
   console.log('RESULTS_UI: loaded')
   await assert.rejects(evaluate(`window.duprove.trashCatalog({ analysisId:${JSON.stringify(analysisId)}, groupId:'e:1', fileIds:[1], path:'arbitrary-renderer-path' })`), /INVALID_TRASH_REQUEST/)
-  assert.match(await evaluate(`document.querySelector('.results-dialog').textContent`), /Неполный результат/)
+  assert.equal(await evaluate(`document.querySelector('.results-dialog header p')`), null)
+  assert.equal(await evaluate(`document.querySelector('.results-dialog > .results-note')`), null)
+  assert.equal(await evaluate(`document.querySelector('.result-member-controls select').closest('label')`), null, 'Decision keeps its accessible name without the visible caption')
   assert.equal(await evaluate(`document.activeElement.getAttribute('aria-label')`), 'Закрыть группы')
   assert.equal(await evaluate(`document.querySelectorAll('.result-original input:checked').length`), 0)
   await evaluate(`document.querySelector('.result-original input').focus()`)
@@ -106,8 +110,15 @@ app.whenReady().then(async () => {
       const d=document.querySelector('.results-dialog'), r=d.getBoundingClientRect();
       const problems=[];
       if(r.left<0||r.right>innerWidth+1||r.bottom>innerHeight+1) problems.push('dialog outside viewport');
+      if(r.width<innerWidth-32||r.height<innerHeight-32) problems.push('dialog must use the available window');
       if(d.scrollWidth>d.clientWidth+1) problems.push('dialog horizontal overflow');
       for(const el of d.querySelectorAll('.results-members,.results-groups')) if(el.scrollWidth>el.clientWidth+1) problems.push(el.className+' overflow');
+      if(innerWidth>=960) {
+        const group=d.querySelector('.result-group'), title=group.querySelector('strong').getBoundingClientRect(), count=group.querySelector('span').getBoundingClientRect();
+        if(count.left<title.right||Math.abs(count.top-title.top)>4) problems.push('group count must stay next to its number');
+        const member=d.querySelector('.result-member'), original=member.querySelector('.result-original').getBoundingClientRect(), controls=member.querySelector('.result-member-controls').getBoundingClientRect();
+        if(controls.left<original.right||Math.abs(controls.top-original.top)>16) problems.push('member controls must stay at the top right');
+      }
       return problems;
     })()`), [], `${theme} ${width}x${height}`)
     assert.ok([width, Math.round(width * await evaluate('devicePixelRatio'))].includes(latestFrame?.getSize().width), 'screenshot comes from the resized Electron paint event')

@@ -103,15 +103,15 @@ app.whenReady().then(async () => {
   await screenshot('ui-empty')
   delivery = { ...delivery, revision: delivery.revision + 1, sending: true }
   window.webContents.send('duprove:delivery:event', delivery); await flush()
-  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Отправляется отчёт/)
+  assert.equal(await evaluate('document.querySelector(".report-delivery")'), null)
   delivery = { ...delivery, revision: delivery.revision + 1, sending: false, failed: 1 }
   window.webContents.send('duprove:delivery:event', delivery); await flush()
-  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Не доставлено: 1/)
+  assert.equal(await evaluate('document.querySelector(".report-delivery")'), null)
   assert.equal(analysis.status, 'idle', 'Delivery failure is independent of analysis')
   await screenshot('ui-delivery-failed')
   delivery = { ...delivery, revision: delivery.revision + 1, failed: 0, sent: 1 }
   window.webContents.send('duprove:delivery:event', delivery); await flush()
-  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Доставлено отчётов: 1/)
+  assert.equal(await evaluate('document.querySelector(".report-delivery")'), null)
   await click('.sidebar-drives .drive-item:nth-child(3)')
   assert.equal(await activeDrive(), 'Диск D:', 'Card click selects and displays the same drive')
   assert.equal(await evaluate('document.querySelector(".sidebar-drives .drive-item:nth-child(3)").getAttribute("aria-checked")'), 'true')
@@ -354,14 +354,18 @@ app.whenReady().then(async () => {
   window.webContents.send('duprove:analysis:event', analysis)
   await settle()
   assert.equal(await evaluate('document.querySelector(".duplicate-count").textContent'), '3')
-  assert.match(await evaluate('document.querySelector(".analysis-summary").textContent'), /5 лишних копий/)
-  assert.match(await evaluate('document.querySelector(".analysis-warning").textContent'), /требуют ручной проверки/)
+  assert.equal(await evaluate('document.querySelector(".analysis-summary")'), null)
+  assert.equal(await evaluate('document.querySelector(".analysis-warning")'), null)
+  assert.equal(await evaluate('document.querySelector(".page-heading .overview-results")'), null)
+  assert.equal(await evaluate('document.querySelector(".overview-results").textContent'), 'Группы файлов')
+  assert.equal(await evaluate('(() => { const b=document.querySelector(".overview-results").getBoundingClientRect(); return b.top >= document.querySelector(".scan-ring").getBoundingClientRect().bottom && b.bottom <= document.querySelector(".scan-percentage").getBoundingClientRect().top })()'), true, 'Results button is between the chart and progress')
   for (const [width, height] of [[1280, 800], [960, 640], [640, 480], [1920, 1080], [1280, 480]]) {
     await resize(width, height)
     await screenshot(`ui-analysis-completed-${width}x${height}`)
   }
   await click('.scan-caption .analysis-status-link')
   assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /без зарегистрированных ошибок/)
+  assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /5 лишних копий/)
   await click('.analysis-log-close')
   analysis = { ...analysis, revision: analysis.revision + 1, status: 'error', error: 'ANALYSIS_INCOMPLETE', disks: analysis.disks.map(d => ({ ...d,
     phase: 'error', errors: 3, percent: 100, overall_percent: 99.99,
@@ -370,6 +374,7 @@ app.whenReady().then(async () => {
   window.webContents.send('duprove:analysis:event', analysis)
   await settle()
   assert.equal(await evaluate('document.querySelector(".scan-percentage").textContent'), '100%', 'Finished result with recoverable errors reaches 100%')
+  assert.equal(await evaluate('document.querySelector("main > .help-error")'), null, 'Analysis status details stay in the log')
   assert.match(await evaluate('document.querySelector(".drive-item-active .drive-info").textContent'), /100%/, 'Sidebar also shows completed work')
   assert.equal(await evaluate('document.querySelector("dialog[open]")'), null, 'Log opens on status click')
   for (const [width, height] of [[1280, 800], [640, 480]]) {

@@ -12,7 +12,7 @@ app.whenReady().then(async () => {
   const { CatalogService } = require('../.verification/tests/electron/services/catalog-service.js')
   const { TrashService } = require('../.verification/tests/electron/services/trash-service.js')
   const { trashConfirmationOptions } = require('../.verification/tests/electron/services/trash-confirmation.js')
-  const { emptySnapshot } = require('../.verification/tests/contracts/analysis.js')
+  const { emptySnapshot, waitingDisk } = require('../.verification/tests/contracts/analysis.js')
   await fs.mkdir(directory, { recursive: true })
   const source = path.join(directory, 'source.sqlite'), db = new DatabaseSync(source)
   db.exec('CREATE TABLE files(path TEXT,identity TEXT,root INTEGER,size INTEGER,mtime INTEGER,ctime INTEGER,hash TEXT,gid INTEGER);')
@@ -35,7 +35,9 @@ app.whenReady().then(async () => {
     async () => { log.osCalls++; await save(); throw Error('MANUAL_HARNESS_CANCEL_ONLY') }, () => false)
   ipcMain.handle('duprove:catalog', async (_event, request) => { const result = await catalog.request(request); log.actions.push({ action: request.action }); await save(); return result })
   ipcMain.handle('duprove:trash', async (_event, request) => { const result = await trash.run(request); log.actions.push({ action: 'trash', cancelled: result.cancelled }); await save(); return result })
-  ipcMain.handle('duprove:analysis:get', () => ({ ...emptySnapshot(), id: analysisId, revision: 1, status: 'completed' }))
+  const drives = [{ path: directory, name: 'Тестовый диск', capacity: 1024 ** 3, available: 512 * 1024 ** 2 }]
+  ipcMain.handle('duprove:analysis:get', () => ({ ...emptySnapshot(), id: analysisId, revision: 1, status: 'completed', drives,
+    disks: drives.map(d => ({ ...waitingDisk(d.path), phase: 'completed', percent: 100, overall_percent: 100 })) }))
   ipcMain.handle('duprove:drives', () => [])
   ipcMain.handle('duprove:update:get', () => ({ revision: 0, status: 'idle' }))
   ipcMain.handle('duprove:delivery:get', () => ({ revision: 0, configured: false }))

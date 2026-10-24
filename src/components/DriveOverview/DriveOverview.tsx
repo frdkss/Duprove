@@ -8,7 +8,7 @@ import { fileTypeColor, fileTypeName } from './file-types'
 import { AnalysisActivity, operationLabels } from './AnalysisActivity'
 const phaseLabels: Record<Phase, string> = { waiting: 'Ожидание очереди', discovering: 'Обход и метаданные', hashing: 'Проверка SHA-256', comparing: 'Побайтовое сравнение', content: 'Чтение содержимого', content_comparing: 'Сравнение содержимого', validating: 'Проверка актуальности', completed: 'Анализ завершён', stopped: 'Анализ остановлен', error: 'Завершено с ошибками' }
 const legendPageSize = 8
-export function DriveOverview({ drive, onNext, onPrevious, progress, status, paused, running, finished, onShowLog }: { drive: Drive; onNext?(): void; onPrevious?(): void; progress?: DiskProgress; status?: JobStatus; paused?: boolean; running?: boolean; finished?: boolean; onShowLog?(): void }) {
+export function DriveOverview({ drive, onNext, onPrevious, progress, status, paused, running, finished, onShowResults, onShowLog }: { drive: Drive; onNext?(): void; onPrevious?(): void; progress?: DiskProgress; status?: JobStatus; paused?: boolean; running?: boolean; finished?: boolean; onShowResults?(): void; onShowLog?(): void }) {
   const [hover, setHover] = useState<string | null>(null)
   const [legendPage, setLegendPage] = useState(0)
   useEffect(() => { setLegendPage(0); setHover(null) }, [drive.path])
@@ -61,6 +61,7 @@ export function DriveOverview({ drive, onNext, onPrevious, progress, status, pau
       {onNext && <button className="drive-arrow next-drive" onClick={onNext} aria-label="Следующий диск" title="Следующий диск"><Icon name="arrow" size={30}/></button>}
     </div>
     <div className="overview-progress">
+    {onShowResults && <button className="primary-button overview-results" onClick={onShowResults}>Группы файлов</button>}
     <div className="scan-percentage" role="progressbar" aria-label="Выполнение анализа по этапам" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage} title="Общий прогресс по этапам анализа. При обходе используется оценка по найденным каталогам.">{progressText(percentage)}<span>%</span></div>
     <p className="scan-caption">{onShowLog ? <button className="analysis-status-link" onClick={onShowLog} title="Открыть журнал анализа">{caption} · Журнал</button> : caption}</p>
     {progress && <p className="scan-details">Учтено файлов: {progress.files.toLocaleString('ru-RU')} · Ошибок: {progress.errors.toLocaleString('ru-RU')}</p>}

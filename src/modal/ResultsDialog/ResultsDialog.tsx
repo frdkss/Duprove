@@ -104,10 +104,9 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
     try { await navigator.clipboard.writeText(text) } catch { setError('Не удалось скопировать путь. Выделите его и нажмите Ctrl+C.') }
   }
   return <dialog ref={ref} className="results-dialog" aria-labelledby="results-title" onCancel={event => { if (busyRef.current) event.preventDefault() }} onClose={onClose}>
-    <header><div><h2 id="results-title">Группы файлов</h2><p>Оригинал — выбранный вами экземпляр для сохранения.</p></div>
+    <header><div><h2 id="results-title">Группы файлов</h2></div>
       <button autoFocus aria-label="Закрыть группы" disabled={transferring} onClick={onClose}>×</button></header>
     {error && <p className="results-error" role="alert">{error} <button onClick={() => refresh(v => v + 1)} disabled={busy}>Повторить</button></p>}
-    {info && <p className="results-note">{info.complete ? 'Завершённый анализ.' : 'Неполный результат: часть файлов не проверена.'} Статистика показывает исходный анализ. Каталог хранится до {new Date(info.expiresAt).toLocaleDateString('ru-RU')}.</p>}
     {trashResult && <p className="results-note" role="status">{trashResult.cancelled ? 'Перенос отменён. Файлы не изменены.' : `В корзине: ${trashResult.results.filter(r => r.status === 'trashed').length}. Ошибок: ${trashResult.results.filter(r => r.status === 'error').length}.`}
       {trashResult.results.some(r => r.status === 'error') && ' Для части операций успех не подтверждён. Проверьте файлы и корзину; при неопределённом результате повтор блокируется до нового анализа.'}</p>}
     <div className="results-tabs" role="group" aria-label="Тип совпадения">{(Object.keys(labels) as GroupKind[]).map(k => <button key={k} aria-pressed={kind === k} disabled={busy} onClick={() => { setKind(k); setOffset(0); setGroup(null) }}>{labels[k]}{info ? ` (${info.groups[k]})` : ''}</button>)}</div>
@@ -131,17 +130,21 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
             <p className="results-note">Вердикт сохраняет решение. Файл остаётся на диске до отдельного подтверждения переноса в корзину.</p>
           </section>}
           {members?.items.map(member => <article className="result-member" key={member.id}>
-            <label className="result-original"><input type="radio" name="original" aria-label={`Сохранять ${member.path}`} checked={group.originalId === member.id} disabled={busy || member.decision === 'trashed' || member.availability !== 'available'} onChange={() => void original(member.id)}/>Сохранять как оригинал{member.protected && <strong> · защищён</strong>}</label>
+            <div className="result-member-header">
+              <label className="result-original"><input type="radio" name="original" aria-label={`Сохранять ${member.path}`} checked={group.originalId === member.id} disabled={busy || member.decision === 'trashed' || member.availability !== 'available'} onChange={() => void original(member.id)}/>Сохранять как оригинал{member.protected && <strong> · защищён</strong>}</label>
+              <div className="result-member-controls">
+                <button onClick={() => void copy(member.path)}>Копировать путь</button>
+                {member.decision !== 'trashed' && <select aria-label={`Решение для ${member.path}`} value={member.decision} disabled={busy} onChange={e => void decide(member.id, e.target.value as 'unresolved' | 'keep' | 'review' | 'delete')}>
+                  <option value="unresolved">Не решено</option><option value="keep">Оставить</option><option value="review">Проверить вручную</option>
+                  <option value="delete" disabled={member.protected || !group.originalId || group.kind !== 'exact'}>Отметить для удаления</option>
+                </select>}
+              </div>
+            </div>
             <p className="result-path" tabIndex={0}>{member.path}</p>
             <p>{member.size.toLocaleString('ru-RU')} байт · {availability[member.availability]} · {decisionLabels[member.decision]}</p>
             {member.lastOperation === 'pending' && <p role="alert">Результат переноса не подтверждён. Проверьте файл вручную и выполните новый анализ.</p>}
             {member.lastOperation === 'failed' && <p>Последняя попытка переноса не выполнена.</p>}
-            <button onClick={() => void copy(member.path)}>Копировать путь</button>
-            {member.decision !== 'trashed' && <div className="result-actions">
-              <label>Решение <select aria-label={`Решение для ${member.path}`} value={member.decision} disabled={busy} onChange={e => void decide(member.id, e.target.value as 'unresolved' | 'keep' | 'review' | 'delete')}>
-                <option value="unresolved">Не решено</option><option value="keep">Оставить</option><option value="review">Проверить вручную</option>
-                <option value="delete" disabled={member.protected || !group.originalId || group.kind !== 'exact'}>Отметить для удаления</option>
-              </select></label>
+            {member.decision !== 'trashed' && (group.originalId !== member.id || member.decision === 'delete') && <div className="result-actions">
               {group.originalId !== member.id && <button disabled={busy || !group.originalId || member.availability !== 'available'} onClick={() => void compare(member.id)}>Сравнить с оригиналом</button>}
               {member.decision === 'delete' && <button disabled={busy || member.protected || member.lastOperation === 'pending'} onClick={() => void trash([member.id])}>В корзину</button>}
             </div>}

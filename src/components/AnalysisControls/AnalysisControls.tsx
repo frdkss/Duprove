@@ -8,14 +8,6 @@ export function AnalysisControls({ job, selected, busy, onStart, onCommand }: {
 }) {
   const resumable = !!job.id && ['stopped', 'interrupted', 'error'].includes(job.status)
   return <footer className="scan-footer">
-    <div className="analysis-summary" role="status">
-      {job.status === 'interrupted' && <span>Сохранён незавершённый анализ. Нажмите «Повторить» для повторной проверки с сохранённым кэшем.</span>}
-      {job.total && <span>Всего: {job.total.duplicate_groups.toLocaleString('ru-RU')} групп · {job.total.duplicates.toLocaleString('ru-RU')} лишних копий{job.status !== 'completed' ? ' · неполный результат' : ''}</span>}
-      {job.warnings && (job.warnings.text + job.warnings.image > 0 || job.warnings.limited > 0) && <span className="analysis-warning">
-        {job.warnings.text + job.warnings.image > 0 && <>Схожих пар: {job.warnings.text + job.warnings.image}. Файлы схожи, но требуют ручной проверки. </>}
-        {job.warnings.limited > 0 && <>Пропущено по лимитам содержимого: {job.warnings.limited}.</>}
-      </span>}
-    </div>
     <div className="analysis-buttons">
       {activeJob(job.status) ? <>
         {job.status === 'paused' && <button className="primary-button" disabled={busy} onClick={() => onCommand('resume')}>Продолжить</button>}

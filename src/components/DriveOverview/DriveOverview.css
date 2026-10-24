@@ -26,6 +26,7 @@
 .next-drive { grid-area: 1 / 3; }
 .previous-drive .icon { transform: rotate(180deg); }
 .scan-percentage { font-size: 2.5625rem; font-weight: 650; letter-spacing: -.0875rem; line-height: 1.2; }
+.overview-results { margin-bottom: .5rem; }
 .scan-percentage span { font-size: 2.1875rem; }
 .scan-caption { margin: .375rem 0 0; color: var(--color-muted); font-size: .6875rem; }
 .duplicate-count { font-size: 16cqw; line-height: 1.1; margin-top: 3cqw; }
@@ -59,6 +60,8 @@
   .scan-percentage span { font-size: 1.5rem; }
   .overview-progress { display: grid; grid-template-columns: 6rem minmax(0, 1fr); column-gap: .75rem; align-items: center; }
   .overview-progress>.scan-percentage { grid-column: 1; grid-row: 1 / span 3; }
+  .overview-progress>.overview-results { grid-column: 1 / -1; justify-self: center; }
+  .overview-progress:has(.overview-results)>.scan-percentage { grid-row: 2 / span 3; }
   .overview-progress>.scan-caption, .overview-progress>.scan-details, .overview-progress>.analysis-activity { grid-column: 2; }
   .idle-badge { display: none; }
   .duplicate-label, .empty-count, .group-count { font-size: max(.5rem, 3.4cqw); line-height: 1.15; }
