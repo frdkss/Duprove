@@ -28,6 +28,7 @@
     "test:runtime": "python tests/test_runtime.py",
     "test:desktop": "node scripts/build-lifecycle-test.mjs && node scripts/run-electron.mjs tests/desktop-lifecycle.cjs",
     "package": "node scripts/package-desktop.mjs",
+    "pack:source": "python scripts/pack-source.py",
     "package:linux": "node scripts/package-desktop.mjs linux",
     "package:mac": "node scripts/package-desktop.mjs darwin",
     "test:installer": "python tests/test_linux_installer.py",
