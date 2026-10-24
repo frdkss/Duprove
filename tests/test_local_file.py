@@ -107,6 +107,21 @@ class LocalFileTests(unittest.TestCase):
     def test_unsupported_format_is_explicit(self):
         self.assertEqual(self.inspect(self.record('other.pdf', b'%PDF-1.7\n'))['status'], 'unsupported')
 
+    def test_pair_requires_current_metadata_and_true_byte_equality(self):
+        left = self.record('original.txt', b'abc')
+        right = self.record('duplicate.txt', b'abc')
+        request = {'action': 'pair', 'left': left, 'right': right, 'exact': True}
+        result = self.inspect(request)
+        self.assertEqual(result['status'], 'ready'); self.assertTrue(result['equal'])
+        self.assertEqual(result['sha256'], result['otherSha256'])
+        other = self.record('other.txt', b'abd')
+        self.assertEqual(self.inspect({**request, 'right': other})['status'], 'unavailable')
+        warning = self.inspect({**request, 'right': other, 'exact': False})
+        self.assertEqual(warning['status'], 'ready'); self.assertFalse(warning['equal'])
+        self.assertNotEqual(warning['sha256'], warning['otherSha256'])
+        Path(left['path']).write_bytes(b'bad')
+        self.assertEqual(self.inspect(request)['status'], 'unavailable')
+
 
 if __name__ == '__main__':
     unittest.main()

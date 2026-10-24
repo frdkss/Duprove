@@ -16,6 +16,14 @@ parentPort!.on('message', ({ id, method, value }) => {
         if (value?.analysisId !== service.snapshot().id) throw Error('CATALOG_UNAVAILABLE')
         result = await service.catalog.request(value)
       }
+      else if (method === 'trashPrepare') {
+        if (['running', 'paused', 'stopping'].includes(service.snapshot().status)) throw Error('ANALYSIS_BUSY')
+        if (value?.analysisId !== service.snapshot().id) throw Error('CATALOG_UNAVAILABLE')
+        result = await service.catalog.prepareTrash(value)
+      }
+      else if (method === 'trashVerify') result = await service.catalog.verifyTrash(value)
+      else if (method === 'trashRecord') result = await service.catalog.recordTrash(value)
+      else if (method === 'trashRelease') result = service.catalog.releaseTrash(value)
       else if (method === 'shutdown') result = await service.shutdown()
       else throw new Error('INVALID_ANALYSIS_METHOD')
       parentPort!.postMessage({ id, result })

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, shell } = require('electron')
 const assert = require('node:assert/strict')
 const { DatabaseSync } = require('node:sqlite')
 const fs = require('node:fs/promises')
@@ -12,9 +12,10 @@ const timer = setTimeout(() => { console.error('RESULTS_UI_TIMEOUT'); app.exit(1
 app.whenReady().then(async () => {
   await fs.mkdir(directory, { recursive: true })
   const { CatalogService } = require('../.verification/tests/electron/services/catalog-service.js')
-  const catalog = new CatalogService(directory, 'simulated-native-preview', async () => ({
-    status: 'ready', kind: 'text', text: '<script>globalThis.PREVIEW_EXECUTED=true</script>\nLiteral text preview', sha256: 'a'.repeat(64), truncated: false,
-  }))
+  const { TrashService } = require('../.verification/tests/electron/services/trash-service.js')
+  const catalog = new CatalogService(directory, 'simulated-native-preview', async (_exe, request) => request.action === 'pair'
+    ? { status: 'ready', sha256: 'a'.repeat(64), otherSha256: 'a'.repeat(64), equal: true }
+    : { status: 'ready', kind: 'text', text: '<script>globalThis.PREVIEW_EXECUTED=true</script>\nLiteral text preview', sha256: 'a'.repeat(64), truncated: false })
   const analysisId = randomUUID()
   const source = path.join(directory, 'work.sqlite')
   const db = new DatabaseSync(source)
@@ -34,6 +35,10 @@ app.whenReady().then(async () => {
   const analysis = { ...emptySnapshot(), id: analysisId, status: 'completed', revision: 1 }
   ipcMain.handle('duprove:analysis:get', () => analysis)
   ipcMain.handle('duprove:catalog', (_event, request) => catalog.request(request))
+  const confirmationResults = [false, true]
+  const trash = new TrashService((method, value) => ({ trashPrepare: () => catalog.prepareTrash(value), trashVerify: () => catalog.verifyTrash(value), trashRecord: () => catalog.recordTrash(value), trashRelease: () => catalog.releaseTrash(value) })[method](),
+    async plan => { assert.equal(plan.entries.length, 1); assert.equal(plan.entries[0].path, names[1]); return confirmationResults.shift() ?? false }, file => shell.trashItem(file), () => false)
+  ipcMain.handle('duprove:trash', (_event, request) => trash.run(request))
   ipcMain.handle('duprove:drives', () => [])
   ipcMain.handle('duprove:update:get', () => ({ revision: 0, status: 'idle' }))
   ipcMain.handle('duprove:delivery:get', () => ({ revision: 0, configured: false }))
@@ -41,6 +46,8 @@ app.whenReady().then(async () => {
     preload: path.join(root, 'dist-electron/preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false,
     offscreen: true, backgroundThrottling: false,
   } })
+  let latestFrame
+  window.webContents.on('paint', (_event, _dirty, image) => { latestFrame = image })
   const evaluate = s => window.webContents.executeJavaScript(s)
   const waitFor = async s => {
     const until = Date.now() + 5000
@@ -95,9 +102,19 @@ app.whenReady().then(async () => {
       for(const el of d.querySelectorAll('.results-members,.results-groups')) if(el.scrollWidth>el.clientWidth+1) problems.push(el.className+' overflow');
       return problems;
     })()`), [], `${theme} ${width}x${height}`)
-    await fs.writeFile(path.join(root, `.verification/results-${theme}-${width}x${height}.png`), (await window.webContents.capturePage(undefined, { stayHidden: true, stayAwake: true })).toPNG())
+    assert.equal(latestFrame?.getSize().width, width, 'screenshot comes from the resized Electron paint event')
+    await fs.writeFile(path.join(root, `.verification/results-${theme}-${width}x${height}.png`), latestFrame.toPNG())
     console.log(`RESULTS_UI: ${theme} ${width}x${height}`)
   }
+  await textButton('В корзину')
+  await waitFor(`document.querySelector('.results-dialog [role="status"]')?.textContent.includes('Перенос отменён')`)
+  assert.equal(await fs.readFile(names[1], 'utf8'), 'abc')
+  await textButton('В корзину')
+  await waitFor(`Array.from(document.querySelectorAll('.result-member'))[1]?.textContent.includes('В корзине')`)
+  await assert.rejects(fs.stat(names[1]), /ENOENT/)
+  assert.equal(await fs.readFile(names[0], 'utf8'), 'abc')
+  assert.equal(confirmationResults.length, 0)
+  console.log('RESULTS_UI: actual OS recycle-bin transfer verified; confirmation/native content proofs simulated')
   window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' }); window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Escape' })
   await waitFor(`!document.querySelector('.results-dialog')`)
   assert.equal(await evaluate(`document.activeElement.textContent`), 'Группы файлов')
@@ -107,6 +124,6 @@ app.whenReady().then(async () => {
   await textButton('Группы файлов')
   await waitFor(`document.querySelector('.results-error')?.textContent.includes('новый анализ')`)
   clearTimeout(timer)
-  await fs.writeFile(path.join(root, '.verification/results-ui-report.json'), JSON.stringify({ analysisId, passed: true, themes: ['light','dark'], sizes: ['640x480','960x640','1280x800','1920x1080'], fixtures: 'synthetic SQLite catalog and disposable files; real Electron/preload/React; simulated native preview', trash: 'not tested at this stage' }, null, 2))
+  await fs.writeFile(path.join(root, '.verification/results-ui-report.json'), JSON.stringify({ analysisId, passed: true, themes: ['light','dark'], sizes: ['640x480','960x640','1280x800','1920x1080'], fixtures: 'synthetic SQLite catalog and disposable files; real Electron/preload/React; simulated native preview and confirmation answers', trash: 'real shell.trashItem on one disposable fixture; original preserved; cancellation verified' }, null, 2))
   console.log('RESULTS_UI_OK'); window.destroy(); app.exit(0)
 }).catch(e => { clearTimeout(timer); console.error(e); app.exit(1) })

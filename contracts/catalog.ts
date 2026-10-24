@@ -14,6 +14,7 @@ export interface FileGroup {
 export interface GroupMember {
   id: number; path: string; size: number; availability: 'available' | 'missing' | 'changed' | 'unavailable'
   decision: Decision; protected: boolean
+  lastOperation?: string | null
 }
 export interface Page<T> { items: T[]; total: number; offset: number; limit: number }
 export interface FilePreview {
@@ -21,6 +22,13 @@ export interface FilePreview {
   text?: string; data?: string; truncated?: boolean; width?: number; height?: number
 }
 export interface PreviewPair { original: FilePreview; candidate: FilePreview }
+export interface TrashRequest { analysisId: string; groupId: string; fileIds: number[] }
+export interface TrashPlan { token: string; entries: { fileId: number; path: string; originalPath: string; kind: GroupKind }[] }
+export interface TrashResult { cancelled: boolean; results: { fileId: number; status: 'trashed' | 'error'; error?: string }[] }
+export function isTrashRequest(v: unknown): v is TrashRequest {
+  return object(v) && exactKeys(v, ['analysisId', 'groupId', 'fileIds']) && idValid(v.analysisId) && groupValid(v.groupId)
+    && Array.isArray(v.fileIds) && v.fileIds.length > 0 && v.fileIds.length <= PAGE_SIZE && v.fileIds.every(fileValid) && new Set(v.fileIds).size === v.fileIds.length
+}
 export type CatalogRequest =
   | { action: 'info'; analysisId: string }
   | { action: 'groups'; analysisId: string; kind: GroupKind; offset: number }

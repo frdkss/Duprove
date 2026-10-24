@@ -41,7 +41,7 @@ export class JobClient extends EventEmitter {
     try { if (!this.failed) await this.call('shutdown') }
     finally { this.disposed = true; await this.worker.terminate() }
   }
-  async call(method: 'start' | 'command' | 'report' | 'shutdown' | 'catalog', value?: unknown): Promise<unknown> {
+  async call(method: 'start' | 'command' | 'report' | 'shutdown' | 'catalog' | 'trashPrepare' | 'trashVerify' | 'trashRecord' | 'trashRelease', value?: unknown): Promise<unknown> {
     await this.ready
     if (this.failed) throw new Error('ANALYSIS_WORKER_FAILED')
     return new Promise((resolve, reject) => {

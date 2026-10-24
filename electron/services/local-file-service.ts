@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process'
 export interface LocalFileResult {
   status: string; kind?: 'text' | 'image' | 'none'; sha256?: string; text?: string; data?: string
   truncated?: boolean; width?: number; height?: number
+  otherSha256?: string; equal?: boolean
 }
 export function inspectLocalFile(executable: string, request: Record<string, unknown>): Promise<LocalFileResult> {
   return new Promise((resolve, reject) => {
@@ -13,7 +14,7 @@ export function inspectLocalFile(executable: string, request: Record<string, unk
       settled = true; clearTimeout(timer)
       if (error) { child.kill(); reject(error) } else resolve(value!)
     }
-    const timer = setTimeout(() => done(Error('FILE_CHECK_TIMEOUT')), request.action === 'verify' ? 120000 : 15000)
+    const timer = setTimeout(() => done(Error('FILE_CHECK_TIMEOUT')), request.action === 'verify' || request.action === 'pair' ? 120000 : 15000)
     child.on('error', () => done(Error('FILE_HELPER_UNAVAILABLE')))
     child.stderr.resume()
     child.stdin.on('error', () => {})

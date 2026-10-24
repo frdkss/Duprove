@@ -103,6 +103,7 @@ export class JobService extends EventEmitter {
     this.emit('snapshot', this.snapshot())
   }
   async start(request: unknown): Promise<AnalysisSnapshot> {
+    if (this.catalog.locked) throw Error('CATALOG_BUSY')
     if (!isStartAnalysis(request)) throw new Error('INVALID_ANALYSIS_REQUEST')
     if (this.busy || this.child || activeJob(this.state.status)) throw new Error('ANALYSIS_BUSY')
     this.busy = true
@@ -117,6 +118,7 @@ export class JobService extends EventEmitter {
     } finally { this.busy = false }
   }
   async command(action: unknown): Promise<AnalysisSnapshot> {
+    if (this.catalog.locked) throw Error('CATALOG_BUSY')
     if (!['pause', 'resume', 'stop'].includes(String(action)) || typeof action !== 'string') throw new Error('INVALID_ANALYSIS_COMMAND')
     if (this.busy) throw new Error('ANALYSIS_BUSY')
     if (action === 'resume' && !this.child && ['stopped', 'interrupted', 'error'].includes(this.state.status) && this.state.id) {
@@ -138,6 +140,7 @@ export class JobService extends EventEmitter {
     return this.snapshot()
   }
   async shutdown(): Promise<void> {
+    if (this.catalog.locked) throw Error('CATALOG_BUSY')
     if (this.child && this.state.status !== 'stopping') await this.command('stop')
     await this.completion
   }

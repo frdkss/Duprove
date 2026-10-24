@@ -3,12 +3,13 @@ import type { AnalysisSnapshot, AnalysisCommand, StartAnalysis } from '../contra
 import type { Report } from '../contracts/report'
 import type { DeliverySnapshot } from '../contracts/delivery'
 import type { UpdateSnapshot } from '../contracts/update'
-import type { CatalogRequest } from '../contracts/catalog'
+import type { CatalogRequest, TrashRequest, TrashResult } from '../contracts/catalog'
 
 export interface Drive { path: string; name: string; capacity: number; available: number }
 export type WindowAction = 'minimize' | 'maximize' | 'close'
 export interface DesktopBridge {
   requestCatalog(request: CatalogRequest): Promise<unknown>
+  trashCatalog(request: TrashRequest): Promise<TrashResult>
   listDrives(): Promise<Drive[]>
   windowAction(action: WindowAction): Promise<void>
   openHelp(): Promise<void>
@@ -28,6 +29,7 @@ export interface DesktopBridge {
 }
 export const channels = { drives: 'duprove:drives', window: 'duprove:window', help: 'duprove:help',
   catalog: 'duprove:catalog',
+  trash: 'duprove:trash',
   consentGet: 'duprove:consent:get', consentSet: 'duprove:consent:set',
   analysisGet: 'duprove:analysis:get', analysisStart: 'duprove:analysis:start', analysisControl: 'duprove:analysis:control',
   analysisEvent: 'duprove:analysis:event', analysisReport: 'duprove:analysis:report',

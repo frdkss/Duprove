@@ -18,6 +18,22 @@ std::string base64(const std::vector<unsigned char>& bytes) {
 }
 json localFile(const json& request) {
   try {
+    if(request.at("action")=="pair") {
+      auto left=request.at("left"),right=request.at("right");left["action"]="verify";right["action"]="verify";
+      const auto a=localFile(left),b=localFile(right);
+      if(a.at("status")!="ready" || b.at("status")!="ready") return {{"status","unavailable"},{"kind","none"}};
+      bool equal=false;
+      if(request.at("exact").get<bool>()) {
+        auto info=[](const json& file) {
+          FileInfo value;value.kind=FileInfo::Kind::regular;value.id=file.at("identity").get<std::string>();value.size=file.at("size").get<int64_t>();
+          value.modified=std::stoll(file.at("mtime").get<std::string>());value.changed=std::stoll(file.at("ctime").get<std::string>());return value;
+        };
+        ScanContext context;context.loadMode=2;
+        equal=equalBytes(fs::u8path(left.at("path").get<std::string>()),info(left),fs::u8path(right.at("path").get<std::string>()),info(right),0,context)==ByteMatch::equal;
+        if(!equal) return {{"status","unavailable"},{"kind","none"}};
+      }
+      return {{"status","ready"},{"sha256",a.at("sha256")},{"otherSha256",b.at("sha256")},{"equal",equal}};
+    }
     const auto path=fs::u8path(request.at("path").get<std::string>());
     if(!path.is_absolute() || excluded(path)) throw std::runtime_error("UNSAFE_PATH");
     for(const auto& part:path) if(part=="..") throw std::runtime_error("UNSAFE_PATH");

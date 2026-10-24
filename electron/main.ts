@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, Tray, Menu, Notification, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, Tray, Menu, Notification, nativeImage, dialog } from 'electron'
 import path from 'node:path'
 import { channels } from './bridge'
 import { listDrives } from './services/analyzer-service'
@@ -11,6 +11,8 @@ import { HttpsReportTransport, readTransportSettings } from './services/report-t
 import { UpdateService } from './services/update-service'
 import { GithubUpdateTransport } from './services/update-transport'
 import { PackageUpdateInstaller, installedUpdateHost, acknowledgeUpdate } from './services/update-installer'
+import { TrashService } from './services/trash-service'
+import { trashConfirmationOptions } from './services/trash-confirmation'
 
 declare const __DUPROVE_UPDATE_KEY__: string
 
@@ -22,8 +24,9 @@ let notification: Notification | undefined
 let delivery: DeliveryService | undefined
 let updates: UpdateService | undefined
 let analysisCommands = 0
+let trashService: TrashService | undefined
 async function analysisCall(method: 'start' | 'command', request: unknown) {
-  if (closing || updates?.blocksAnalysis) throw Error('UPDATE_INSTALLING')
+  if (closing || updates?.blocksAnalysis || trashService?.busy) throw Error('APP_BUSY')
   analysisCommands++
   try { return await jobs!.call(method, request) } finally { analysisCommands-- }
 }
@@ -61,6 +64,7 @@ function createWindow() {
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', event => event.preventDefault())
   window.on('close', event => {
+    if (trashService?.busy) { event.preventDefault(); return }
     if (!quitting && updates?.blocksAnalysis) { event.preventDefault(); return }
     if (!quitting && jobs && activeJob(jobs.snapshot().status)) {
       event.preventDefault()
@@ -113,7 +117,16 @@ else {
       if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('INVALID_SENDER')
     }
     ipcMain.handle(channels.analysisGet, event => { trusted(event); return jobs!.snapshot() })
-    ipcMain.handle(channels.catalog, (event, request: unknown) => { trusted(event); return jobs!.call('catalog', request) })
+    trashService = new TrashService((method, value) => jobs!.call(method, value), async plan => {
+      const result = await dialog.showMessageBox(trashConfirmationOptions(plan))
+      return result.response === 1
+    }, file => shell.trashItem(file), () => closing || !!updates?.blocksAnalysis || analysisCommands > 0 || activeJob(jobs!.snapshot().status))
+    ipcMain.handle(channels.catalog, (event, request: unknown) => {
+      trusted(event)
+      if (closing || updates?.blocksAnalysis || trashService!.busy) throw Error('CATALOG_BUSY')
+      return jobs!.call('catalog', request)
+    })
+    ipcMain.handle(channels.trash, (event, request: unknown) => { trusted(event); return trashService!.run(request) })
     ipcMain.handle(channels.analysisStart, (event, request: unknown) => { trusted(event); return analysisCall('start', request) })
     ipcMain.handle(channels.analysisControl, (event, request: unknown) => { trusted(event); return analysisCall('command', request) })
     ipcMain.handle(channels.analysisReport, event => { trusted(event); return jobs!.call('report') })
@@ -150,13 +163,13 @@ else {
       installer: new PackageUpdateInstaller({ directory: updateDirectory, executable: process.execPath,
         helperDirectory: app.isPackaged ? path.join(process.resourcesPath, 'updater') : path.join(app.getAppPath(), 'installer'),
         shutdown: async () => {
-          if (closing || activeJob(jobs!.snapshot().status)) throw Error('UPDATE_APP_BUSY')
+          if (closing || trashService?.busy || activeJob(jobs!.snapshot().status)) throw Error('UPDATE_APP_BUSY')
           closing = true
           try { await jobs!.call('shutdown'); await delivery!.stop() }
           catch (error) { closing = false; throw error }
           quitting = true; tray?.destroy(); app.quit()
         } }),
-      busy: () => closing || analysisCommands > 0 || activeJob(jobs!.snapshot().status),
+      busy: () => closing || !!trashService?.busy || analysisCommands > 0 || activeJob(jobs!.snapshot().status),
       notify: version => {
         if (Notification.isSupported()) {
           notification = new Notification({ title: 'Обновление Duprove', body: `Версия ${version} загружена. Приложение перезапустится через минуту, если анализ не запущен.`, icon: applicationIcon() })
@@ -190,6 +203,7 @@ else {
   app.on('before-quit', event => {
     if (quitting || !jobs) return
     event.preventDefault()
+    if (trashService?.busy) return
     if (updates?.blocksAnalysis) return
     if (closing) return
     closing = true
