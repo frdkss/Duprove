@@ -145,7 +145,7 @@ export class CatalogService {
       let availability: GroupMember['availability'] = 'available'
       try { const info = await lstat(row.path); if (!info.isFile() || info.isSymbolicLink() || info.size !== row.size) availability = 'changed' }
       catch (error) { availability = (error as NodeJS.ErrnoException).code === 'ENOENT' ? 'missing' : 'unavailable' }
-      return { id: row.id, path: row.path, size: row.size, decision: row.decision, protected: !!row.protected, availability, lastOperation: row.lastOperation }
+      return { id: row.id, name: path.basename(row.path), path: row.path, size: row.size, decision: row.decision, protected: !!row.protected, availability, lastOperation: row.lastOperation }
     }))
     return { items, total, offset: request.offset, limit: PAGE_SIZE }
   }

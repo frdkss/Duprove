@@ -12,7 +12,7 @@ export interface FileGroup {
   id: string; name: string; kind: GroupKind; count: number; bytes: number; originalId: number | null
 }
 export interface GroupMember {
-  id: number; path: string; size: number; availability: 'available' | 'missing' | 'changed' | 'unavailable'
+  id: number; name: string; path: string; size: number; availability: 'available' | 'missing' | 'changed' | 'unavailable'
   decision: Decision; protected: boolean
   lastOperation?: string | null
 }

@@ -23,7 +23,7 @@ app.whenReady().then(async () => {
   const insert = db.prepare('INSERT INTO files VALUES(?,?,?,?,?,?,?,?)')
   const names = []
   for (let i = 1; i <= 60; i++) {
-    const name = path.join(directory, 'каталог-с-длинным-именем-для-проверки-переноса-строк', `отдельный-каталог-${i}`, 'одинаковое-имя.txt')
+    const name = path.join(directory, 'каталог-с-длинным-именем-для-проверки-переноса-строк', `отдельный-каталог-${i}`, i === 1 ? 'первый-экземпляр.txt' : i === 3 ? '.gitignore' : 'одинаковое-имя.txt')
     names.push(name)
     await fs.mkdir(path.dirname(name), { recursive: true }); await fs.writeFile(name, 'abc')
     insert.run(name, 'id:' + i, i % 2, 3, 1, 2, 'a'.repeat(64), 1)
@@ -86,26 +86,56 @@ app.whenReady().then(async () => {
   assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('.result-group-meta span'), s=>s.textContent).slice(0,2)`), ['60 файлов', '180 байт'])
   assert.equal(await evaluate(`(() => { const name=document.querySelector('.result-group strong'), meta=document.querySelector('.result-group-meta'); return Number(getComputedStyle(meta).opacity)<1 && parseFloat(getComputedStyle(meta).fontSize)<parseFloat(getComputedStyle(name).fontSize); })()`), true)
   assert.equal(await evaluate(`document.activeElement.getAttribute('aria-label')`), 'Закрыть группы')
+  assert.equal(await evaluate(`document.querySelector('.result-member-name').textContent`), 'первый-экземпляр.txt')
+  assert.equal(await evaluate(`document.querySelectorAll('.result-member-name')[2].textContent`), '.gitignore')
+  assert.equal(await evaluate(`document.querySelector('.result-member-info p:last-child').textContent`), '3 байт')
+  assert.equal(await evaluate(`document.querySelectorAll('.result-member-selection').length`), 25)
+  assert.deepEqual(await evaluate(`Array.from(document.querySelector('.result-member-controls').querySelectorAll('button'), b => b.textContent)`), ['Сравнить с оригиналом', 'Копировать путь'])
+  assert.equal(await evaluate(`document.querySelector('.result-compare').disabled`), true)
+  await resize(1920, 1080)
+  assert.deepEqual(await evaluate(`(() => { const r=document.querySelector('.result-member-selection').getBoundingClientRect(); return [r.width,r.height]; })()`), [28,28])
+  await evaluate(`document.documentElement.dataset.theme='dark'`)
+  await new Promise(r => setTimeout(r, 180))
+  await fs.writeFile(path.join(root, '.verification/results-card-dark-1920x1080.png'), latestFrame.toPNG())
+  await resize(640, 480)
+  await new Promise(r => setTimeout(r, 180))
+  await fs.writeFile(path.join(root, '.verification/results-card-dark-640x480.png'), latestFrame.toPNG())
+  await resize(1920, 1080)
+  await click('.result-member-selection')
+  assert.equal(await evaluate(`document.querySelector('.result-member-selection').checked`), true)
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('button')).find(b => b.textContent === 'Перенести отмеченные на странице в корзину').disabled`), true, 'Selection alone does not authorize deleting an undecided file')
   assert.equal(await evaluate(`document.querySelectorAll('.result-original input:checked').length`), 0)
   await evaluate(`document.querySelector('.result-original input').focus()`)
   window.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Space' }); window.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Space' })
   await waitFor(`document.querySelector('.result-original input')?.checked`)
+  await waitFor(`document.querySelector('.result-member-selection')?.disabled && !document.querySelector('.result-member-selection').checked`)
   console.log('RESULTS_UI: original selected')
   assert.equal((await catalog.request({ action: 'groups', analysisId, kind: 'exact', offset: 0 })).items[0].originalId, 1)
+  await click('.result-member:nth-of-type(2) .result-member-selection')
   await click('[aria-label="Страницы участников: далее"]')
   await waitFor(`document.querySelector('.result-path')?.textContent.includes('каталог-26')`)
+  assert.equal(await evaluate(`document.querySelectorAll('.result-member-selection:checked').length`), 0, 'Selection belongs to the current page')
   await click('[aria-label="Страницы участников: далее"]')
   await waitFor(`document.querySelectorAll('.result-member').length===10`)
   assert.equal(await evaluate(`document.querySelector('[aria-label="Страницы участников: далее"]').disabled`), true)
   await click('[aria-label="Страницы участников: назад"]')
   await click('[aria-label="Страницы участников: назад"]')
   await waitFor(`document.querySelector('.result-original input')?.checked`)
-  await evaluate(`Array.from(document.querySelectorAll('.result-member'))[1].querySelector('.result-actions button').click()`)
+  await click('.result-member:nth-of-type(2) .result-member-selection')
+  await evaluate(`Array.from(document.querySelectorAll('.result-member'))[1].querySelector('.result-compare').click()`)
   await waitFor(`document.querySelectorAll('.file-preview pre').length===2`)
   assert.equal(await evaluate('globalThis.PREVIEW_EXECUTED'), undefined)
   assert.match(await evaluate(`document.querySelector('.file-preview pre').textContent`), /<script>/)
   await textButton('Оба экземпляра проверены: отметить для удаления')
-  await waitFor(`Array.from(document.querySelectorAll('.result-member'))[1]?.textContent.includes('Отмечен для удаления')`)
+  await waitFor(`Array.from(document.querySelectorAll('.result-member'))[1]?.querySelector('select')?.value === 'delete'`)
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('.result-member'))[1].querySelector('.result-member-selection').checked`), true, 'Selection survives decision updates')
+  await click('.result-member:nth-of-type(2) .result-member-selection')
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('button')).find(b => b.textContent === 'Перенести отмеченные на странице в корзину').disabled`), true, 'Unselected marked files are excluded from bulk transfer')
+  await click('.result-member:nth-of-type(2) .result-member-selection')
+  await click('.result-member:nth-of-type(3) .result-member-selection')
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('button')).find(b => b.textContent === 'Перенести отмеченные на странице в корзину').disabled`), true, 'Every selected file needs an explicit deletion decision')
+  await click('.result-member:nth-of-type(3) .result-member-selection')
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('button')).find(b => b.textContent === 'Перенести отмеченные на странице в корзину').disabled`), false)
   assert.equal(await fs.readFile(names[1], 'utf8'), 'abc', 'a verdict does not delete the disposable file')
   for (const theme of ['light', 'dark']) for (const [width, height] of [[640,480],[960,640],[1280,800],[1920,1080]]) {
     await resize(width, height)
@@ -121,8 +151,11 @@ app.whenReady().then(async () => {
       if(innerWidth>=960) {
         const group=d.querySelector('.result-group'), title=group.querySelector('strong').getBoundingClientRect(), count=group.querySelector('.result-group-meta').getBoundingClientRect();
         if(count.left<title.right||Math.abs((count.top+count.bottom-title.top-title.bottom)/2)>4) problems.push('group details must stay beside the filename');
-        const member=d.querySelector('.result-member'), original=member.querySelector('.result-original').getBoundingClientRect(), controls=member.querySelector('.result-member-controls').getBoundingClientRect();
-        if(controls.left<original.right||Math.abs(controls.top-original.top)>16) problems.push('member controls must stay at the top right');
+      }
+      if(innerWidth>=1280) {
+        const member=d.querySelector('.result-member'), card=member.getBoundingClientRect(), original=member.querySelector('.result-original').getBoundingClientRect(), controls=member.querySelector('.result-member-controls').getBoundingClientRect(), name=member.querySelector('.result-member-name').getBoundingClientRect(), selection=member.querySelector('.result-member-selection').getBoundingClientRect();
+        if(controls.left<name.right||original.top<controls.bottom||Math.abs(original.right-controls.right)>2) problems.push('member actions must stay above the original choice on the right');
+        if(selection.right>=name.left||card.height>126) problems.push('member must have left selection and compact height');
       }
       return problems;
     })()`), [], `${theme} ${width}x${height}`)
@@ -130,11 +163,13 @@ app.whenReady().then(async () => {
     await fs.writeFile(path.join(root, `.verification/results-${theme}-${width}x${height}.png`), latestFrame.toPNG())
     console.log(`RESULTS_UI: ${theme} ${width}x${height}`)
   }
-  await textButton('В корзину')
+  await textButton('Перенести отмеченные на странице в корзину')
   await waitFor(`document.querySelector('.results-dialog [role="status"]')?.textContent.includes('Перенос отменён')`)
   assert.equal(await fs.readFile(names[1], 'utf8'), 'abc')
-  await textButton('В корзину')
+  await textButton('Перенести отмеченные на странице в корзину')
   await waitFor(`Array.from(document.querySelectorAll('.result-member'))[1]?.textContent.includes('В корзине')`)
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('.result-member'))[1].querySelector('.result-member-selection').disabled`), true)
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('.result-member'))[1].querySelector('.result-member-selection').checked`), false)
   await assert.rejects(fs.stat(names[1]), /ENOENT/)
   assert.equal(await fs.readFile(names[0], 'utf8'), 'abc')
   assert.equal(confirmationResults.length, 0)

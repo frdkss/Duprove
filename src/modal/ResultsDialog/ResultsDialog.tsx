@@ -6,6 +6,7 @@ import './ResultsDialog.css'
 const labels: Record<GroupKind, string> = { exact: 'Точные дубликаты', warn_text: 'Похожие тексты', warn_image: 'Похожие изображения' }
 const availability = { available: 'Найден', missing: 'Файл отсутствует', changed: 'Файл изменился', unavailable: 'Нет доступа' }
 export const decisionLabels = { unresolved: 'Не решено', keep: 'Оставить', review: 'Проверить вручную', delete: 'Отмечен для удаления', trashed: 'В корзине' }
+const canSelectMember = (member: GroupMember) => !member.protected && member.decision !== 'trashed' && member.availability === 'available' && member.lastOperation !== 'pending'
 export function catalogError(error: unknown): string {
   const text = String(error)
   const reasons: Record<string, string> = {
@@ -45,6 +46,7 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
   const [preview, setPreview] = useState<PreviewPair | null>(null)
   const [trashResult, setTrashResult] = useState<TrashResult | null>(null)
   const [transferring, setTransferring] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
   const busyRef = useRef(false)
   busyRef.current = transferring
   useEffect(() => {
@@ -64,6 +66,10 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
     return () => { current = false }
   }, [api, analysisId, kind, offset, revision])
   useEffect(() => { setMemberOffset(0); setPreview(null); setTrashResult(null) }, [group?.id])
+  useEffect(() => { setSelectedIds([]) }, [group?.id, memberOffset])
+  useEffect(() => {
+    if (members) setSelectedIds(previous => previous.filter(id => members.items.some(member => member.id === id && canSelectMember(member))))
+  }, [members])
   useEffect(() => {
     if (!group) { setMembers(null); return }
     let current = true
@@ -103,6 +109,10 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
   const copy = async (text: string) => {
     try { await navigator.clipboard.writeText(text) } catch { setError('Не удалось скопировать путь. Выделите его и нажмите Ctrl+C.') }
   }
+  const selectMember = (id: number, checked: boolean) => setSelectedIds(previous => checked ? [...previous, id] : previous.filter(value => value !== id))
+  const selectedMembers = members?.items.filter(member => selectedIds.includes(member.id)) ?? []
+  const canTrashSelected = !!group?.originalId && selectedMembers.length > 0
+    && selectedMembers.every(member => canSelectMember(member) && member.decision === 'delete')
   return <dialog ref={ref} className="results-dialog" aria-labelledby="results-title" onCancel={event => { if (busyRef.current) event.preventDefault() }} onClose={onClose}>
     <header><div><h2 id="results-title">Группы файлов</h2></div>
       <button autoFocus aria-label="Закрыть группы" disabled={transferring} onClick={onClose}>×</button></header>
@@ -121,7 +131,7 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
         {group && <><h3>{labels[group.kind]} · {group.name}</h3>
           {group.kind !== 'exact' && <p className="results-note">Содержимое может различаться. Сходство не подтверждает точное равенство.</p>}
           <p>Оригинал: {group.originalId === null ? 'не выбран' : `экземпляр №${group.originalId}`}. {group.originalId !== null && <button disabled={busy} onClick={() => void original(null)}>Снять выбор</button>}</p>
-          <button disabled={busy || !members?.items.some(m => m.decision === 'delete' && !m.protected)} onClick={() => void trash(members!.items.filter(m => m.decision === 'delete' && !m.protected).map(m => m.id))}>Перенести отмеченные на странице в корзину</button>
+          <button disabled={busy || !canTrashSelected} onClick={() => void trash(selectedMembers.map(member => member.id))}>Перенести отмеченные на странице в корзину</button>
           {preview && <section className="results-comparison" aria-label="Сравнение двух экземпляров">
             <h3>Ручная проверка</h3><div className="preview-pair"><Preview value={preview.original} title="Сохраняемый оригинал"/><Preview value={preview.candidate} title="Проверяемый экземпляр"/></div>
             <div className="result-actions"><button disabled={busy} onClick={() => void decide(preview.candidate.id, 'keep')}>Оставить</button>
@@ -130,24 +140,25 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
             <p className="results-note">Вердикт сохраняет решение. Файл остаётся на диске до отдельного подтверждения переноса в корзину.</p>
           </section>}
           {members?.items.map(member => <article className="result-member" key={member.id}>
-            <div className="result-member-header">
-              <label className="result-original"><input type="radio" name="original" aria-label={`Сохранять ${member.path}`} checked={group.originalId === member.id} disabled={busy || member.decision === 'trashed' || member.availability !== 'available'} onChange={() => void original(member.id)}/>Сохранять как оригинал{member.protected && <strong> · защищён</strong>}</label>
-              <div className="result-member-controls">
-                <button onClick={() => void copy(member.path)}>Копировать путь</button>
-                {member.decision !== 'trashed' && <select aria-label={`Решение для ${member.path}`} value={member.decision} disabled={busy} onChange={e => void decide(member.id, e.target.value as 'unresolved' | 'keep' | 'review' | 'delete')}>
-                  <option value="unresolved">Не решено</option><option value="keep">Оставить</option><option value="review">Проверить вручную</option>
-                  <option value="delete" disabled={member.protected || !group.originalId || group.kind !== 'exact'}>Отметить для удаления</option>
-                </select>}
-              </div>
+            <input className="checkbox result-member-selection" type="checkbox" aria-label={`Выделить ${member.path}`} checked={selectedIds.includes(member.id) && canSelectMember(member)} disabled={busy || !canSelectMember(member)} onChange={event => selectMember(member.id, event.target.checked)}/>
+            <div className="result-member-info">
+              <h4 className="result-member-name" title={member.name}>{member.name}</h4>
+              <p className="result-path" title={member.path} tabIndex={0}>{member.path}</p>
+              <p>{member.size.toLocaleString('ru-RU')} байт</p>
+              {member.availability !== 'available' && member.decision !== 'trashed' && <p className="result-member-status">{availability[member.availability]}</p>}
+              {member.lastOperation === 'pending' && <p role="alert">Результат переноса не подтверждён. Проверьте файл вручную и выполните новый анализ.</p>}
+              {member.lastOperation === 'failed' && <p>Последняя попытка переноса не выполнена.</p>}
             </div>
-            <p className="result-path" tabIndex={0}>{member.path}</p>
-            <p>{member.size.toLocaleString('ru-RU')} байт · {availability[member.availability]} · {decisionLabels[member.decision]}</p>
-            {member.lastOperation === 'pending' && <p role="alert">Результат переноса не подтверждён. Проверьте файл вручную и выполните новый анализ.</p>}
-            {member.lastOperation === 'failed' && <p>Последняя попытка переноса не выполнена.</p>}
-            {member.decision !== 'trashed' && (group.originalId !== member.id || member.decision === 'delete') && <div className="result-actions">
-              {group.originalId !== member.id && <button disabled={busy || !group.originalId || member.availability !== 'available'} onClick={() => void compare(member.id)}>Сравнить с оригиналом</button>}
+            <div className="result-member-controls">
+              {member.decision !== 'trashed' && group.originalId !== member.id && <button className="result-compare" disabled={busy || !group.originalId || member.availability !== 'available'} onClick={() => void compare(member.id)}>Сравнить с оригиналом</button>}
+              <button onClick={() => void copy(member.path)}>Копировать путь</button>
+              {member.decision !== 'trashed' ? <select aria-label={`Решение для ${member.path}`} value={member.decision} disabled={busy} onChange={e => void decide(member.id, e.target.value as 'unresolved' | 'keep' | 'review' | 'delete')}>
+                <option value="unresolved">Не решено</option><option value="keep">Оставить</option><option value="review">Проверить вручную</option>
+                <option value="delete" disabled={member.protected || !group.originalId || group.kind !== 'exact'}>Отметить для удаления</option>
+              </select> : <span className="result-member-status">{decisionLabels.trashed}</span>}
               {member.decision === 'delete' && <button disabled={busy || member.protected || member.lastOperation === 'pending'} onClick={() => void trash([member.id])}>В корзину</button>}
-            </div>}
+            </div>
+            <label className="result-original"><input type="radio" name="original" aria-label={`Сохранять ${member.path}`} checked={group.originalId === member.id} disabled={busy || member.decision === 'trashed' || member.availability !== 'available'} onChange={() => void original(member.id)}/>Сохранять как оригинал{member.protected && <strong> · защищён</strong>}</label>
           </article>)}
           {!members && <p role="status">Загрузка участников…</p>}
           {members && <Pager {...members} busy={busy} label="Страницы участников" onPage={setMemberOffset}/>}</>}

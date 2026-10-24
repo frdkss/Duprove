@@ -41,6 +41,7 @@ test('catalog retains precise metadata, large cross-root groups and separate war
   const members = await restored.request({ action: 'members', analysisId: f.analysisId, groupId: 'e:1', offset: 1025 })
   assert.equal(members.total, f.count); assert.equal(members.items.length, 25)
   assert.equal(members.items[0].id, 1026)
+  assert.equal(members.items[0].name, 'disk-b-1026.txt')
   assert.equal(members.items[0].availability, 'missing')
   await fs.writeFile(members.items[0].path, 'abc')
   assert.equal((await restored.request({ action: 'members', analysisId: f.analysisId, groupId: 'e:1', offset: 1025 })).items[0].availability, 'available')
