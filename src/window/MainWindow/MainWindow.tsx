@@ -118,9 +118,7 @@ export function MainWindow() {
     onSelect: select, onSelectAll: selectAll }
   return <div className="app-shell"><TitleBar/><div className="app-body" inert={showResults}>
     <Sidebar {...driveListProps} content={content} onContent={setContent} view={view} expanded={expanded} mode={mode} onView={navigate} onExpand={() => setExpanded(previous => previous === 'mode' ? null : 'mode')} onMode={setMode} onHelp={openHelp}/>
-    <main className="main-window"><header className="page-heading"><h1>{view === 'disks' ? 'Ваши диски' : 'Настройки'}</h1><div className="page-actions">
-      {view === 'disks' && job.disks.some(d => d.path === activePath) && <button className="subtle-button" onClick={() => setLogPath(activePath)}>Журнал анализа</button>}
-    </div></header>
+    <main className="main-window"><header className="page-heading"><h1>{view === 'disks' ? 'Ваши диски' : 'Настройки'}</h1></header>
       {view !== 'settings' && <AppUpdate api={window.duprove}/>}
       {helpError && <p className="help-error" role="alert">{helpError}</p>}
       {analysisError && <p className="help-error" role="alert">{analysisError}</p>}
