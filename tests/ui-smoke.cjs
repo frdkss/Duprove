@@ -24,7 +24,15 @@ app.whenReady().then(async () => {
   })
   const { emptySnapshot } = require('../.verification/tests/contracts/analysis.js')
   let analysis = emptySnapshot()
+  const analysisCommands = []
   ipcMain.handle('duprove:analysis:get', () => analysis)
+  ipcMain.handle('duprove:analysis:control', (event, command) => {
+    assert.ok(command === 'pause' && analysis.status === 'running' || command === 'resume' && analysis.status === 'paused', 'Analysis command matches the current state')
+    analysisCommands.push(command)
+    analysis = { ...analysis, revision: analysis.revision + 1, status: command === 'pause' ? 'paused' : 'running' }
+    event.sender.send('duprove:analysis:event', analysis)
+    return analysis
+  })
   ipcMain.handle('duprove:autostart:get', () => ({ enabled: false, supported: true }))
   ipcMain.handle('duprove:autostart:set', (_event, enabled) => ({ enabled, supported: true }))
   ipcMain.handle('duprove:drives', () => ['C:', 'D:', 'E:'].map((name, i) => ({ path: name + String.fromCharCode(92), name: name + String.fromCharCode(92), capacity: (256 + i * 256) * 1024 ** 3, available: 128 * 1024 ** 3 })))
@@ -275,11 +283,23 @@ app.whenReady().then(async () => {
   assert.match(await evaluate('document.querySelector(".activity-warning").textContent'), /Нет ответа анализатора/)
   assert.doesNotMatch(await evaluate('document.querySelector(".scan-eta").textContent'), /≈/)
   await screenshot('ui-analysis-no-response')
-  analysis = { ...analysis, revision: analysis.revision + 1, status: 'paused' }
-  window.webContents.send('duprove:analysis:event', analysis)
+  await clickText('Пауза')
   await settle()
+  assert.deepEqual(analysisCommands, ['pause'])
+  assert.equal(analysis.status, 'paused')
+  assert.equal(await evaluate('document.querySelector(".analysis-buttons .primary-button").textContent'), 'Продолжить')
+  assert.equal(await evaluate('document.querySelector(".analysis-buttons .primary-button").disabled'), false)
+  assert.deepEqual(await evaluate('Array.from(document.querySelectorAll(".analysis-buttons button"), b => b.textContent.trim())'), ['Продолжить', 'Остановить'])
   assert.equal(await evaluate('document.querySelector(".activity-warning")'), null)
   assert.match(await evaluate('document.querySelector(".scan-eta").textContent'), /приостановлен/)
+  await screenshot('ui-analysis-paused')
+  await clickText('Продолжить')
+  await settle()
+  assert.deepEqual(analysisCommands, ['pause', 'resume'])
+  assert.equal(analysis.status, 'running')
+  assert.equal(analysis.id, 'test-analysis', 'Continuing keeps the same analysis')
+  assert.equal(await evaluate('document.querySelector(".scan-percentage").textContent'), '25,01%', 'Continuing preserves progress')
+  assert.deepEqual(await evaluate('Array.from(document.querySelectorAll(".analysis-buttons button"), b => b.textContent.trim())'), ['Пауза', 'Остановить'])
   analysis = { ...analysis, revision: analysis.revision + 1, status: 'stopped' }
   window.webContents.send('duprove:analysis:event', analysis)
   await settle()

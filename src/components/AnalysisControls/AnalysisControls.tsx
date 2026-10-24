@@ -18,7 +18,8 @@ export function AnalysisControls({ job, selected, busy, onStart, onCommand }: {
     </div>
     <div className="analysis-buttons">
       {activeJob(job.status) ? <>
-        {job.status !== 'stopping' && <button className="subtle-button" disabled={busy} onClick={() => onCommand(job.status === 'paused' ? 'resume' : 'pause')}>{job.status === 'paused' ? 'Продолжить' : 'Пауза'}</button>}
+        {job.status === 'paused' && <button className="primary-button" disabled={busy} onClick={() => onCommand('resume')}>Продолжить</button>}
+        {job.status === 'running' && <button className="subtle-button" disabled={busy} onClick={() => onCommand('pause')}>Пауза</button>}
         <button className="subtle-button" disabled={busy || job.status === 'stopping'} onClick={() => onCommand('stop')}>{job.status === 'stopping' ? 'Сохранение…' : 'Остановить'}</button>
       </> : <>
         {resumable && <button className="primary-button" disabled={busy} onClick={() => onCommand('resume')}>Повторить</button>}
