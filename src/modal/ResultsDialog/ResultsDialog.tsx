@@ -32,6 +32,7 @@ export function Pager({ total, offset, busy, onPage, label }: { total: number; o
 }
 export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge; analysisId: string; onClose(): void }) {
   const ref = useRef<HTMLDialogElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
   const previousFocus = useRef(document.activeElement as HTMLElement | null)
   const [info, setInfo] = useState<CatalogInfo | null>(null)
   const [kind, setKind] = useState<GroupKind>('exact')
@@ -51,8 +52,16 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
   busyRef.current = transferring
   useEffect(() => {
     const dialog = ref.current!
-    dialog.showModal()
-    return () => { dialog.close(); previousFocus.current?.focus() }
+    dialog.show()
+    closeRef.current?.focus()
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        if (!busyRef.current) dialog.close()
+      }
+    }
+    document.addEventListener('keydown', escape)
+    return () => { document.removeEventListener('keydown', escape); dialog.close(); previousFocus.current?.focus() }
   }, [])
   useEffect(() => {
     let current = true
@@ -113,13 +122,13 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
   const selectedMembers = members?.items.filter(member => selectedIds.includes(member.id)) ?? []
   const canTrashSelected = !!group?.originalId && selectedMembers.length > 0
     && selectedMembers.every(member => canSelectMember(member) && member.decision === 'delete')
-  return <dialog ref={ref} className="results-dialog" aria-labelledby="results-title" onCancel={event => { if (busyRef.current) event.preventDefault() }} onClose={onClose}>
-    <header><div><h2 id="results-title">Группы файлов</h2></div>
-      <button autoFocus aria-label="Закрыть группы" disabled={transferring} onClick={onClose}>×</button></header>
+  return <><div className="results-backdrop" aria-hidden="true"/><dialog ref={ref} className="results-dialog" aria-labelledby="results-title" onCancel={event => { if (busyRef.current) event.preventDefault() }} onClose={onClose}>
+    <header><h2 id="results-title">Группы файлов</h2>
+      <div className="results-tabs" role="group" aria-label="Тип совпадения">{(Object.keys(labels) as GroupKind[]).map(k => <button key={k} aria-pressed={kind === k} disabled={busy} onClick={() => { setKind(k); setOffset(0); setGroup(null) }}>{labels[k]}{info ? ` (${info.groups[k]})` : ''}</button>)}</div>
+      <button ref={closeRef} aria-label="Закрыть группы" disabled={transferring} onClick={onClose}>×</button></header>
     {error && <p className="results-error" role="alert">{error} <button onClick={() => refresh(v => v + 1)} disabled={busy}>Повторить</button></p>}
     {trashResult && <p className="results-note" role="status">{trashResult.cancelled ? 'Перенос отменён. Файлы не изменены.' : `В корзине: ${trashResult.results.filter(r => r.status === 'trashed').length}. Ошибок: ${trashResult.results.filter(r => r.status === 'error').length}.`}
       {trashResult.results.some(r => r.status === 'error') && ' Для части операций успех не подтверждён. Проверьте файлы и корзину; при неопределённом результате повтор блокируется до нового анализа.'}</p>}
-    <div className="results-tabs" role="group" aria-label="Тип совпадения">{(Object.keys(labels) as GroupKind[]).map(k => <button key={k} aria-pressed={kind === k} disabled={busy} onClick={() => { setKind(k); setOffset(0); setGroup(null) }}>{labels[k]}{info ? ` (${info.groups[k]})` : ''}</button>)}</div>
     <div className="results-body" aria-busy={busy}>
       <section className="results-groups" aria-label="Список групп">
         {groups?.items.map(g => <button className="result-group" key={g.id} disabled={busy} aria-pressed={group?.id === g.id} title={g.name} onClick={() => setGroup(g)}><strong>{g.name}</strong><span className="result-group-meta"><span>{g.count.toLocaleString('ru-RU')} файлов</span><span>{g.bytes.toLocaleString('ru-RU')} байт</span></span></button>)}
@@ -128,10 +137,11 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
         {groups && <Pager {...groups} busy={busy} label="Страницы групп" onPage={setOffset}/>}
       </section>
       <section className="results-members" aria-label="Участники группы">
-        {group && <><h3>{labels[group.kind]} · {group.name}</h3>
+        {group && <><div className="results-group-heading"><h3>{labels[group.kind]} · {group.name}</h3>
           {group.kind !== 'exact' && <p className="results-note">Содержимое может различаться. Сходство не подтверждает точное равенство.</p>}
-          <p>Оригинал: {group.originalId === null ? 'не выбран' : `экземпляр №${group.originalId}`}. {group.originalId !== null && <button disabled={busy} onClick={() => void original(null)}>Снять выбор</button>}</p>
+          <div className="results-group-toolbar"><p>Оригинал: {group.originalId === null ? 'не выбран' : `экземпляр №${group.originalId}`}. {group.originalId !== null && <button disabled={busy} onClick={() => void original(null)}>Снять выбор</button>}</p>
           <button disabled={busy || !canTrashSelected} onClick={() => void trash(selectedMembers.map(member => member.id))}>Перенести отмеченные на странице в корзину</button>
+          </div></div>
           {preview && <section className="results-comparison" aria-label="Сравнение двух экземпляров">
             <h3>Ручная проверка</h3><div className="preview-pair"><Preview value={preview.original} title="Сохраняемый оригинал"/><Preview value={preview.candidate} title="Проверяемый экземпляр"/></div>
             <div className="result-actions"><button disabled={busy} onClick={() => void decide(preview.candidate.id, 'keep')}>Оставить</button>
@@ -164,8 +174,7 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
           {members && <Pager {...members} busy={busy} label="Страницы участников" onPage={setMemberOffset}/>}</>}
       </section>
     </div>
-    <footer><button disabled={transferring} onClick={onClose}>Закрыть</button></footer>
-  </dialog>
+  </dialog></>
 }
 
 function Preview({ value, title }: { value: FilePreview; title: string }) {

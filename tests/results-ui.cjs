@@ -44,6 +44,8 @@ app.whenReady().then(async () => {
   ipcMain.handle('duprove:drives', () => [])
   ipcMain.handle('duprove:update:get', () => ({ revision: 0, status: 'idle' }))
   ipcMain.handle('duprove:delivery:get', () => ({ revision: 0, configured: false }))
+  const windowActions = []
+  ipcMain.handle('duprove:window', (_event, action) => { windowActions.push(action) })
   const window = new BrowserWindow({ show: false, frame: false, width: 1280, height: 800, enableLargerThanScreen: true, webPreferences: {
     preload: path.join(root, 'dist-electron/preload.js'), contextIsolation: true, sandbox: true, nodeIntegration: false,
     offscreen: true, backgroundThrottling: false,
@@ -78,6 +80,8 @@ app.whenReady().then(async () => {
   console.log('RESULTS_UI: loaded')
   await assert.rejects(evaluate(`window.duprove.trashCatalog({ analysisId:${JSON.stringify(analysisId)}, groupId:'e:1', fileIds:[1], path:'arbitrary-renderer-path' })`), /INVALID_TRASH_REQUEST/)
   assert.equal(await evaluate(`document.querySelector('.results-dialog header p')`), null)
+  assert.equal(await evaluate(`document.querySelector('.results-dialog footer')`), null)
+  assert.equal(await evaluate(`document.querySelector('.results-dialog header .results-tabs') !== null`), true)
   assert.equal(await evaluate(`document.querySelector('.results-dialog > .results-note')`), null)
   assert.equal(await evaluate(`document.querySelector('.result-member-controls select').closest('label')`), null, 'Decision keeps its accessible name without the visible caption')
   assert.equal(await evaluate(`document.querySelector('.result-group strong').textContent`), 'одинаковое-имя.txt')
@@ -86,6 +90,12 @@ app.whenReady().then(async () => {
   assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('.result-group-meta span'), s=>s.textContent).slice(0,2)`), ['60 файлов', '180 байт'])
   assert.equal(await evaluate(`(() => { const name=document.querySelector('.result-group strong'), meta=document.querySelector('.result-group-meta'); return Number(getComputedStyle(meta).opacity)<1 && parseFloat(getComputedStyle(meta).fontSize)<parseFloat(getComputedStyle(name).fontSize); })()`), true)
   assert.equal(await evaluate(`document.activeElement.getAttribute('aria-label')`), 'Закрыть группы')
+  const appClosePoint = await evaluate(`(() => { const button=document.querySelector('.window-close'), r=button.getBoundingClientRect(), x=Math.round(r.left+r.width/2), y=Math.round(r.top+r.height/2); if(document.elementFromPoint(x,y)?.closest('button')!==button) throw Error('APP_CLOSE_BLOCKED'); return {x,y}; })()`)
+  window.webContents.sendInputEvent({ type: 'mouseDown', button: 'left', clickCount: 1, ...appClosePoint })
+  window.webContents.sendInputEvent({ type: 'mouseUp', button: 'left', clickCount: 1, ...appClosePoint })
+  await new Promise(r => setTimeout(r, 100))
+  assert.deepEqual(windowActions, ['close'], 'The app close button receives a real click while groups are open')
+  assert.equal(await evaluate(`document.querySelector('.app-body').inert`), true)
   assert.equal(await evaluate(`document.querySelector('.result-member-name').textContent`), 'первый-экземпляр.txt')
   assert.equal(await evaluate(`document.querySelectorAll('.result-member-name')[2].textContent`), '.gitignore')
   assert.equal(await evaluate(`document.querySelector('.result-member-info p:last-child').textContent`), '3 байт')
@@ -145,7 +155,10 @@ app.whenReady().then(async () => {
       const d=document.querySelector('.results-dialog'), r=d.getBoundingClientRect();
       const problems=[];
       if(r.left<0||r.right>innerWidth+1||r.bottom>innerHeight+1) problems.push('dialog outside viewport');
-      if(r.width<innerWidth-32||r.height<innerHeight-32) problems.push('dialog must use the available window');
+      const bar=document.querySelector('.title-bar').getBoundingClientRect(), appClose=document.querySelector('.window-close'), closeBounds=appClose.getBoundingClientRect();
+      if(r.top<bar.bottom+8) problems.push('dialog must leave room for the title bar');
+      if(document.elementFromPoint(closeBounds.left+closeBounds.width/2,closeBounds.top+closeBounds.height/2)?.closest('button')!==appClose) problems.push('app close button is blocked');
+      if(r.width<innerWidth-48||r.height<innerHeight-bar.height-48) problems.push('dialog must use the available window');
       if(d.scrollWidth>d.clientWidth+1) problems.push('dialog horizontal overflow');
       for(const el of d.querySelectorAll('.results-members,.results-groups')) if(el.scrollWidth>el.clientWidth+1) problems.push(el.className+' overflow');
       if(innerWidth>=960) {
@@ -155,8 +168,11 @@ app.whenReady().then(async () => {
       if(innerWidth>=1280) {
         const member=d.querySelector('.result-member'), card=member.getBoundingClientRect(), original=member.querySelector('.result-original').getBoundingClientRect(), controls=member.querySelector('.result-member-controls').getBoundingClientRect(), name=member.querySelector('.result-member-name').getBoundingClientRect(), selection=member.querySelector('.result-member-selection').getBoundingClientRect();
         if(controls.left<name.right||original.top<controls.bottom||Math.abs(original.right-controls.right)>2) problems.push('member actions must stay above the original choice on the right');
-        if(selection.right>=name.left||card.height>126) problems.push('member must have left selection and compact height');
+        if(selection.right>=name.left||card.height<140||card.height>200) problems.push('member must keep left selection and roomier spacing');
       }
+      const cards=Array.from(d.querySelectorAll('.result-member')).slice(0,3), colors=cards.map(card=>getComputedStyle(card).backgroundColor);
+      if(new Set(colors).size!==3) problems.push('original, selected and ordinary cards must have distinct colors');
+      if(parseFloat(getComputedStyle(cards[0]).marginBottom)<16) problems.push('cards need larger vertical gaps');
       return problems;
     })()`), [], `${theme} ${width}x${height}`)
     assert.ok([width, Math.round(width * await evaluate('devicePixelRatio'))].includes(latestFrame?.getSize().width), 'screenshot comes from the resized Electron paint event')
