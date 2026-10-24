@@ -129,7 +129,11 @@ export class CatalogService {
     }
     if (request.action === 'groups') {
       const total = (db.prepare('SELECT count(*) AS n FROM groups WHERE kind=?').get(request.kind) as Row).n
-      const items = db.prepare('SELECT id,kind,count,bytes,original_id AS originalId FROM groups WHERE kind=? ORDER BY id LIMIT ? OFFSET ?').all(request.kind, PAGE_SIZE, request.offset) as unknown as FileGroup[]
+      db.function('catalog_filename', { deterministic: true }, value => typeof value === 'string' ? path.basename(value) : '')
+      const items = db.prepare(`SELECT g.id,g.kind,g.count,g.bytes,g.original_id AS originalId,
+        (SELECT catalog_filename(f.path) AS filename FROM members m JOIN files f ON f.id=m.file_id
+          WHERE m.group_id=g.id GROUP BY filename ORDER BY count(*) DESC,filename COLLATE BINARY ASC LIMIT 1) AS name
+        FROM groups g WHERE g.kind=? ORDER BY g.id LIMIT ? OFFSET ?`).all(request.kind, PAGE_SIZE, request.offset) as unknown as FileGroup[]
       return { items, total, offset: request.offset, limit: PAGE_SIZE }
     }
     if (!db.prepare('SELECT 1 FROM groups WHERE id=?').get(request.groupId)) throw Error('GROUP_UNAVAILABLE')

@@ -112,13 +112,13 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
     <div className="results-tabs" role="group" aria-label="Тип совпадения">{(Object.keys(labels) as GroupKind[]).map(k => <button key={k} aria-pressed={kind === k} disabled={busy} onClick={() => { setKind(k); setOffset(0); setGroup(null) }}>{labels[k]}{info ? ` (${info.groups[k]})` : ''}</button>)}</div>
     <div className="results-body" aria-busy={busy}>
       <section className="results-groups" aria-label="Список групп">
-        {groups?.items.map(g => <button className="result-group" key={g.id} disabled={busy} aria-pressed={group?.id === g.id} onClick={() => setGroup(g)}><strong>{g.id}</strong><span>{g.count.toLocaleString('ru-RU')} файлов · {g.bytes.toLocaleString('ru-RU')} байт</span></button>)}
+        {groups?.items.map(g => <button className="result-group" key={g.id} disabled={busy} aria-pressed={group?.id === g.id} title={g.name} onClick={() => setGroup(g)}><strong>{g.name}</strong><span className="result-group-meta"><span>{g.count.toLocaleString('ru-RU')} файлов</span><span>{g.bytes.toLocaleString('ru-RU')} байт</span></span></button>)}
         {groups && !groups.total && <p>Совпадений этого типа нет.</p>}
         {busy && <p role="status">{transferring ? 'Проверка файлов и перенос в корзину…' : 'Загрузка…'}</p>}
         {groups && <Pager {...groups} busy={busy} label="Страницы групп" onPage={setOffset}/>}
       </section>
       <section className="results-members" aria-label="Участники группы">
-        {group && <><h3>{labels[group.kind]} · {group.id}</h3>
+        {group && <><h3>{labels[group.kind]} · {group.name}</h3>
           {group.kind !== 'exact' && <p className="results-note">Содержимое может различаться. Сходство не подтверждает точное равенство.</p>}
           <p>Оригинал: {group.originalId === null ? 'не выбран' : `экземпляр №${group.originalId}`}. {group.originalId !== null && <button disabled={busy} onClick={() => void original(null)}>Снять выбор</button>}</p>
           <button disabled={busy || !members?.items.some(m => m.decision === 'delete' && !m.protected)} onClick={() => void trash(members!.items.filter(m => m.decision === 'delete' && !m.protected).map(m => m.id))}>Перенести отмеченные на странице в корзину</button>

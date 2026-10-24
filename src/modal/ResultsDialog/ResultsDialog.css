@@ -16,9 +16,10 @@
 .results-body { display: grid; grid-template-columns: 245px minmax(0,1fr); flex: 1; min-height: 0; border-top: 1px solid var(--color-line); }
 .results-groups, .results-members { min-width: 0; overflow: auto; padding: 12px; }
 .results-groups { border-right: 1px solid var(--color-line); }
-.result-group { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; width: 100%; text-align: left; margin: 0 0 8px; }
-.result-group span { margin-left: auto; font-size: 12px; text-align: right; }
-.results-members h3 { font-size: 16px; margin: 0 0 10px; }
+.result-group { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px; width: 100%; text-align: left; margin: 0 0 8px; }
+.result-group>strong { min-width: 0; overflow-wrap: anywhere; }
+.result-group-meta { display: flex; flex-direction: column; gap: 2px; font-size: 10px; font-weight: 400; line-height: 1.25; text-align: right; white-space: nowrap; opacity: .6; }
+.results-members h3 { font-size: 16px; margin: 0 0 10px; overflow-wrap: anywhere; }
 .results-members .results-note { margin: 8px 0; }
 .result-member { border: 1px solid var(--color-line); border-radius: 8px; padding: 12px; margin: 10px 0; }
 .result-member-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }

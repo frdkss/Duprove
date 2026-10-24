@@ -80,6 +80,11 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate(`document.querySelector('.results-dialog header p')`), null)
   assert.equal(await evaluate(`document.querySelector('.results-dialog > .results-note')`), null)
   assert.equal(await evaluate(`document.querySelector('.result-member-controls select').closest('label')`), null, 'Decision keeps its accessible name without the visible caption')
+  assert.equal(await evaluate(`document.querySelector('.result-group strong').textContent`), 'одинаковое-имя.txt')
+  assert.equal(await evaluate(`document.querySelector('.result-group').title`), 'одинаковое-имя.txt')
+  assert.equal(await evaluate(`document.querySelector('.results-members h3').textContent`), 'Точные дубликаты · одинаковое-имя.txt')
+  assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('.result-group-meta span'), s=>s.textContent).slice(0,2)`), ['60 файлов', '180 байт'])
+  assert.equal(await evaluate(`(() => { const name=document.querySelector('.result-group strong'), meta=document.querySelector('.result-group-meta'); return Number(getComputedStyle(meta).opacity)<1 && parseFloat(getComputedStyle(meta).fontSize)<parseFloat(getComputedStyle(name).fontSize); })()`), true)
   assert.equal(await evaluate(`document.activeElement.getAttribute('aria-label')`), 'Закрыть группы')
   assert.equal(await evaluate(`document.querySelectorAll('.result-original input:checked').length`), 0)
   await evaluate(`document.querySelector('.result-original input').focus()`)
@@ -114,8 +119,8 @@ app.whenReady().then(async () => {
       if(d.scrollWidth>d.clientWidth+1) problems.push('dialog horizontal overflow');
       for(const el of d.querySelectorAll('.results-members,.results-groups')) if(el.scrollWidth>el.clientWidth+1) problems.push(el.className+' overflow');
       if(innerWidth>=960) {
-        const group=d.querySelector('.result-group'), title=group.querySelector('strong').getBoundingClientRect(), count=group.querySelector('span').getBoundingClientRect();
-        if(count.left<title.right||Math.abs(count.top-title.top)>4) problems.push('group count must stay next to its number');
+        const group=d.querySelector('.result-group'), title=group.querySelector('strong').getBoundingClientRect(), count=group.querySelector('.result-group-meta').getBoundingClientRect();
+        if(count.left<title.right||Math.abs((count.top+count.bottom-title.top-title.bottom)/2)>4) problems.push('group details must stay beside the filename');
         const member=d.querySelector('.result-member'), original=member.querySelector('.result-original').getBoundingClientRect(), controls=member.querySelector('.result-member-controls').getBoundingClientRect();
         if(controls.left<original.right||Math.abs(controls.top-original.top)>16) problems.push('member controls must stay at the top right');
       }

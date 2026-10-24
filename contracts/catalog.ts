@@ -9,7 +9,7 @@ export interface CatalogInfo {
   groups: Record<GroupKind, number>; files: number; expiresAt: number
 }
 export interface FileGroup {
-  id: string; kind: GroupKind; count: number; bytes: number; originalId: number | null
+  id: string; name: string; kind: GroupKind; count: number; bytes: number; originalId: number | null
 }
 export interface GroupMember {
   id: number; path: string; size: number; availability: 'available' | 'missing' | 'changed' | 'unavailable'

@@ -37,6 +37,7 @@ test('catalog retains precise metadata, large cross-root groups and separate war
   const groups = await restored.request({ action: 'groups', analysisId: f.analysisId, kind: 'exact', offset: 0 })
   assert.equal(groups.items[0].count, f.count)
   assert.equal(groups.items[0].originalId, null)
+  assert.equal(groups.items[0].name, 'disk-a-1.txt', 'Names remain available from an existing catalog after work cleanup')
   const members = await restored.request({ action: 'members', analysisId: f.analysisId, groupId: 'e:1', offset: 1025 })
   assert.equal(members.total, f.count); assert.equal(members.items.length, 25)
   assert.equal(members.items[0].id, 1026)
@@ -50,6 +51,29 @@ test('catalog retains precise metadata, large cross-root groups and separate war
   db.close()
   const warn = await restored.request({ action: 'groups', analysisId: f.analysisId, kind: 'warn_text', offset: 0 })
   assert.ok(warn.items.every(g => g.count === 2 && g.kind === 'warn_text'))
+  assert.equal(warn.items[0].name, 'disk-a-1.txt')
+})
+
+test('group names use the most frequent complete filename across every member, with stable ties', async t => {
+  const f = await fixture(t, 60)
+  const source = new DatabaseSync(f.source)
+  for (let i = 26; i <= 60; i++) source.prepare('UPDATE files SET path=? WHERE rowid=?').run(path.join(f.directory, `copy-${i}`, 'отчёт.final.tar.gz'), i)
+  const insert = source.prepare('INSERT INTO files VALUES(?,?,?,?,?,?,?,?)')
+  for (const [gid, names] of [[3, ['zzz.txt', 'aaa.csv']], [4, ['.env', '.env']]]) {
+    names.forEach((name, i) => insert.run(path.join(f.directory, `${gid}-${i}`, name), `${gid}:${i}`, 0, 3, 1, 2, 'c'.repeat(64), gid))
+  }
+  source.close()
+  await f.catalog.capture(f.source, f.analysisId, [f.directory], true)
+  await fs.unlink(f.source)
+  const restored = new CatalogService(f.directory)
+  const groups = await restored.request({ action: 'groups', analysisId: f.analysisId, kind: 'exact', offset: 0 })
+  assert.equal(groups.items.find(g => g.id === 'e:1').name, 'отчёт.final.tar.gz', 'The winning name exists only beyond the first member page')
+  assert.equal(groups.items.find(g => g.id === 'e:3').name, 'aaa.csv', 'Ties are independent of insertion order')
+  assert.equal(groups.items.find(g => g.id === 'e:4').name, '.env')
+  await restored.request({ action: 'original', analysisId: f.analysisId, groupId: 'e:1', fileId: 1 })
+  const refreshed = await restored.request({ action: 'groups', analysisId: f.analysisId, kind: 'exact', offset: 0 })
+  assert.equal(refreshed.items[0].name, 'отчёт.final.tar.gz', 'Selecting an original does not change the group name')
+  assert.equal(refreshed.items[0].originalId, 1)
 })
 
 test('catalog rejects injected paths, SQL, wrong analyses, missing and expired results', async t => {
