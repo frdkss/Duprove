@@ -1,4 +1,5 @@
 import { object } from './analysis'
+import { queryValid, type GroupFilter } from './group-filters'
 
 export const groupKinds = ['exact', 'warn_text', 'warn_image'] as const
 export type GroupKind = typeof groupKinds[number]
@@ -16,7 +17,7 @@ export interface GroupMember {
   decision: Decision; protected: boolean
   lastOperation?: string | null
 }
-export interface Page<T> { items: T[]; total: number; offset: number; limit: number }
+export interface Page<T> { items: T[]; total: number; offset: number; limit: number; selectedTotal?: number }
 export interface FilePreview {
   id: number; path: string; status: string; kind: 'text' | 'image' | 'none'
   text?: string; data?: string; truncated?: boolean; width?: number; height?: number
@@ -27,11 +28,11 @@ export interface TrashPlan { token: string; entries: { fileId: number; path: str
 export interface TrashResult { cancelled: boolean; results: { fileId: number; status: 'trashed' | 'error'; error?: string }[] }
 export function isTrashRequest(v: unknown): v is TrashRequest {
   return object(v) && exactKeys(v, ['analysisId', 'groupId', 'fileIds']) && idValid(v.analysisId) && groupValid(v.groupId)
-    && Array.isArray(v.fileIds) && v.fileIds.length > 0 && v.fileIds.length <= PAGE_SIZE && v.fileIds.every(fileValid) && new Set(v.fileIds).size === v.fileIds.length
+    && Array.isArray(v.fileIds) && v.fileIds.length > 0 && v.fileIds.length <= 1000 && v.fileIds.every(fileValid) && new Set(v.fileIds).size === v.fileIds.length
 }
 export type CatalogRequest =
   | { action: 'info'; analysisId: string }
-  | { action: 'groups'; analysisId: string; kind: GroupKind; offset: number }
+  | { action: 'groups'; analysisId: string; kind: GroupKind; offset: number; query?: string; filters?: GroupFilter[]; selectedOnly?: boolean }
   | { action: 'members'; analysisId: string; groupId: string; offset: number }
   | { action: 'original'; analysisId: string; groupId: string; fileId: number | null }
   | { action: 'compare'; analysisId: string; groupId: string; fileId: number }
@@ -43,6 +44,10 @@ export const fileValid = (v: unknown): v is number => Number.isSafeInteger(v) &&
 export function exactKeys(v: Record<string, unknown>, keys: string[]): boolean {
   return Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v, k))
 }
+function filtersValid(value: unknown): value is GroupFilter[] {
+  return Array.isArray(value) && value.length <= 100000 && value.every(rule => object(rule) && typeof rule.checked === 'boolean'
+    && (exactKeys(rule, ['query', 'checked']) && queryValid(rule.query) || exactKeys(rule, ['id', 'checked']) && groupValid(rule.id)))
+}
 export function isCatalogRequest(v: unknown): v is CatalogRequest {
   if (!object(v) || !idValid(v.analysisId)) return false
   if (v.action === 'info') return exactKeys(v, ['action', 'analysisId'])
@@ -51,6 +56,8 @@ export function isCatalogRequest(v: unknown): v is CatalogRequest {
   if (v.action === 'decision') return exactKeys(v, ['action', 'analysisId', 'groupId', 'fileId', 'decision', 'reviewed']) && groupValid(v.groupId) && fileValid(v.fileId)
     && typeof v.decision === 'string' && ['unresolved', 'keep', 'review', 'delete'].includes(v.decision) && typeof v.reviewed === 'boolean'
   if (!Number.isSafeInteger(v.offset) || Number(v.offset) < 0 || Number(v.offset) > 1e9) return false
-  if (v.action === 'groups') return exactKeys(v, ['action', 'analysisId', 'kind', 'offset']) && groupKinds.includes(v.kind as GroupKind)
+  if (v.action === 'groups') return exactKeys(v, ['action', 'analysisId', 'kind', 'offset', ...['query', 'filters', 'selectedOnly'].filter(key => Object.hasOwn(v, key))])
+    && groupKinds.includes(v.kind as GroupKind) && (v.query === undefined || queryValid(v.query))
+    && (v.filters === undefined || filtersValid(v.filters)) && (v.selectedOnly === undefined || typeof v.selectedOnly === 'boolean')
   return v.action === 'members' && exactKeys(v, ['action', 'analysisId', 'groupId', 'offset']) && groupValid(v.groupId)
 }

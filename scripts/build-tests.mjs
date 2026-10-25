@@ -1,5 +1,5 @@
 import { build } from 'esbuild'
-await build({entryPoints:['contracts/comparison.ts','src/window/ComparisonWindow/viewer-utils.ts','electron/services/preview-stream.ts','electron/comparison-windows.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.verification/tests',outbase:'.',external:['electron']})
+await build({entryPoints:['contracts/comparison.ts','contracts/group-filters.ts','src/window/ComparisonWindow/viewer-utils.ts','electron/services/preview-stream.ts','electron/comparison-windows.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.verification/tests',outbase:'.',external:['electron']})
 await build({entryPoints:['electron/services/catalog-service.ts','contracts/catalog.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.verification/tests',outbase:'.'})
 await build({entryPoints:['electron/services/trash-service.ts','electron/services/trash-confirmation.ts','electron/services/file-guard.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.verification/tests',outbase:'.'})
 await build({entryPoints:['electron/services/update-manifest.ts','electron/services/update-service.ts','electron/services/update-transport.ts','electron/services/update-installer.ts'],bundle:true,platform:'node',format:'cjs',outdir:'.verification/tests',outbase:'.'})

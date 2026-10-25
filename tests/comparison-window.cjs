@@ -160,7 +160,7 @@ app.whenReady().then(async () => {
   await evaluate(`Array.from(document.querySelectorAll('.result-group')).find(button=>button.querySelector('strong').textContent==='source.py').click()`)
   await waitFor(`document.querySelectorAll('.result-member').length===6 && document.querySelector('.result-original input')?.checked`)
   await evaluate(`document.querySelectorAll('.result-member-selection')[1].click();document.querySelectorAll('.result-member-selection')[2].click()`)
-  const bulk = `Array.from(document.querySelectorAll('button')).find(button=>button.textContent==='Перенести отмеченные на странице в корзину')`
+  const bulk = `Array.from(document.querySelectorAll('button')).find(button=>button.textContent==='Перенести выделенные в корзину')`
   await waitFor(`${bulk}?.disabled === false`)
   await evaluate(`${bulk}.click()`)
   await waitFor(`document.querySelector('.results-dialog [role=status]')?.textContent.includes('Перенос отменён')`)

@@ -8,6 +8,7 @@ import { object } from '../../contracts/analysis'
 import { isComparisonRequest, isComparisonFileRequest, type ComparisonContext, type ComparisonSnapshot } from '../../contracts/comparison'
 import WordExtractor from 'word-extractor'
 import { fileGuard } from './file-guard'
+import { groupSearch, groupSelection } from '../../contracts/group-filters'
 
 export const CATALOG_BYTES = 128 * 1024 * 1024
 export const CATALOG_AGE = 30 * 24 * 60 * 60 * 1000
@@ -130,13 +131,22 @@ export class CatalogService {
         files: (db.prepare('SELECT count(*) AS n FROM files').get() as Row).n, expiresAt: meta.created_at + CATALOG_AGE } satisfies CatalogInfo
     }
     if (request.action === 'groups') {
-      const total = (db.prepare('SELECT count(*) AS n FROM groups WHERE kind=?').get(request.kind) as Row).n
+      const matches = groupSearch(request.query ?? ''), selected = groupSelection(request.filters ?? [])
       db.function('catalog_filename', { deterministic: true }, value => typeof value === 'string' ? path.basename(value) : '')
-      const items = db.prepare(`SELECT g.id,g.kind,g.count,g.bytes,g.original_id AS originalId,
+      db.exec(`CREATE TABLE IF NOT EXISTS group_names(group_id TEXT PRIMARY KEY,name TEXT NOT NULL);
+        INSERT OR IGNORE INTO group_names SELECT g.id,
         (SELECT catalog_filename(f.path) AS filename FROM members m JOIN files f ON f.id=m.file_id
-          WHERE m.group_id=g.id GROUP BY filename ORDER BY count(*) DESC,filename COLLATE BINARY ASC LIMIT 1) AS name
-        FROM groups g WHERE g.kind=? ORDER BY g.id LIMIT ? OFFSET ?`).all(request.kind, PAGE_SIZE, request.offset) as unknown as FileGroup[]
-      return { items, total, offset: request.offset, limit: PAGE_SIZE }
+          WHERE m.group_id=g.id GROUP BY filename ORDER BY count(*) DESC,filename COLLATE BINARY ASC LIMIT 1)
+        FROM groups g WHERE NOT EXISTS(SELECT 1 FROM group_names n WHERE n.group_id=g.id);`)
+      db.function('catalog_matches', { deterministic: true }, name => Number(matches(String(name))))
+      db.function('catalog_selected', { deterministic: true }, (id, name) => Number(selected(String(id), String(name))))
+      const where = 'g.kind=? AND catalog_matches(n.name) AND (?=0 OR catalog_selected(g.id,n.name))'
+      const stats = db.prepare(`SELECT count(*) AS total,coalesce(sum(catalog_selected(g.id,n.name)),0) AS selectedTotal
+        FROM groups g JOIN group_names n ON n.group_id=g.id WHERE ${where}`).get(request.kind, Number(!!request.selectedOnly)) as Row
+      const items = db.prepare(`SELECT g.id,g.kind,g.count,g.bytes,g.original_id AS originalId,n.name
+        FROM groups g JOIN group_names n ON n.group_id=g.id WHERE ${where} ORDER BY g.id LIMIT ? OFFSET ?`)
+        .all(request.kind, Number(!!request.selectedOnly), PAGE_SIZE, request.offset) as unknown as FileGroup[]
+      return { items, ...stats, offset: request.offset, limit: PAGE_SIZE }
     }
     if (!db.prepare('SELECT 1 FROM groups WHERE id=?').get(request.groupId)) throw Error('GROUP_UNAVAILABLE')
     const total = (db.prepare('SELECT count(*) AS n FROM members WHERE group_id=?').get(request.groupId) as Row).n
