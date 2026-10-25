@@ -32,31 +32,70 @@
 .header__nav a:hover {
   color: var(--color-ink);
 }
+.header__nav .header__github {
+  justify-content: center;
+  flex: 0 0 36px;
+  width: 36px;
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  color: #fff;
+  background: var(--color-ink);
+  transition:
+    color 180ms,
+    background-color 180ms,
+    border-color 180ms;
+}
+.header__github svg {
+  flex: 0 0 auto;
+}
+.header__nav .header__github:is(:hover, :active, :focus-visible) {
+  color: #000;
+  background: #fff;
+  border-color: var(--color-line);
+}
 
 @media (max-width: 700px) {
   .header {
-    inset-block-start: 14px;
-    width: calc(100% - 32px);
-    padding-inline: 20px;
+    inset: auto 0 calc(12px + env(safe-area-inset-bottom));
+    width: calc(100% - 24px);
+    padding: 8px 12px;
+    gap: 12px;
+    flex-wrap: nowrap;
+  }
+  .header__brand {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
   .header__nav {
-    gap: 17px;
+    gap: 16px;
     font-size: 12px;
+    white-space: nowrap;
   }
 }
 @media (max-width: 480px) {
   .header {
-    flex-wrap: wrap;
-    padding: 14px 16px 3px;
+    width: calc(100% - 20px);
+    padding-inline: 10px;
+    gap: 8px;
     border-radius: 16px;
   }
   .header__brand {
-    width: 100%;
+    font-size: 14px;
   }
   .header__nav {
-    width: 100%;
-    justify-content: space-between;
-    gap: 8px;
-    font-size: 11px;
+    gap: 6px;
+    font-size: 10.5px;
+  }
+  .header__nav .header__github {
+    flex-basis: 32px;
+    width: 32px;
+    min-height: 32px;
+    border-radius: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .header__nav .header__github {
+    transition: none;
   }
 }

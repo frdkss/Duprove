@@ -5,3 +5,17 @@ dist
 *.local
 *.tsbuildinfo
 .verification
+
+# Local files from the desktop application, outside the website sources
+/.tools/
+/.venv/
+/backend/
+/build/
+/dist-electron/
+/release/
+/service/
+/source-archives/
+
+# Python caches left by the desktop application tests
+__pycache__/
+*.py[cod]

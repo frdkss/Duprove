@@ -1,4 +1,5 @@
 import type { Screenshot } from '../types/screenshot'
+import screenshotFiles from 'virtual:screenshots'
 
-export const screenshots: Screenshot[] = []
-export const slideshowInterval = 5000
+export const screenshots: Screenshot[] = screenshotFiles
+export const slideshowInterval = 3500

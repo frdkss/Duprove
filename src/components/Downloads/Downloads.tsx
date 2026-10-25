@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { ArrowUpRight, RefreshCw } from 'lucide-react'
-import detectOperatingSystem from '../../lib/detectOperatingSystem'
+import useOperatingSystem from '../../hooks/useOperatingSystem'
 import { releasesUrl } from '../../config/project'
 import type { ReleaseState } from '../../types/release'
 import OperatingSystemSelect from '../OperatingSystemSelect/OperatingSystemSelect'
@@ -13,24 +12,20 @@ interface DownloadsProps {
 }
 
 export default function Downloads({ state, retry }: DownloadsProps) {
-  const [operatingSystem, setOperatingSystem] = useState(() => detectOperatingSystem(navigator))
+  const { operatingSystem, selectOperatingSystem } = useOperatingSystem()
 
   return (
     <div className="downloads">
-      <OperatingSystemSelect value={operatingSystem} onChange={setOperatingSystem} />
+      <OperatingSystemSelect value={operatingSystem} onChange={selectOperatingSystem} />
       <div
         className="downloads__body"
         aria-live="polite"
-        aria-busy={operatingSystem !== 'macos' && state.status === 'loading'}
+        aria-busy={operatingSystem !== 'unknown' && state.status === 'loading'}
       >
-        {operatingSystem === 'macos' ? (
+        {operatingSystem === 'unknown' ? (
           <p className="downloads__message">
-            На данный момент Duprove не разработан для macOS. Версия для macOS не планируется.
-          </p>
-        ) : operatingSystem === 'unknown' ? (
-          <p className="downloads__message">
-            Не удалось определить поддерживаемую ОС. Выберите Windows или Linux, чтобы увидеть
-            доступные сборки.
+            Не удалось определить ОС или архитектуру. Выберите Windows, Linux, macOS Intel или macOS
+            ARM, чтобы увидеть доступные сборки.
           </p>
         ) : state.status === 'loading' ? (
           <p className="downloads__message">Проверяем актуальные релизы…</p>

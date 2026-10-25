@@ -1,13 +1,48 @@
-import { AnimatePresence, motion } from 'motion/react'
-import { ArrowLeft, ArrowRight, Image, Pause, Play } from 'lucide-react'
+import { useEffect } from 'react'
+import { AnimatePresence, motion, useIsPresent } from 'motion/react'
+import { Image } from 'lucide-react'
 import { screenshots } from '../../config/screenshots'
 import useSlideshow from '../../hooks/useSlideshow'
+import type { Screenshot } from '../../types/screenshot'
 import './ScreenshotGallery.css'
 
+const fadeDuration = 1.15
+
+function ScreenshotSlide({
+  screenshot,
+  reducedMotion,
+}: {
+  screenshot: Screenshot
+  reducedMotion: boolean | null
+}) {
+  const isPresent = useIsPresent()
+
+  return (
+    <motion.img
+      className="gallery__image"
+      src={`${import.meta.env.BASE_URL}${screenshot.src}`}
+      alt={screenshot.alt}
+      aria-hidden={!isPresent}
+      data-active={isPresent}
+      decoding="async"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { delay: reducedMotion ? 0 : fadeDuration, duration: 0 } }}
+      transition={{ duration: reducedMotion ? 0 : fadeDuration, ease: [0.4, 0, 0.2, 1] }}
+    />
+  )
+}
+
 export default function ScreenshotGallery() {
-  const { activeIndex, setActiveIndex, paused, setPaused, setHovered, setFocused, reducedMotion } =
-    useSlideshow(screenshots.length)
+  const { activeIndex, reducedMotion } = useSlideshow(screenshots.length)
   const active = screenshots[activeIndex]
+
+  useEffect(() => {
+    if (screenshots.length < 2) return
+    const next = new window.Image()
+    next.decoding = 'async'
+    next.src = `${import.meta.env.BASE_URL}${screenshots[(activeIndex + 1) % screenshots.length].src}`
+  }, [activeIndex])
 
   return (
     <div
@@ -15,25 +50,10 @@ export default function ScreenshotGallery() {
       role="region"
       aria-label="Скриншоты Duprove"
       aria-roledescription="карусель"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocusCapture={() => setFocused(true)}
-      onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false)
-      }}
     >
       {active ? (
-        <AnimatePresence initial={false} mode="wait">
-          <motion.img
-            key={active.src}
-            className="gallery__image"
-            src={`${import.meta.env.BASE_URL}${active.src}`}
-            alt={active.alt}
-            initial={{ opacity: reducedMotion ? 1 : 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: reducedMotion ? 1 : 0 }}
-            transition={{ duration: 0.25 }}
-          />
+        <AnimatePresence initial={false} mode="sync">
+          <ScreenshotSlide key={active.src} screenshot={active} reducedMotion={reducedMotion} />
         </AnimatePresence>
       ) : (
         <div className="gallery__placeholder flex flex-col items-center justify-center">
@@ -42,41 +62,6 @@ export default function ScreenshotGallery() {
           </div>
           <span>Здесь будут скриншоты Duprove</span>
           <span className="gallery__hint">Скриншоты появятся позже</span>
-        </div>
-      )}
-      {screenshots.length > 1 && (
-        <div className="gallery__controls flex items-center justify-between">
-          <span className="gallery__count">
-            {activeIndex + 1} / {screenshots.length}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="Предыдущий скриншот"
-              onClick={() =>
-                setActiveIndex((activeIndex - 1 + screenshots.length) % screenshots.length)
-              }
-            >
-              <ArrowLeft size={16} />
-            </button>
-            {!reducedMotion && (
-              <button
-                type="button"
-                aria-label={paused ? 'Включить автослайд' : 'Остановить автослайд'}
-                aria-pressed={paused}
-                onClick={() => setPaused(!paused)}
-              >
-                {paused ? <Play size={14} /> : <Pause size={14} />}
-              </button>
-            )}
-            <button
-              type="button"
-              aria-label="Следующий скриншот"
-              onClick={() => setActiveIndex((activeIndex + 1) % screenshots.length)}
-            >
-              <ArrowRight size={16} />
-            </button>
-          </div>
         </div>
       )}
     </div>

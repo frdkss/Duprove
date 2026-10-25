@@ -22,7 +22,8 @@ export default function OperatingSystemSelect({ value, onChange }: OperatingSyst
           </option>
           <option value="windows">Windows</option>
           <option value="linux">Linux</option>
-          <option value="macos">macOS</option>
+          <option value="macos-intel">macOS Intel</option>
+          <option value="macos-arm">macOS ARM</option>
         </select>
         <ChevronDown size={16} strokeWidth={1.4} aria-hidden="true" />
       </div>

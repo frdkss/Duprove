@@ -1,5 +1,5 @@
 import useReleases from '../../hooks/useReleases'
-import Survey from '../Survey/Survey'
+import ReleaseNotes from '../ReleaseNotes/ReleaseNotes'
 import Downloads from '../Downloads/Downloads'
 import './Installation.css'
 
@@ -12,7 +12,7 @@ export default function Installation() {
         Установить сейчас
       </h2>
       <div className="installation__panels grid">
-        <Survey />
+        <ReleaseNotes state={state} retry={retry} />
         <Downloads state={state} retry={retry} />
       </div>
     </section>

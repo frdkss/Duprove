@@ -21,12 +21,13 @@
 @media (max-width: 700px) {
   .page {
     width: calc(100% - 48px);
-    padding-top: 132px;
+    padding-top: 48px;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
   }
 }
 @media (max-width: 480px) {
   .page {
     width: calc(100% - 40px);
-    padding-top: 148px;
+    padding-top: 40px;
   }
 }

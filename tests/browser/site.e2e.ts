@@ -11,12 +11,10 @@ test('Макет, пустые релизы, выбор ОС и навигаци
   await expect(page.getByRole('heading', { name: 'Duprove', exact: true })).toBeVisible()
   await expect(page.getByText('Первый релиз ещё впереди')).toBeVisible()
   await page.screenshot({ path: '.verification/desktop.png', fullPage: true })
-  await page.getByRole('combobox', { name: 'Ваша ОС' }).selectOption('macos')
-  await expect(
-    page.getByText(
-      'На данный момент Duprove не разработан для macOS. Версия для macOS не планируется.',
-    ),
-  ).toBeVisible()
+  await page.getByRole('combobox', { name: 'Ваша ОС' }).selectOption('macos-intel')
+  await expect(page.getByText('Первый релиз ещё впереди')).toBeVisible()
+  await page.getByRole('combobox', { name: 'Ваша ОС' }).selectOption('macos-arm')
+  await expect(page.getByText('Первый релиз ещё впереди')).toBeVisible()
   await page.getByRole('link', { name: 'Установить', exact: true }).click()
   await expect(page).toHaveURL(/#install$/)
   expect(
@@ -73,8 +71,11 @@ test('Реальные поля GitHub превращаются в скачив�
   await expect(page.getByText('Duprove v1.0.0')).toBeVisible()
   await expect(page.getByText('Для этой ОС сборки не опубликованы.')).toBeVisible()
   await expect(page.getByText('.sha256', { exact: false })).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Анонимный опрос' })).toBeVisible()
-  await expect(page.getByText('Вопросы появятся позже.')).toBeVisible()
+  const notes = page.getByRole('region', { name: 'Что нового' })
+  await expect(notes.getByRole('heading', { name: 'Изменения' })).toBeVisible()
+  await expect(notes.locator('strong')).toHaveText('хеша')
+  await expect(notes.locator('script')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Анонимный опрос' })).toHaveCount(0)
   await page.screenshot({ path: '.verification/releases.png', fullPage: true })
   await page.getByRole('combobox').selectOption('linux')
   await expect(
@@ -88,12 +89,14 @@ test('Повторный запрос после ограничения API', as
     route.fulfill({ status: 403, json: {} }),
   )
   await page.goto('/')
-  await expect(page.getByText(/GitHub временно ограничил запросы/)).toBeVisible()
+  await expect(
+    page.locator('.downloads').getByText(/GitHub временно ограничил запросы/),
+  ).toBeVisible()
   await page.unroute('https://api.github.com/repos/**/releases**')
   await page.route('https://api.github.com/repos/**/releases**', (route) =>
     route.fulfill({ status: route.request().url().endsWith('/latest') ? 404 : 200, json: [] }),
   )
-  await page.getByRole('button', { name: 'Повторить', exact: true }).click()
+  await page.locator('.downloads').getByRole('button', { name: 'Повторить', exact: true }).click()
   await expect(page.getByText('Первый релиз ещё впереди')).toBeVisible()
 })
 

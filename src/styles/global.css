@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import 'tailwindcss' source('../');
 
 @theme {
   --font-sans:
@@ -64,6 +64,11 @@ button {
 }
 section[id] {
   scroll-margin-top: 112px;
+}
+@media (max-width: 700px) {
+  section[id] {
+    scroll-margin-top: 24px;
+  }
 }
 ::-webkit-scrollbar {
   width: 7px;

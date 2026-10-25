@@ -9,36 +9,135 @@
   line-height: 1.8;
   color: var(--color-muted);
 }
-.instructions h2 {
-  grid-row: span 2;
+.instructions > h2 {
   color: var(--color-ink);
   font-size: 20px;
   font-weight: 550;
   letter-spacing: -0.5px;
 }
-.instructions p {
-  max-width: 640px;
+.instructions__body {
+  min-width: 0;
 }
-.instructions a {
-  justify-self: start;
-  margin-top: 16px;
-  font-size: 13px;
+.instructions__reader {
+  position: relative;
+}
+.instructions__viewport {
+  overflow: hidden;
+}
+.instructions__content {
+  display: flow-root;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+.instructions__content > :first-child {
+  margin-top: 0;
+}
+.instructions__content :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 30px;
+  margin-bottom: 12px;
+  color: var(--color-ink);
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.instructions__content :is(p, ul, ol, pre, blockquote, table) {
+  margin-block: 14px;
+}
+.instructions__content :is(ul, ol) {
+  padding-left: 22px;
+}
+.instructions__content ul {
+  list-style: disc;
+}
+.instructions__content ol {
+  list-style: decimal;
+}
+.instructions__content li + li {
+  margin-top: 8px;
+}
+.instructions__content :is(pre, table) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.instructions__content pre {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--color-panel);
+}
+.instructions__content blockquote {
+  padding-left: 14px;
+  border-left: 2px solid var(--color-line);
+  color: var(--color-muted);
+}
+.instructions__content table {
+  display: block;
+  border-collapse: collapse;
+}
+.instructions__content :is(th, td) {
+  padding: 6px 10px;
+  border: 1px solid var(--color-line);
+}
+.instructions__content a,
+.instructions__source {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
-.instructions a:hover {
+.instructions__content a:hover,
+.instructions__source:hover {
+  color: var(--color-focus);
+}
+.instructions__expand {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  padding: 0 12px 8px;
+  border: 0;
+  background: linear-gradient(to bottom, transparent 10%, var(--color-canvas) 85%);
+  color: var(--color-muted);
+}
+.instructions__expand-label {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  transition:
+    color 180ms,
+    background-color 180ms;
+}
+.instructions__expand:hover .instructions__expand-label {
   color: var(--color-ink);
+  background: var(--color-panel);
+}
+.instructions__source {
+  margin-top: 20px;
+  font-size: 13px;
+}
+.instructions__message {
+  min-height: 72px;
+}
+.instructions__retry {
+  margin-top: 16px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  color: var(--color-ink);
+  background: var(--color-paper);
+}
+.instructions__retry:hover {
+  background: var(--color-accent);
 }
 @media (max-width: 800px) {
   .instructions {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 16px;
   }
-  .instructions h2 {
-    grid-row: auto;
-  }
-  .instructions a {
-    margin-top: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .instructions__expand-label {
+    transition: none;
   }
 }
 @media (max-width: 700px) {

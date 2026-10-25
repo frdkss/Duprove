@@ -1,0 +1,113 @@
+.release-notes {
+  min-width: 0;
+  min-height: 310px;
+  padding: 28px;
+  border: 1px solid var(--color-line);
+  border-radius: 22px;
+  background: var(--color-paper);
+}
+.release-notes__title {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--color-line);
+  font-size: 20px;
+  font-weight: 550;
+  line-height: 1.3;
+  letter-spacing: -0.6px;
+}
+.release-notes__body {
+  margin-top: 22px;
+  max-height: 270px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding-right: 8px;
+  font-size: 14px;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.release-notes__version {
+  margin-bottom: 16px;
+  color: var(--color-muted);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.release-notes__message {
+  color: var(--color-muted);
+}
+.release-notes__retry {
+  margin-top: 16px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  color: var(--color-ink);
+  background: var(--color-panel);
+}
+.release-notes__retry:hover {
+  background: var(--color-accent);
+}
+.release-notes__content > :first-child {
+  margin-top: 0;
+}
+.release-notes__content :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 22px;
+  margin-bottom: 10px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.release-notes__content :is(p, ul, ol, blockquote, pre, table) {
+  margin-block: 12px;
+}
+.release-notes__content :is(ul, ol) {
+  padding-left: 22px;
+}
+.release-notes__content ul {
+  list-style: disc;
+}
+.release-notes__content ol {
+  list-style: decimal;
+}
+.release-notes__content li + li {
+  margin-top: 7px;
+}
+.release-notes__content a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.release-notes__content a:hover {
+  color: var(--color-focus);
+}
+.release-notes__content :is(pre, table) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.release-notes__content pre {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--color-panel);
+}
+.release-notes__content blockquote {
+  padding-left: 14px;
+  border-left: 2px solid var(--color-line);
+  color: var(--color-muted);
+}
+.release-notes__content table {
+  display: block;
+  border-collapse: collapse;
+}
+.release-notes__content :is(th, td) {
+  padding: 6px 10px;
+  border: 1px solid var(--color-line);
+}
+@media (max-width: 700px) {
+  .release-notes {
+    min-height: 250px;
+    padding: 24px;
+    border-radius: 18px;
+  }
+}
+@media (max-width: 400px) {
+  .release-notes {
+    padding: 20px;
+  }
+}
