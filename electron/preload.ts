@@ -3,6 +3,19 @@ import { channels, type DesktopBridge } from './bridge'
 const bridge: DesktopBridge = {
   requestCatalog: request => ipcRenderer.invoke(channels.catalog, request),
   trashCatalog: request => ipcRenderer.invoke(channels.trash, request),
+  openComparison: request => ipcRenderer.invoke(channels.comparisonOpen, request),
+  getComparison: () => ipcRenderer.invoke(channels.comparisonGet),
+  getComparisonDocument: fileId => ipcRenderer.invoke(channels.comparisonFile, fileId),
+  onComparison: listener => {
+    const receive = (_event: Electron.IpcRendererEvent, value: Parameters<typeof listener>[0]) => listener(value)
+    ipcRenderer.on(channels.comparisonChanged, receive)
+    return () => { ipcRenderer.removeListener(channels.comparisonChanged, receive) }
+  },
+  onCatalogChanged: listener => {
+    const receive = (_event: Electron.IpcRendererEvent, value: Parameters<typeof listener>[0]) => listener(value)
+    ipcRenderer.on(channels.catalogChanged, receive)
+    return () => { ipcRenderer.removeListener(channels.catalogChanged, receive) }
+  },
   listDrives: () => ipcRenderer.invoke(channels.drives),
   windowAction: action => ipcRenderer.invoke(channels.window, action),
   openHelp: () => ipcRenderer.invoke(channels.help),

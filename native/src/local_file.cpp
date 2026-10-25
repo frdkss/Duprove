@@ -21,6 +21,37 @@ std::string base64(const std::vector<unsigned char>& bytes) {
   return out;
 }
 }
+namespace {
+json snapshot(FileReader& input,Directory& parent,const fs::path& path,const FileInfo& expected,const json& request) {
+  const auto target=fs::u8path(request.at("output").get<std::string>());
+  const auto privateDirectory=fs::u8path(request.at("private_directory").get<std::string>());
+  if(!target.is_absolute() || !pathWithin(target,privateDirectory) || target==path) throw std::runtime_error("UNSAFE_SNAPSHOT");
+  for(const auto& part:target) if(part=="..") throw std::runtime_error("UNSAFE_SNAPSHOT");
+  if(expected.size<0 || uint64_t(expected.size)>2ULL*1024*1024*1024
+    || fs::space(target.parent_path()).available<uint64_t(expected.size)+512ULL*1024*1024) return {{"status","limit"}};
+  std::unique_ptr<FileWriter> output;
+  bool created=false;
+  try {
+    output=std::make_unique<FileWriter>(target);created=true;
+    picosha2::hash256_one_by_one hash;
+    std::vector<unsigned char> bytes(256*1024);
+    int64_t total=0;
+    while(total<expected.size) {
+      const auto n=input.read(reinterpret_cast<char*>(bytes.data()),size_t(std::min(int64_t(bytes.size()),expected.size-total)));
+      if(!n) throw std::runtime_error("FILE_CHANGED");
+      hash.process(bytes.begin(),bytes.begin()+n);output->write(bytes.data(),n);total+=int64_t(n);
+    }
+    char extra;FileInfo current;
+    if(input.read(&extra,1) || !input.info().same(expected) || !parent.inspect(path.filename(),current) || !current.same(expected)) throw std::runtime_error("FILE_CHANGED");
+    hash.finish();output.reset();
+    return {{"status","ready"},{"sha256",picosha2::get_hash_hex_string(hash)}};
+  } catch(...) {
+    output.reset();
+    if(created) { std::error_code ec;fs::remove(target,ec); }
+    throw;
+  }
+}
+}
 json localFile(const json& request) {
   try {
     if(request.at("action")=="trash") {
@@ -56,6 +87,7 @@ json localFile(const json& request) {
     Directory parent(path.parent_path()); FileReader file(path,&parent);
     if(!file.info().same(expected)) throw std::runtime_error("FILE_CHANGED");
     const auto action=request.at("action").get<std::string>();
+    if(action=="snapshot") return snapshot(file,parent,path,expected,request);
     if(action!="preview" && action!="verify") throw std::runtime_error("INVALID_FILE_ACTION");
     const auto ext=extension(path);
     const bool text=ext==".txt"||ext==".md"||ext==".markdown"||ext==".html"||ext==".htm"||ext==".docx";

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DesktopBridge } from '../../../electron/bridge'
-import { PAGE_SIZE, type CatalogInfo, type FileGroup, type GroupKind, type GroupMember, type Page, type PreviewPair, type FilePreview, type TrashResult } from '../../../contracts/catalog'
+import { PAGE_SIZE, type CatalogInfo, type FileGroup, type GroupKind, type GroupMember, type Page, type TrashResult } from '../../../contracts/catalog'
 import './ResultsDialog.css'
 
 const labels: Record<GroupKind, string> = { exact: 'Точные дубликаты', warn_text: 'Похожие тексты', warn_image: 'Похожие изображения' }
 const availability = { available: 'Найден', missing: 'Файл отсутствует', changed: 'Файл изменился', unavailable: 'Нет доступа' }
 export const decisionLabels = { unresolved: 'Не решено', keep: 'Оставить', review: 'Проверить вручную', delete: 'Отмечен для удаления', trashed: 'В корзине' }
-const canSelectMember = (member: GroupMember) => !member.protected && member.decision !== 'trashed' && member.availability === 'available' && member.lastOperation !== 'pending'
+const canSelectMember = (member: GroupMember) => member.decision !== 'trashed' && member.availability === 'available' && member.lastOperation !== 'pending'
 export function catalogError(error: unknown): string {
   const text = String(error)
   const reasons: Record<string, string> = {
@@ -42,11 +42,11 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
   const [offset, setOffset] = useState(0)
   const [memberOffset, setMemberOffset] = useState(0)
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [loading, setBusy] = useState(false)
   const [revision, refresh] = useState(0)
-  const [preview, setPreview] = useState<PreviewPair | null>(null)
   const [trashResult, setTrashResult] = useState<TrashResult | null>(null)
   const [transferring, setTransferring] = useState(false)
+  const busy = loading || transferring
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const busyRef = useRef(false)
   busyRef.current = transferring
@@ -74,7 +74,8 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
       }).catch(e => { if (current) { setError(catalogError(e)); setGroup(null) } }).finally(() => { if (current) setBusy(false) })
     return () => { current = false }
   }, [api, analysisId, kind, offset, revision])
-  useEffect(() => { setMemberOffset(0); setPreview(null); setTrashResult(null) }, [group?.id])
+  useEffect(() => { setMemberOffset(0); setTrashResult(null) }, [group?.id])
+  useEffect(() => api.onCatalogChanged(change => { if (change.analysisId === analysisId && !busyRef.current) refresh(value => value + 1) }), [api, analysisId])
   useEffect(() => { setSelectedIds([]) }, [group?.id, memberOffset])
   useEffect(() => {
     if (members) setSelectedIds(previous => previous.filter(id => members.items.some(member => member.id === id && canSelectMember(member))))
@@ -89,15 +90,15 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
   }, [api, analysisId, group, memberOffset, revision])
   const original = async (fileId: number | null) => {
     if (!group) return
-    setBusy(true); setError(''); setPreview(null)
+    setBusy(true); setError('')
     try { await api.requestCatalog({ action: 'original', analysisId, groupId: group.id, fileId }); refresh(v => v + 1) }
     catch (e) { setError(catalogError(e)) }
     finally { setBusy(false) }
   }
-  const compare = async (fileId: number) => {
+  const compare = async (fileIds: number[]) => {
     if (!group) return
-    setBusy(true); setError(''); setPreview(null)
-    try { setPreview(await api.requestCatalog({ action: 'compare', analysisId, groupId: group.id, fileId }) as PreviewPair) }
+    setBusy(true); setError('')
+    try { await api.openComparison({ analysisId, groupId: group.id, fileIds }) }
     catch (e) { setError(catalogError(e)) }
     finally { setBusy(false) }
   }
@@ -111,7 +112,15 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
   const trash = async (fileIds: number[]) => {
     if (!group || !fileIds.length) return
     setBusy(true); setTransferring(true); setError(''); setTrashResult(null)
-    try { setTrashResult(await api.trashCatalog({ analysisId, groupId: group.id, fileIds })); setPreview(null); refresh(v => v + 1) }
+    busyRef.current = true
+    try {
+      for (const fileId of fileIds) {
+        const member = members?.items.find(value => value.id === fileId)
+        if (!member || member.protected || member.id === group.originalId) throw Error('ORIGINAL_PROTECTED')
+        if (member.decision !== 'delete') await api.requestCatalog({ action: 'decision', analysisId, groupId: group.id, fileId, decision: 'delete', reviewed: false })
+      }
+      setTrashResult(await api.trashCatalog({ analysisId, groupId: group.id, fileIds })); refresh(v => v + 1)
+    }
     catch (e) { setError(catalogError(e)) }
     finally { setBusy(false); setTransferring(false) }
   }
@@ -121,7 +130,7 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
   const selectMember = (id: number, checked: boolean) => setSelectedIds(previous => checked ? [...previous, id] : previous.filter(value => value !== id))
   const selectedMembers = members?.items.filter(member => selectedIds.includes(member.id)) ?? []
   const canTrashSelected = !!group?.originalId && selectedMembers.length > 0
-    && selectedMembers.every(member => canSelectMember(member) && member.decision === 'delete')
+    && selectedMembers.every(member => canSelectMember(member) && !member.protected && member.id !== group.originalId && (group.kind === 'exact' || member.decision === 'delete'))
   return <><div className="results-backdrop" aria-hidden="true"/><dialog ref={ref} className="results-dialog" aria-labelledby="results-title" onCancel={event => { if (busyRef.current) event.preventDefault() }} onClose={onClose}>
     <header><h2 id="results-title">Группы файлов</h2>
       <div className="results-tabs" role="group" aria-label="Тип совпадения">{(Object.keys(labels) as GroupKind[]).map(k => <button key={k} aria-pressed={kind === k} disabled={busy} onClick={() => { setKind(k); setOffset(0); setGroup(null) }}>{labels[k]}{info ? ` (${info.groups[k]})` : ''}</button>)}</div>
@@ -140,15 +149,9 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
         {group && <><div className="results-group-heading"><h3>{labels[group.kind]} · {group.name}</h3>
           {group.kind !== 'exact' && <p className="results-note">Содержимое может различаться. Сходство не подтверждает точное равенство.</p>}
           <div className="results-group-toolbar"><p>Оригинал: {group.originalId === null ? 'не выбран' : `экземпляр №${group.originalId}`}. {group.originalId !== null && <button disabled={busy} onClick={() => void original(null)}>Снять выбор</button>}</p>
-          <button disabled={busy || !canTrashSelected} onClick={() => void trash(selectedMembers.map(member => member.id))}>Перенести отмеченные на странице в корзину</button>
+          <div className="result-actions"><button disabled={busy || selectedMembers.length < 2} onClick={() => void compare(selectedMembers.map(member => member.id))}>Сравнить выделенные ({selectedMembers.length})</button>
+          <button disabled={busy || !canTrashSelected} onClick={() => void trash(selectedMembers.map(member => member.id))}>Перенести отмеченные на странице в корзину</button></div>
           </div></div>
-          {preview && <section className="results-comparison" aria-label="Сравнение двух экземпляров">
-            <h3>Ручная проверка</h3><div className="preview-pair"><Preview value={preview.original} title="Сохраняемый оригинал"/><Preview value={preview.candidate} title="Проверяемый экземпляр"/></div>
-            <div className="result-actions"><button disabled={busy} onClick={() => void decide(preview.candidate.id, 'keep')}>Оставить</button>
-              <button disabled={busy || preview.original.status !== 'ready' || preview.candidate.status !== 'ready'} onClick={() => void decide(preview.candidate.id, 'delete', true)}>Оба экземпляра проверены: отметить для удаления</button>
-              <button onClick={() => setPreview(null)}>Скрыть просмотр</button></div>
-            <p className="results-note">Вердикт сохраняет решение. Файл остаётся на диске до отдельного подтверждения переноса в корзину.</p>
-          </section>}
           {members?.items.map(member => <article className="result-member" key={member.id}>
             <input className="checkbox result-member-selection" type="checkbox" aria-label={`Выделить ${member.path}`} checked={selectedIds.includes(member.id) && canSelectMember(member)} disabled={busy || !canSelectMember(member)} onChange={event => selectMember(member.id, event.target.checked)}/>
             <div className="result-member-info">
@@ -160,7 +163,8 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
               {member.lastOperation === 'failed' && <p>Последняя попытка переноса не выполнена.</p>}
             </div>
             <div className="result-member-controls">
-              {member.decision !== 'trashed' && group.originalId !== member.id && <button className="result-compare" disabled={busy || !group.originalId || member.availability !== 'available'} onClick={() => void compare(member.id)}>Сравнить с оригиналом</button>}
+              {member.decision !== 'trashed' && <button disabled={busy || member.availability !== 'available'} onClick={() => void compare([member.id])}>Открыть</button>}
+              {member.decision !== 'trashed' && group.originalId !== member.id && <button className="result-compare" disabled={busy || !group.originalId || member.availability !== 'available'} onClick={() => void compare([group.originalId!, member.id])}>Сравнить с оригиналом</button>}
               <button onClick={() => void copy(member.path)}>Копировать путь</button>
               {member.decision !== 'trashed' ? <select aria-label={`Решение для ${member.path}`} value={member.decision} disabled={busy} onChange={e => void decide(member.id, e.target.value as 'unresolved' | 'keep' | 'review' | 'delete')}>
                 <option value="unresolved">Не решено</option><option value="keep">Оставить</option><option value="review">Проверить вручную</option>
@@ -175,15 +179,4 @@ export function ResultsDialog({ api, analysisId, onClose }: { api: DesktopBridge
       </section>
     </div>
   </dialog></>
-}
-
-function Preview({ value, title }: { value: FilePreview; title: string }) {
-  const reasons: Record<string, string> = { unsupported: 'Предпросмотр этого формата не поддерживается. PDF, аудио и видео здесь не открываются.',
-    invalid: 'Файл повреждён или кодировка не поддерживается.', limit: 'Превышен лимит размера, распаковки или декодирования.',
-    unavailable: 'Файл изменился, отсутствует или недоступен.', protected: 'Защищённый документ не поддерживается.' }
-  return <article className="file-preview"><h4>{title}</h4><p className="result-path">{value.path}</p>
-    {value.status !== 'ready' ? <p role="status">{reasons[value.status] ?? 'Не удалось показать содержимое.'}</p>
-      : value.kind === 'text' ? <><pre tabIndex={0}>{value.text}</pre><p>{value.truncated ? 'Показан фрагмент, текст усечён.' : 'Текст показан без оформления.'}</p></>
-        : value.kind === 'image' ? <img src={value.data} alt={`Предпросмотр: ${value.path}`}/> : <p>Предпросмотр отсутствует.</p>}
-  </article>
 }

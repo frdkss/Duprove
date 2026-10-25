@@ -40,6 +40,7 @@
     "test:ui": "node scripts/build-tests.mjs && node --check tests/ui-smoke.cjs && node scripts/run-electron.mjs tests/ui-smoke.cjs",
     "test:results-ui": "node scripts/build-tests.mjs && node scripts/run-electron.mjs tests/results-ui.cjs",
     "test:local-files": "python tests/test_local_file.py",
+    "test:comparison-window": "node scripts/build-tests.mjs && node scripts/run-electron.mjs tests/comparison-window.cjs",
     "test:results-integration": "node scripts/build-tests.mjs && node scripts/run-electron.mjs tests/results-integration.cjs",
     "test:results-privacy": "python tests/test_results_privacy.py",
     "test:trash-unavailable": "python tests/test_results_trash_unavailable.py",
@@ -47,8 +48,15 @@
   },
   "dependencies": {
     "ajv": "8.20.0",
+    "docx-preview": "0.4.1",
+    "jszip": "3.10.2",
+    "pdfjs-dist": "6.4.299",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "rtf.js": "3.0.9",
+    "utif": "3.1.0",
+    "word-extractor": "1.0.4",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",

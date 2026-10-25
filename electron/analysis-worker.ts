@@ -3,7 +3,7 @@ import { JobService } from './services/job-service'
 
 const service = new JobService(workerData.executable, workerData.directory, workerData.consentFile)
 service.on('snapshot', snapshot => parentPort!.postMessage({ snapshot }))
-let commands = service.restore().then(() => { parentPort!.postMessage({ ready: true, snapshot: service.snapshot() }) })
+let commands = service.restore().then(async () => { await service.catalog.clearComparison(); parentPort!.postMessage({ ready: true, snapshot: service.snapshot() }) })
 parentPort!.on('message', ({ id, method, value }) => {
   commands = commands.then(async () => {
     try {
@@ -11,6 +11,12 @@ parentPort!.on('message', ({ id, method, value }) => {
       if (method === 'start') result = await service.start(value)
       else if (method === 'command') result = await service.command(value)
       else if (method === 'report') result = await service.report()
+      else if (method === 'comparison' || method === 'comparisonFile') {
+        if (['running', 'paused', 'stopping'].includes(service.snapshot().status)) throw Error('ANALYSIS_BUSY')
+        if (value?.analysisId !== service.snapshot().id) throw Error('CATALOG_UNAVAILABLE')
+        result = method === 'comparison' ? await service.catalog.comparison(value) : await service.catalog.comparisonFile(value)
+      }
+      else if (method === 'comparisonClose') result = await service.catalog.clearComparison(value)
       else if (method === 'catalog') {
         if (['running', 'paused', 'stopping'].includes(service.snapshot().status)) throw Error('ANALYSIS_BUSY')
         if (value?.analysisId !== service.snapshot().id) throw Error('CATALOG_UNAVAILABLE')

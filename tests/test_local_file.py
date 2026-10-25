@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import closing
 from test_content import docx, png, chunk
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +38,7 @@ class LocalFileTests(unittest.TestCase):
         process = subprocess.run([str(BINARY), '--job', str(job)], input='', capture_output=True,
                                  encoding='utf-8', timeout=60)
         self.assertEqual(process.returncode, 0, process.stdout)
-        with sqlite3.connect(self.database) as db:
+        with closing(sqlite3.connect(self.database)) as db:
             row = db.execute('SELECT identity,size,CAST(mtime AS TEXT),CAST(ctime AS TEXT) FROM files WHERE path=?', (str(file),)).fetchone()
         self.assertIsNotNone(row)
         return {'action': 'preview', 'path': str(file), 'identity': row[0], 'size': row[1],
@@ -58,6 +59,27 @@ class LocalFileTests(unittest.TestCase):
                 self.assertEqual(result['status'], 'ready')
                 self.assertEqual(result['text'], text)
                 self.assertEqual(result['sha256'], hashlib.sha256(text.encode()).hexdigest())
+
+    def test_snapshot_accepts_all_formats_without_executing_or_changing_source(self):
+        data = b'print("comparison-only")\n'
+        request = self.record('source.py', data)
+        output = self.private / 'preview-cache' / 'snapshot.bin'
+        output.parent.mkdir(parents=True, exist_ok=True)
+        request.update(action='snapshot', output=str(output))
+        result = self.inspect(request)
+        self.assertEqual(result['status'], 'ready')
+        self.assertEqual(result['sha256'], hashlib.sha256(data).hexdigest())
+        self.assertEqual(output.read_bytes(), data)
+        self.assertEqual(Path(request['path']).read_bytes(), data)
+        self.assertEqual(self.inspect(request)['status'], 'unavailable', 'A snapshot never overwrites an existing file')
+        self.assertEqual(output.read_bytes(), data)
+        outside = self.root / 'must-not-write.bin'
+        self.assertEqual(self.inspect({**request, 'output': str(outside)})['status'], 'unavailable')
+        self.assertFalse(outside.exists())
+        Path(request['path']).write_bytes(b'changed')
+        changed = output.with_name('changed.bin')
+        self.assertEqual(self.inspect({**request, 'output': str(changed)})['status'], 'unavailable')
+        self.assertFalse(changed.exists())
 
     def test_encodings_truncation_and_input_limit(self):
         self.assertEqual(self.inspect(self.record('utf16.txt', 'текст'.encode('utf-16')))['text'], 'текст')

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, Tray, Menu, Notification, nativeImage, dialog } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, Tray, Menu, Notification, nativeImage, dialog, protocol } from 'electron'
 import path from 'node:path'
 import { channels } from './bridge'
 import { listDrives } from './services/analyzer-service'
@@ -13,6 +13,7 @@ import { GithubUpdateTransport } from './services/update-transport'
 import { PackageUpdateInstaller, installedUpdateHost, acknowledgeUpdate } from './services/update-installer'
 import { TrashService } from './services/trash-service'
 import { trashConfirmationOptions } from './services/trash-confirmation'
+import { ComparisonWindows } from './comparison-windows'
 
 declare const __DUPROVE_UPDATE_KEY__: string
 
@@ -25,13 +26,15 @@ let delivery: DeliveryService | undefined
 let updates: UpdateService | undefined
 let analysisCommands = 0
 let trashService: TrashService | undefined
+let mainWindow: BrowserWindow | undefined
+protocol.registerSchemesAsPrivileged([{ scheme: 'duprove-preview', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } }])
 async function analysisCall(method: 'start' | 'command', request: unknown) {
   if (closing || updates?.blocksAnalysis || trashService?.busy) throw Error('APP_BUSY')
   analysisCommands++
   try { return await jobs!.call(method, request) } finally { analysisCommands-- }
 }
 function showWindow() {
-  const window = BrowserWindow.getAllWindows()[0]
+  const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined
   if (window) { if (window.isMinimized()) window.restore(); window.show(); window.focus() }
   else createWindow()
 }
@@ -57,7 +60,7 @@ function executable() {
 }
 
 function createWindow() {
-  const window = new BrowserWindow({ width: 1280, height: 800, minWidth: 640, minHeight: 480,
+  const window = mainWindow = new BrowserWindow({ width: 1280, height: 800, minWidth: 640, minHeight: 480,
     icon: applicationIcon(),
     frame: false, backgroundColor: '#f4f9f7', autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true } })
@@ -80,8 +83,7 @@ function createWindow() {
 if (!app.requestSingleInstanceLock()) app.quit()
 else {
   app.on('second-instance', () => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) { if (window.isMinimized()) window.restore(); window.show(); window.focus() }
+    showWindow()
   })
   void app.whenReady().then(async () => {
     if (process.platform === 'darwin') app.dock?.setIcon(applicationIcon())
@@ -103,7 +105,7 @@ else {
     jobs.on('snapshot', snapshot => {
       if (!activeJob(snapshot.status) && snapshot.status !== 'idle') void delivery!.refresh()
       for (const window of BrowserWindow.getAllWindows()) if (!window.webContents.isDestroyed()) window.webContents.send(channels.analysisEvent, snapshot)
-      if (snapshot.status === 'completed' && previousStatus !== 'completed' && BrowserWindow.getAllWindows().some(w => !w.isVisible())) {
+      if (snapshot.status === 'completed' && previousStatus !== 'completed' && mainWindow && !mainWindow.isVisible()) {
         tray?.setToolTip('Duprove — анализ завершён')
         if (Notification.isSupported()) {
           notification = new Notification({ title: 'Duprove', body: 'Анализ завершён. Результаты доступны в приложении.', icon: applicationIcon() })
@@ -116,6 +118,23 @@ else {
     const trusted = (event: Electron.IpcMainInvokeEvent) => {
       if (!BrowserWindow.fromWebContents(event.sender) || event.senderFrame !== event.sender.mainFrame) throw new Error('INVALID_SENDER')
     }
+    const comparisons = new ComparisonWindows((method, value) => jobs!.call(method, value), {
+      preload: path.join(__dirname, 'preload.js'), index: path.join(__dirname, '../dist/index.html'),
+      devURL: !app.isPackaged && process.env.DUPROVE_DEV_URL === 'http://127.0.0.1:5173' ? process.env.DUPROVE_DEV_URL : undefined,
+      icon: applicationIcon(), busy: () => !!trashService?.busy,
+    })
+    protocol.handle('duprove-preview', request => comparisons.response(request))
+    const catalogChanged = async (request: { analysisId: string; groupId: string; action?: string }) => {
+      for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channels.catalogChanged, { analysisId: request.analysisId, groupId: request.groupId })
+      await comparisons.changed(request.analysisId, request.groupId, request.action === 'original').catch(() => {})
+    }
+    ipcMain.handle(channels.comparisonOpen, async (event, request: unknown) => {
+      trusted(event)
+      if (closing || updates?.blocksAnalysis || trashService?.busy) throw Error('CATALOG_BUSY')
+      await comparisons.open(request, BrowserWindow.fromWebContents(event.sender)!)
+    })
+    ipcMain.handle(channels.comparisonGet, event => { trusted(event); return comparisons.get(event.sender.id) })
+    ipcMain.handle(channels.comparisonFile, (event, id: unknown) => { trusted(event); return comparisons.document(event.sender.id, id) })
     ipcMain.handle(channels.analysisGet, event => { trusted(event); return jobs!.snapshot() })
     trashService = new TrashService((method, value) => jobs!.call(method, value), async plan => {
       const result = await dialog.showMessageBox(trashConfirmationOptions(plan))
@@ -124,12 +143,20 @@ else {
       if (process.platform === 'win32') await jobs!.call('trashExecute', lease)
       else await shell.trashItem(file)
     }, () => closing || !!updates?.blocksAnalysis || analysisCommands > 0 || activeJob(jobs!.snapshot().status))
-    ipcMain.handle(channels.catalog, (event, request: unknown) => {
+    ipcMain.handle(channels.catalog, async (event, request: unknown) => {
       trusted(event)
       if (closing || updates?.blocksAnalysis || trashService!.busy) throw Error('CATALOG_BUSY')
-      return jobs!.call('catalog', request)
+      const result = await jobs!.call('catalog', request)
+      const command = request as { action: string; analysisId: string; groupId: string }
+      if (command.action === 'original' || command.action === 'decision') await catalogChanged(command)
+      return result
     })
-    ipcMain.handle(channels.trash, (event, request: unknown) => { trusted(event); return trashService!.run(request) })
+    ipcMain.handle(channels.trash, async (event, request: unknown) => {
+      trusted(event)
+      const result = await trashService!.run(request)
+      if (!result.cancelled) await catalogChanged(request as { analysisId: string; groupId: string })
+      return result
+    })
     ipcMain.handle(channels.analysisStart, (event, request: unknown) => { trusted(event); return analysisCall('start', request) })
     ipcMain.handle(channels.analysisControl, (event, request: unknown) => { trusted(event); return analysisCall('command', request) })
     ipcMain.handle(channels.analysisReport, event => { trusted(event); return jobs!.call('report') })
@@ -184,9 +211,9 @@ else {
     })
     createWindow()
     // Acknowledge only after worker startup and renderer load, so a broken build rolls back.
-    const mainWindow = BrowserWindow.getAllWindows()[0]
-    mainWindow.webContents.once('did-finish-load', () => {
-      void mainWindow.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+    const startupWindow = mainWindow!
+    startupWindow.webContents.once('did-finish-load', () => {
+      void startupWindow.webContents.executeJavaScript(`new Promise((resolve, reject) => {
         let attempts = 0;
         const check = () => window.duprove && document.querySelector('h1') ? resolve(true)
           : attempts++ > 100 ? reject(Error('UI_NOT_READY')) : setTimeout(check, 100);

@@ -1,10 +1,12 @@
 import { DatabaseSync } from 'node:sqlite'
-import { mkdir, rename, stat, unlink, lstat } from 'node:fs/promises'
+import { mkdir, rename, stat, unlink, lstat, readdir, rmdir } from 'node:fs/promises'
 import path from 'node:path'
-import { PAGE_SIZE, isCatalogRequest, isTrashRequest, exactKeys, type CatalogInfo, type CatalogRequest, type FileGroup, type GroupMember, type GroupKind, type TrashPlan } from '../../contracts/catalog'
+import { PAGE_SIZE, isCatalogRequest, isTrashRequest, exactKeys, idValid, type CatalogInfo, type CatalogRequest, type FileGroup, type GroupMember, type GroupKind, type TrashPlan } from '../../contracts/catalog'
 import { inspectLocalFile } from './local-file-service'
 import { randomUUID } from 'node:crypto'
 import { object } from '../../contracts/analysis'
+import { isComparisonRequest, isComparisonFileRequest, type ComparisonContext, type ComparisonSnapshot } from '../../contracts/comparison'
+import WordExtractor from 'word-extractor'
 import { fileGuard } from './file-guard'
 
 export const CATALOG_BYTES = 128 * 1024 * 1024
@@ -159,6 +161,64 @@ export class CatalogService {
     const meta = db.prepare('SELECT roots FROM meta').get() as Row
     return { path: file.path, identity: file.identity, size: file.size, mtime: file.mtime, ctime: file.ctime,
       roots: JSON.parse(meta.roots), private_directory: this.directory }
+  }
+  async comparison(value: unknown): Promise<ComparisonContext> {
+    if (this.locked) throw Error('CATALOG_BUSY')
+    if (!isComparisonRequest(value)) throw Error('INVALID_COMPARISON_REQUEST')
+    const db = await this.open(value.analysisId)
+    try {
+      const group = db.prepare('SELECT kind,original_id FROM groups WHERE id=?').get(value.groupId) as Row | undefined
+      if (!group) throw Error('GROUP_UNAVAILABLE')
+      const query = db.prepare('SELECT f.*,EXISTS(SELECT 1 FROM groups WHERE original_id=f.id) AS protected FROM members m JOIN files f ON f.id=m.file_id WHERE m.group_id=? AND f.id=?')
+      const files = value.fileIds.map(id => {
+        const file = query.get(value.groupId, id) as Row | undefined
+        if (!file) throw Error('FILE_UNAVAILABLE')
+        return { id, name: path.basename(file.path), path: file.path, size: file.size, decision: file.decision, protected: !!file.protected }
+      })
+      return { analysisId: value.analysisId, groupId: value.groupId, kind: group.kind, originalId: group.original_id, files }
+    } finally { db.close() }
+  }
+  async comparisonFile(value: unknown): Promise<ComparisonSnapshot> {
+    if (this.locked) throw Error('CATALOG_BUSY')
+    if (!isComparisonFileRequest(value)) throw Error('INVALID_COMPARISON_REQUEST')
+    const db = await this.open(value.analysisId)
+    try {
+      const file = db.prepare('SELECT f.*,EXISTS(SELECT 1 FROM groups WHERE original_id=f.id) AS protected FROM members m JOIN files f ON f.id=m.file_id WHERE m.group_id=? AND f.id=?').get(value.groupId, value.fileId) as Row | undefined
+      if (!file || file.decision === 'trashed') throw Error('FILE_UNAVAILABLE')
+      const display = { id: file.id, name: path.basename(file.path), path: file.path, size: file.size, decision: file.decision, protected: !!file.protected }
+      if (!this.executable) throw Error('FILE_HELPER_UNAVAILABLE')
+      const directory = path.join(this.directory, 'preview-cache', value.sessionId)
+      await mkdir(directory, { recursive: true, mode: 0o700 })
+      const existing = await readdir(directory)
+      const used = (await Promise.all(existing.map(name => stat(path.join(directory, name))))).reduce((n, info) => n + info.size, 0)
+      if (used + file.size > 2 * 1024 ** 3) return { ...display, status: 'limit' }
+      const snapshot = path.join(directory, randomUUID() + '.bin')
+      const result = await this.inspector(this.executable, { ...this.nativeRequest(db, file), action: 'snapshot', output: snapshot })
+      if (result.status !== 'ready') return { ...display, status: result.status }
+      if ((await stat(snapshot)).size !== file.size || !/^[a-f0-9]{64}$/.test(result.sha256 ?? '')) throw Error('INVALID_FILE_HELPER_RESULT')
+      db.prepare('INSERT OR REPLACE INTO previews VALUES(?,?,?)').run(value.groupId, file.id, result.sha256!)
+      let text: string | undefined
+      if (path.extname(file.path).toLowerCase() === '.doc') {
+        if (file.size > 32 * 1024 ** 2) return { ...display, status: 'limit' }
+        try {
+          const document = await new WordExtractor().extract(snapshot)
+          text = [document.getHeaders(), document.getBody(), document.getFootnotes(), document.getEndnotes()].filter(Boolean).join('\n\n')
+        } catch { return { ...display, status: 'invalid' } }
+      }
+      return { ...display, status: 'ready', snapshot, sha256: result.sha256, text }
+    } finally { db.close() }
+  }
+  async clearComparison(sessionId?: unknown) {
+    const root = path.join(this.directory, 'preview-cache')
+    if (sessionId !== undefined && !idValid(sessionId)) throw Error('INVALID_COMPARISON_REQUEST')
+    const sessions = sessionId ? [String(sessionId)] : await readdir(root).catch(() => [] as string[])
+    for (const id of sessions) {
+      if (!idValid(id)) continue
+      const directory = path.join(root, id)
+      if (!(await lstat(directory).catch(() => null))?.isDirectory()) continue
+      for (const name of await readdir(directory)) if (/^[0-9a-f-]{36}\.bin$/.test(name)) await unlink(path.join(directory, name)).catch(() => {})
+      await rmdir(directory).catch(() => {})
+    }
   }
   async prepareTrash(value: unknown): Promise<TrashPlan> {
     if (!isTrashRequest(value)) throw Error('INVALID_TRASH_REQUEST')

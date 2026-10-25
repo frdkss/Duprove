@@ -14,7 +14,7 @@ export function inspectLocalFile(executable: string, request: Record<string, unk
       settled = true; clearTimeout(timer)
       if (error) { child.kill(); reject(error) } else resolve(value!)
     }
-    const timer = setTimeout(() => done(Error('FILE_CHECK_TIMEOUT')), request.action === 'verify' || request.action === 'pair' || request.action === 'trash' ? 120000 : 15000)
+    const timer = setTimeout(() => done(Error('FILE_CHECK_TIMEOUT')), ['verify', 'pair', 'trash', 'snapshot'].includes(String(request.action)) ? 120000 : 15000)
     child.on('error', () => done(Error('FILE_HELPER_UNAVAILABLE')))
     child.stderr.resume()
     child.stdin.on('error', () => {})
