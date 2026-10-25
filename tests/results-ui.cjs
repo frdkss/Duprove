@@ -212,6 +212,26 @@ app.whenReady().then(async () => {
   await evaluate(`document.querySelector('.results-members').scrollTop=100000`)
   await waitFor(`document.querySelectorAll('.result-member').length===60`)
   assert.equal(await evaluate(`document.querySelectorAll('.result-member-selection:checked').length`), 1, 'Selection survives infinite loading')
+  await evaluate(`document.querySelector('.results-members').scrollTop=100000`)
+  await click('.result-member:last-of-type .result-member-selection')
+  await waitFor(`Array.from(document.querySelectorAll('.results-group-heading button')).some(button=>button.textContent==='Сравнить выделенные (2)')`)
+  const pinnedComparePoint = await evaluate(`(() => {
+    const root=document.querySelector('.results-members'), heading=root.querySelector('.results-group-heading'), bounds=heading.getBoundingClientRect();
+    const button=Array.from(heading.querySelectorAll('button')).find(button=>button.textContent==='Сравнить выделенные (2)'), r=button.getBoundingClientRect();
+    const x=Math.round(r.left+r.width/2), y=Math.round(r.top+r.height/2);
+    return {x,y,headingTop:bounds.top,rootTop:root.getBoundingClientRect().top+parseFloat(getComputedStyle(root).paddingTop),disabled:button.disabled,hit:document.elementFromPoint(x,y)?.closest('button')===button,scrollTop:root.scrollTop};
+  })()`)
+  assert.ok(Math.abs(pinnedComparePoint.headingTop-pinnedComparePoint.rootTop)<2, JSON.stringify(pinnedComparePoint))
+  assert.equal(pinnedComparePoint.disabled, false)
+  assert.equal(pinnedComparePoint.hit, true, JSON.stringify(pinnedComparePoint))
+  const comparePoint = { x: pinnedComparePoint.x, y: pinnedComparePoint.y }
+  window.webContents.sendInputEvent({ type: 'mouseDown', button: 'left', clickCount: 1, ...comparePoint })
+  window.webContents.sendInputEvent({ type: 'mouseUp', button: 'left', clickCount: 1, ...comparePoint })
+  const fromPinnedToolbar = await waitComparison(3)
+  assert.ok(await evaluate(`document.querySelector('.results-members').scrollTop>1000`), 'Comparing through the pinned toolbar does not scroll back to the top')
+  await fromPinnedToolbar.webContents.executeJavaScript(`void window.duprove.windowAction('close')`)
+  await click('.result-member:last-of-type .result-member-selection')
+  console.log('RESULTS_TOOLBAR_OK: pinned group title and actions remain clickable at the end of the file list')
   await evaluate(`document.querySelector('.results-members').scrollTop=0`)
   await click('.result-member:nth-of-type(2) .result-member-selection')
   await waitFor(`document.querySelector('.result-original input')?.checked`)

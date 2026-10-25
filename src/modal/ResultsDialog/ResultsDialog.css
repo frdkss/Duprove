@@ -34,7 +34,7 @@
 .result-group-meta { display: flex; flex-direction: column; gap: 2px; font-size: 10px; font-weight: 400; line-height: 1.25; text-align: right; white-space: nowrap; opacity: .6; }
 .results-members h3 { font-size: 16px; margin: 0 0 10px; overflow-wrap: anywhere; }
 .results-members .results-note { margin: 8px 0; }
-.results-group-heading { display: grid; gap: 16px; margin-bottom: 24px; }
+.results-group-heading { position: sticky; top: 0; z-index: 2; display: grid; gap: 16px; margin-bottom: 24px; padding-bottom: 12px; background: var(--results-surface); box-shadow: 0 -24px 0 var(--results-surface), 0 1px 0 var(--color-line); }
 .results-group-heading h3 { margin: 0; font-size: 18px; }
 .results-group-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; }
 .results-group-toolbar p { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
