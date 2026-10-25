@@ -4,12 +4,13 @@ import path from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { AnalysisTimingTracker } from './analysis-timing'
-import { activeJob, analysisFinished, emptySnapshot, isDiskProgress, isStartAnalysis, object, overallProgress, waitingDisk, type AnalysisSnapshot, type AnalysisDrive, type DiskProgress } from '../../contracts/analysis'
+import { activeJob, analysisFinished, emptySnapshot, isAnalysisExit, isDiskProgress, isStartAnalysis, object, overallProgress, waitingDisk, type AnalysisSnapshot, type AnalysisDrive, type DiskProgress } from '../../contracts/analysis'
 import { isContentResult } from '../../contracts/content'
 import { listDrives, contentFromEvent, reportFromEvent } from './analyzer-service'
 import { writeLocalJson } from './local-json'
 import { ConsentService } from './consent-service'
 import { prepareReport, loadPreparedReport, savePreparedReport } from './report-service'
+import { CatalogService } from './catalog-service'
 
 export const WORK_FILE_THRESHOLD = 5 * 1024 * 1024
 const MAX_EVENT_BYTES = 32 * 1024 * 1024
@@ -28,6 +29,7 @@ export async function cleanupWorkFile(file: string, complete: boolean): Promise<
 
 // No Electron or renderer dependencies. Production runs this service in a worker.
 export class JobService extends EventEmitter {
+  readonly catalog: CatalogService
   private timing = new AnalysisTimingTracker()
   private state = emptySnapshot()
   private child: ChildProcessWithoutNullStreams | null = null
@@ -42,6 +44,7 @@ export class JobService extends EventEmitter {
     private readonly launchProcess: (file: string, input: string) => ChildProcessWithoutNullStreams = (file, input) =>
       spawn(file, ['--job', input], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })) {
     super()
+    this.catalog = new CatalogService(directory, executable)
     this.stateFile = path.join(directory, 'job.json')
     this.database = path.join(directory, 'work', 'index.sqlite')
   }
@@ -59,12 +62,14 @@ export class JobService extends EventEmitter {
         || !['running', 'paused', 'stopping', 'stopped', 'interrupted', 'completed', 'error'].includes(String(v.status))) throw new Error()
       this.state = { ...emptySnapshot(), id: v.id, drives: v.drives as AnalysisDrive[], disks: v.disks.map(d => cleanProgress(d, true)),
         mode: v.mode as AnalysisSnapshot['mode'], content: v.content as boolean,
-        status: v.status === 'completed' ? 'completed' : 'interrupted' }
+        status: v.status === 'completed' ? 'completed' : 'interrupted',
+        ...(v.status !== 'completed' && isAnalysisExit(v.exit) ? { exit: v.exit } : {}) }
       // Restore summaries only from the separately validated report.
       try {
         const report = loadPreparedReport(this.reportPath()).report
         if (report.statistics.disks.length !== this.state.drives.length || this.state.status === 'completed' && !report.complete) throw new Error()
         this.state.total = report.statistics.total
+        if (this.state.status === 'completed' && v.error === 'CATALOG_SAVE_FAILED') this.state.error = 'CATALOG_SAVE_FAILED'
         if (v.status === 'error' && v.error === 'ANALYSIS_INCOMPLETE' && !report.complete) {
           this.state.status = 'error'; this.state.error = 'ANALYSIS_INCOMPLETE'
         }
@@ -100,6 +105,7 @@ export class JobService extends EventEmitter {
     this.emit('snapshot', this.snapshot())
   }
   async start(request: unknown): Promise<AnalysisSnapshot> {
+    if (this.catalog.locked) throw Error('CATALOG_BUSY')
     if (!isStartAnalysis(request)) throw new Error('INVALID_ANALYSIS_REQUEST')
     if (this.busy || this.child || activeJob(this.state.status)) throw new Error('ANALYSIS_BUSY')
     this.busy = true
@@ -114,6 +120,7 @@ export class JobService extends EventEmitter {
     } finally { this.busy = false }
   }
   async command(action: unknown): Promise<AnalysisSnapshot> {
+    if (this.catalog.locked) throw Error('CATALOG_BUSY')
     if (!['pause', 'resume', 'stop'].includes(String(action)) || typeof action !== 'string') throw new Error('INVALID_ANALYSIS_COMMAND')
     if (this.busy) throw new Error('ANALYSIS_BUSY')
     if (action === 'resume' && !this.child && ['stopped', 'interrupted', 'error'].includes(this.state.status) && this.state.id) {
@@ -135,11 +142,13 @@ export class JobService extends EventEmitter {
     return this.snapshot()
   }
   async shutdown(): Promise<void> {
+    if (this.catalog.locked) throw Error('CATALOG_BUSY')
     if (this.child && this.state.status !== 'stopping') await this.command('stop')
     await this.completion
   }
   private async launch(): Promise<void> {
     try {
+      delete this.state.exit
       this.timing.reset()
       await mkdir(path.dirname(this.database), { recursive: true, mode: 0o700 })
       const input = path.join(this.directory, 'input.json')
@@ -189,7 +198,7 @@ export class JobService extends EventEmitter {
           } catch { fail('INVALID_ANALYZER_EVENT'); return }
         }
       })
-      this.completion = new Promise(resolve => child.once('close', async code => {
+      this.completion = new Promise(resolve => child.once('close', async (code, signal) => {
         this.busy = true
         if (this.stopTimer) clearTimeout(this.stopTimer)
         this.child = null
@@ -197,6 +206,7 @@ export class JobService extends EventEmitter {
         const stopped = this.state.status === 'stopping'
         this.state.status = stopped ? 'stopped' : !failed && code === 0 && result?.complete ? 'completed' : 'error'
         if (!stopped && this.state.status === 'error' && !this.state.error) this.state.error = result && code === 0 ? 'ANALYSIS_INCOMPLETE' : 'ANALYZER_INTERRUPTED'
+        if (!stopped && this.state.status === 'error' && this.state.error !== 'ANALYSIS_INCOMPLETE') this.state.exit = { code, signal }
         if (!stopped && !failed && code === 0 && result) {
           for (const disk of this.state.disks) { disk.overall_percent = 100; disk.percent = 100 }
         }
@@ -204,9 +214,11 @@ export class JobService extends EventEmitter {
           if (!failed && code === 0 && prepared && content) {
             savePreparedReport(this.reportPath(), prepared)
             writeLocalJson(path.join(this.directory, 'content.json'), content)
+            try { await this.catalog.capture(this.database, this.state.id!, this.state.drives.map(d => d.path), !!result?.complete) }
+            catch { this.state.error = 'CATALOG_SAVE_FAILED' }
           }
           this.publish(true) // Persist result/state before deleting the only working copy.
-          await cleanupWorkFile(this.database, this.state.status === 'completed')
+          await cleanupWorkFile(this.database, this.state.status === 'completed' && this.state.error !== 'CATALOG_SAVE_FAILED')
         } catch { this.state.error = 'JOB_SAVE_FAILED'; this.state.status = 'error'; this.emit('snapshot', this.snapshot()) }
         this.busy = false
         resolve()

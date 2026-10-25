@@ -24,7 +24,15 @@ app.whenReady().then(async () => {
   })
   const { emptySnapshot } = require('../.verification/tests/contracts/analysis.js')
   let analysis = emptySnapshot()
+  const analysisCommands = []
   ipcMain.handle('duprove:analysis:get', () => analysis)
+  ipcMain.handle('duprove:analysis:control', (event, command) => {
+    assert.ok(command === 'pause' && analysis.status === 'running' || command === 'resume' && analysis.status === 'paused', 'Analysis command matches the current state')
+    analysisCommands.push(command)
+    analysis = { ...analysis, revision: analysis.revision + 1, status: command === 'pause' ? 'paused' : 'running' }
+    event.sender.send('duprove:analysis:event', analysis)
+    return analysis
+  })
   ipcMain.handle('duprove:autostart:get', () => ({ enabled: false, supported: true }))
   ipcMain.handle('duprove:autostart:set', (_event, enabled) => ({ enabled, supported: true }))
   ipcMain.handle('duprove:drives', () => ['C:', 'D:', 'E:'].map((name, i) => ({ path: name + String.fromCharCode(92), name: name + String.fromCharCode(92), capacity: (256 + i * 256) * 1024 ** 3, available: 128 * 1024 ** 3 })))
@@ -95,15 +103,15 @@ app.whenReady().then(async () => {
   await screenshot('ui-empty')
   delivery = { ...delivery, revision: delivery.revision + 1, sending: true }
   window.webContents.send('duprove:delivery:event', delivery); await flush()
-  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Отправляется отчёт/)
+  assert.equal(await evaluate('document.querySelector(".report-delivery")'), null)
   delivery = { ...delivery, revision: delivery.revision + 1, sending: false, failed: 1 }
   window.webContents.send('duprove:delivery:event', delivery); await flush()
-  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Не доставлено: 1/)
+  assert.equal(await evaluate('document.querySelector(".report-delivery")'), null)
   assert.equal(analysis.status, 'idle', 'Delivery failure is independent of analysis')
   await screenshot('ui-delivery-failed')
   delivery = { ...delivery, revision: delivery.revision + 1, failed: 0, sent: 1 }
   window.webContents.send('duprove:delivery:event', delivery); await flush()
-  assert.match(await evaluate('document.querySelector(".report-delivery").textContent'), /Доставлено отчётов: 1/)
+  assert.equal(await evaluate('document.querySelector(".report-delivery")'), null)
   await click('.sidebar-drives .drive-item:nth-child(3)')
   assert.equal(await activeDrive(), 'Диск D:', 'Card click selects and displays the same drive')
   assert.equal(await evaluate('document.querySelector(".sidebar-drives .drive-item:nth-child(3)").getAttribute("aria-checked")'), 'true')
@@ -253,6 +261,11 @@ app.whenReady().then(async () => {
   assert.match(await evaluate('document.querySelector(".work-amount").textContent'), /3 \/ 8.*16 МиБ.*128 МиБ.*МиБ\/с/)
   assert.match(await evaluate('document.querySelector(".cache-details").textContent'), /Из кэша: 2 файлов.*Прочитано: 16 МиБ/)
   assert.match(await evaluate('document.querySelector(".scan-eta").textContent'), /До конца этапа ≈ 2 мин.*Весь анализ диска ≈ 7 мин/)
+  await click('.scan-caption .analysis-status-link')
+  assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /Анализ выполняется/)
+  assert.match(await evaluate('document.querySelector("dialog[open] .current-operation").textContent'), /large-file.bin/)
+  assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /Далее: Побайтовое сравнение.*Проверка актуальности файлов.*Подготовка результата/)
+  await click('.analysis-log-close')
   assert.equal(await evaluate('document.querySelectorAll(".type-sector").length'), 3)
   assert.match(await evaluate('document.querySelector(\'.type-sector[data-type=".txt"] title\').textContent'), /6 файлов.*60/)
   const originalColors = await sectorColors()
@@ -275,11 +288,26 @@ app.whenReady().then(async () => {
   assert.match(await evaluate('document.querySelector(".activity-warning").textContent'), /Нет ответа анализатора/)
   assert.doesNotMatch(await evaluate('document.querySelector(".scan-eta").textContent'), /≈/)
   await screenshot('ui-analysis-no-response')
-  analysis = { ...analysis, revision: analysis.revision + 1, status: 'paused' }
-  window.webContents.send('duprove:analysis:event', analysis)
+  await clickText('Пауза')
   await settle()
+  assert.deepEqual(analysisCommands, ['pause'])
+  assert.equal(analysis.status, 'paused')
+  assert.equal(await evaluate('document.querySelector(".analysis-buttons .primary-button").textContent'), 'Продолжить')
+  assert.equal(await evaluate('document.querySelector(".analysis-buttons .primary-button").disabled'), false)
+  assert.deepEqual(await evaluate('Array.from(document.querySelectorAll(".analysis-buttons button"), b => b.textContent.trim())'), ['Продолжить', 'Остановить'])
   assert.equal(await evaluate('document.querySelector(".activity-warning")'), null)
   assert.match(await evaluate('document.querySelector(".scan-eta").textContent'), /приостановлен/)
+  await click('.scan-caption .analysis-status-link')
+  assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /Анализ на паузе/)
+  await click('.analysis-log-close')
+  await screenshot('ui-analysis-paused')
+  await clickText('Продолжить')
+  await settle()
+  assert.deepEqual(analysisCommands, ['pause', 'resume'])
+  assert.equal(analysis.status, 'running')
+  assert.equal(analysis.id, 'test-analysis', 'Continuing keeps the same analysis')
+  assert.equal(await evaluate('document.querySelector(".scan-percentage").textContent'), '25,01%', 'Continuing preserves progress')
+  assert.deepEqual(await evaluate('Array.from(document.querySelectorAll(".analysis-buttons button"), b => b.textContent.trim())'), ['Пауза', 'Остановить'])
   analysis = { ...analysis, revision: analysis.revision + 1, status: 'stopped' }
   window.webContents.send('duprove:analysis:event', analysis)
   await settle()
@@ -326,14 +354,18 @@ app.whenReady().then(async () => {
   window.webContents.send('duprove:analysis:event', analysis)
   await settle()
   assert.equal(await evaluate('document.querySelector(".duplicate-count").textContent'), '3')
-  assert.match(await evaluate('document.querySelector(".analysis-summary").textContent'), /5 лишних копий/)
-  assert.match(await evaluate('document.querySelector(".analysis-warning").textContent'), /требуют ручной проверки/)
+  assert.equal(await evaluate('document.querySelector(".analysis-summary")'), null)
+  assert.equal(await evaluate('document.querySelector(".analysis-warning")'), null)
+  assert.equal(await evaluate('document.querySelector(".page-heading button")'), null)
+  assert.equal(await evaluate('document.querySelector(".overview-results").textContent'), 'Группы файлов')
+  assert.equal(await evaluate('(() => { const b=document.querySelector(".overview-results").getBoundingClientRect(); return b.top >= document.querySelector(".scan-ring").getBoundingClientRect().bottom && b.bottom <= document.querySelector(".scan-percentage").getBoundingClientRect().top })()'), true, 'Results button is between the chart and progress')
   for (const [width, height] of [[1280, 800], [960, 640], [640, 480], [1920, 1080], [1280, 480]]) {
     await resize(width, height)
     await screenshot(`ui-analysis-completed-${width}x${height}`)
   }
   await click('.scan-caption .analysis-status-link')
   assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /без зарегистрированных ошибок/)
+  assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /5 лишних копий/)
   await click('.analysis-log-close')
   analysis = { ...analysis, revision: analysis.revision + 1, status: 'error', error: 'ANALYSIS_INCOMPLETE', disks: analysis.disks.map(d => ({ ...d,
     phase: 'error', errors: 3, percent: 100, overall_percent: 99.99,
@@ -342,6 +374,7 @@ app.whenReady().then(async () => {
   window.webContents.send('duprove:analysis:event', analysis)
   await settle()
   assert.equal(await evaluate('document.querySelector(".scan-percentage").textContent'), '100%', 'Finished result with recoverable errors reaches 100%')
+  assert.equal(await evaluate('document.querySelector("main > .help-error")'), null, 'Analysis status details stay in the log')
   assert.match(await evaluate('document.querySelector(".drive-item-active .drive-info").textContent'), /100%/, 'Sidebar also shows completed work')
   assert.equal(await evaluate('document.querySelector("dialog[open]")'), null, 'Log opens on status click')
   for (const [width, height] of [[1280, 800], [640, 480]]) {
@@ -373,6 +406,22 @@ app.whenReady().then(async () => {
   await resize(1280, 800)
   await click('.scan-caption .analysis-status-link')
   await screenshot('ui-analysis-log-dark')
+  await click('.analysis-log-close')
+  analysis = { ...analysis, revision: analysis.revision + 1, status: 'error', error: 'ANALYZER_INTERRUPTED', total: null,
+    exit: { code: -1073741819, signal: null },
+    disks: analysis.disks.map(d => ({ ...d, phase: 'comparing', percent: 67.84, overall_percent: 66.96, errors: 45,
+      work: { ...d.work, operation: 'comparing' } })) }
+  window.webContents.send('duprove:analysis:event', analysis)
+  await settle()
+  assert.equal(await evaluate('document.querySelector(".scan-percentage").textContent'), '66,96%', 'A crash must not be presented as completed work')
+  assert.match(await evaluate('document.querySelector(".scan-caption").textContent'), /Анализ прерван/)
+  assert.match(await evaluate('document.querySelector(".drive-item-active .drive-info").textContent'), /Ошибка.*66,96%/)
+  assert.equal(await evaluate('Array.from(document.querySelectorAll("button")).some(b => b.textContent.trim() === "Группы файлов")'), false, 'A crash has no final catalog')
+  await click('.scan-caption .analysis-status-link')
+  assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /Анализ прерван.*66,96%/s)
+  assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /0xC0000005.*Нарушение доступа к памяти/)
+  assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /Последняя операция: Побайтовое сравнение/)
+  await screenshot('ui-analysis-crash')
   await click('.analysis-log-close')
   clearTimeout(timeout)
   update = { ...update, revision: 1, status: 'scheduled', availableVersion: '1.1.0', restartAt: Date.now() + 60000 }

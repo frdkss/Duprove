@@ -1,4 +1,5 @@
 #include "scanner.h"
+#include "local_file.h"
 #include <iostream>
 #include <fstream>
 #include <thread>
@@ -8,6 +9,11 @@
 void emit(const json& v) { static std::mutex m; std::lock_guard<std::mutex> lock(m); std::cout<<v.dump(-1,' ',false,json::error_handler_t::replace)<<std::endl; }
 static int run(int argc,const std::vector<std::string>& argv) {
   try {
+    if(argc==2 && argv[1]=="--local-file") {
+      std::string input;char byte;
+      while(std::cin.get(byte)) { if(input.size()>=262144) throw std::runtime_error("REQUEST_LIMIT");input+=byte; }
+      emit(localFile(json::parse(input)));return 0;
+    }
     if(argc==2 && std::string(argv[1])=="--drives") {emit(drives());return 0;}
     if(argc!=3 || std::string(argv[1])!="--job") {std::cerr<<"Usage: duprove-analyzer --drives | --job file.json\n";return 2;}
     std::ifstream in(fs::u8path(argv[2])); json job;in>>job;
