@@ -93,6 +93,11 @@ class ResumeTests(unittest.TestCase):
         with closing(sqlite3.connect(self.db)) as db:
             committed = db.execute("SELECT count(*) FROM files WHERE hash<>''").fetchone()[0]
         self.assertGreater(committed, 0)
+        # Low mode makes the interruption/checkpoint observable. Resume in high
+        # mode so this durability assertion does not time the low-mode CPU/read
+        # budget on shared CI hosts; the 60 s completion bound stays unchanged.
+        job['load'] = 2
+        self.job.write_text(json.dumps(job), encoding='utf-8')
         result = self.run_scan()
         self.assertGreaterEqual(result['resources']['reused_hashes'], committed)
         self.assertEqual(result['report']['statistics']['total']['duplicates'], 47)

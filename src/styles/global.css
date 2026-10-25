@@ -1,6 +1,7 @@
 :root {
 
   font-size: min(16px, calc(100vw / 1280 * 16));
+  --title-bar-height: 34px;
   --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Helvetica Neue', sans-serif;
   --color-canvas: #f4f9f7;
   --color-paper: #fefefe;

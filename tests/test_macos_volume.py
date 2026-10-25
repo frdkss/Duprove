@@ -7,15 +7,22 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(*args):
-    result = subprocess.run(args, input=b'', capture_output=True, timeout=90)
-    if result.returncode:
+def run(*args, busy_retries=0):
+    for attempt in range(busy_retries + 1):
+        result = subprocess.run(args, input=b'', capture_output=True, timeout=90)
+        if not result.returncode:
+            return result.stdout
+        # The disposable APFS image can still be held briefly by macOS services
+        # after the analyzer exits. Retry normal detach only; never force eject.
+        if result.returncode == 16 and attempt < busy_retries:
+            time.sleep(0.5)
+            continue
         raise RuntimeError(f'{args[0]} failed ({result.returncode}): {result.stderr.decode("utf-8", errors="replace")}')
-    return result.stdout
 
 
 def main():
@@ -63,7 +70,7 @@ def main():
             assert report['duplicates'][0]['disks'] == {'0': 1, '1': 1}
         finally:
             if attached or os.path.ismount(mount):
-                run('hdiutil', 'detach', str(mount))
+                run('hdiutil', 'detach', str(mount), busy_retries=10)
             if os.path.ismount(mount):
                 # Leave the synthetic fixture intact instead of recursing into a mounted image.
                 raise SystemExit('TEST_IMAGE_STILL_MOUNTED')

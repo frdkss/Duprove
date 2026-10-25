@@ -3,10 +3,19 @@ import type { AnalysisSnapshot, AnalysisCommand, StartAnalysis } from '../contra
 import type { Report } from '../contracts/report'
 import type { DeliverySnapshot } from '../contracts/delivery'
 import type { UpdateSnapshot } from '../contracts/update'
+import type { CatalogRequest, TrashRequest, TrashResult } from '../contracts/catalog'
+import type { ComparisonRequest, ComparisonContext, ComparisonDocument } from '../contracts/comparison'
 
 export interface Drive { path: string; name: string; capacity: number; available: number }
 export type WindowAction = 'minimize' | 'maximize' | 'close'
 export interface DesktopBridge {
+  requestCatalog(request: CatalogRequest): Promise<unknown>
+  trashCatalog(request: TrashRequest): Promise<TrashResult>
+  openComparison(request: ComparisonRequest): Promise<void>
+  getComparison(): Promise<ComparisonContext>
+  getComparisonDocument(fileId: number): Promise<ComparisonDocument>
+  onComparison(listener: (context: ComparisonContext) => void): () => void
+  onCatalogChanged(listener: (change: { analysisId: string; groupId: string }) => void): () => void
   listDrives(): Promise<Drive[]>
   windowAction(action: WindowAction): Promise<void>
   openHelp(): Promise<void>
@@ -25,6 +34,10 @@ export interface DesktopBridge {
   setAutostart(enabled: boolean): Promise<{ enabled: boolean; supported: boolean }>
 }
 export const channels = { drives: 'duprove:drives', window: 'duprove:window', help: 'duprove:help',
+  catalog: 'duprove:catalog',
+  trash: 'duprove:trash',
+  comparisonOpen: 'duprove:comparison:open', comparisonGet: 'duprove:comparison:get', comparisonFile: 'duprove:comparison:file',
+  comparisonChanged: 'duprove:comparison:event', catalogChanged: 'duprove:catalog:event',
   consentGet: 'duprove:consent:get', consentSet: 'duprove:consent:set',
   analysisGet: 'duprove:analysis:get', analysisStart: 'duprove:analysis:start', analysisControl: 'duprove:analysis:control',
   analysisEvent: 'duprove:analysis:event', analysisReport: 'duprove:analysis:report',

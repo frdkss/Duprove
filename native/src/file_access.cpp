@@ -258,6 +258,42 @@ bool inspectFile(const fs::path& path,FileInfo& result) {
   try { if(excluded(path)) return false; Directory parent(path.parent_path()); return parent.inspect(path.filename(),result); }
   catch(...) { return false; }
 }
+struct FileWriter::Impl {
+  Directory parent;
+#ifdef _WIN32
+  Handle handle;
+#else
+  int fd=-1;
+  ~Impl() { if(fd>=0) close(fd); }
+#endif
+  explicit Impl(const fs::path& path):parent(path.parent_path()) {}
+};
+FileWriter::FileWriter(const fs::path& path):impl(std::make_unique<Impl>(path)) {
+  if(!path.is_absolute() || path.filename().empty()) failed();
+#ifdef _WIN32
+  const auto systemPath=nativePath(path);
+  impl->handle.value=CreateFileW(systemPath.c_str(),GENERIC_WRITE,0,nullptr,CREATE_NEW,FILE_ATTRIBUTE_TEMPORARY|FILE_FLAG_OPEN_REPARSE_POINT,nullptr);
+  if(impl->handle.value==INVALID_HANDLE_VALUE) failed();
+#else
+  impl->fd=openat(impl->parent.impl->fd,path.filename().c_str(),O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);
+  if(impl->fd<0) failed();
+#endif
+}
+FileWriter::~FileWriter() = default;
+void FileWriter::write(const unsigned char* data,size_t length) {
+  size_t offset=0;
+  while(offset<length) {
+#ifdef _WIN32
+    DWORD n=0;
+    if(!WriteFile(impl->handle.value,data+offset,DWORD(std::min(length-offset,size_t(MAXDWORD))),&n,nullptr)) failed();
+#else
+    ssize_t n;
+    do { n=::write(impl->fd,data+offset,length-offset); } while(n<0 && errno==EINTR);
+#endif
+    if(n<=0) failed();
+    offset+=size_t(n);
+  }
+}
 Directory* DirectoryCursor::parent(const fs::path& path) {
 #ifdef _WIN32
   const auto wanted=path.parent_path().lexically_normal();

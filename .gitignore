@@ -4,6 +4,7 @@ dist/
 dist-electron/
 build/
 release/
+source-archives/
 .verification/
 __pycache__/
 .venv/

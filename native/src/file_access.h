@@ -28,6 +28,7 @@ class Directory {
   struct Impl;
   std::unique_ptr<Impl> impl;
   friend class FileReader;
+  friend class FileWriter;
 };
 
 class FileReader {
@@ -44,6 +45,17 @@ class FileReader {
   std::unique_ptr<Impl> impl;
 };
 bool inspectFile(const fs::path& path, FileInfo& result);
+
+// Exclusive creation in a pinned directory; never overwrite an existing file.
+class FileWriter {
+ public:
+  explicit FileWriter(const fs::path& path);
+  ~FileWriter();
+  void write(const unsigned char* data,size_t length);
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> impl;
+};
 
 // Reuse one pinned Windows directory chain across nearby paths. POSIX keeps
 // full path validation on each access because descriptors do not prevent rename.

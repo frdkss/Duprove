@@ -47,6 +47,12 @@ export interface AnalysisSnapshot {
   total: (Summary & { duplicates: number }) | null
   warnings: { text: number; image: number; limited: number } | null
   error: string | null
+  exit?: { code: number | null; signal: string | null }
+}
+export function isAnalysisExit(v: unknown): v is NonNullable<AnalysisSnapshot['exit']> {
+  return object(v) && Object.keys(v).length === 2
+    && (v.code === null || typeof v.code === 'number' && Number.isInteger(v.code) && v.code >= -2147483648 && v.code <= 4294967295)
+    && (v.signal === null || typeof v.signal === 'string' && /^SIG[A-Z0-9]{1,16}$/.test(v.signal))
 }
 export type AnalysisCommand = 'pause' | 'resume' | 'stop'
 export const isMode = (v: unknown): v is LoadMode => v === 'low' || v === 'medium' || v === 'high'
