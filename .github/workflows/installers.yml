@@ -1,0 +1,97 @@
+name: Build desktop installers
+on:
+  push:
+    branches: [future/duprove_v.2.0]
+    paths:
+      - package.json
+      - package-lock.json
+      - scripts/**
+      - .github/workflows/installers.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: installers-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  package:
+    name: ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            label: windows-64bit-x86_64
+            platform: win32
+            arch: x64
+          - runner: ubuntu-22.04
+            label: linux-64bit-x86_64
+            platform: linux
+            arch: x64
+          - runner: macos-15-intel
+            label: macos-64bit-x86_64
+            platform: darwin
+            arch: x64
+          - runner: macos-15
+            label: macos-64bit-arm64
+            platform: darwin
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify native build host
+        run: node -e "if(process.platform!=='${{ matrix.platform }}'||process.arch!=='${{ matrix.arch }}')throw Error('WRONG_BUILD_HOST')"
+      - run: npm ci
+      - name: Read application version
+        id: meta
+        run: node -e "require('node:fs').appendFileSync(process.env.GITHUB_OUTPUT,'version='+require('./package.json').version+'\n')"
+      - name: Update Defender signatures
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: powershell
+        run: Update-MpSignature -ErrorAction Stop
+      - name: Build installers
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          DUPROVE_DEFENDER_REPORT_ONLY: '1'
+        run: npm run package
+      - name: Record installer versions and checksums
+        run: node scripts/installer-build-info.mjs
+      - run: npm test
+      - run: ctest --test-dir build/native -C Release --output-on-failure
+      - if: runner.os == 'Windows'
+        run: node tests/packaged-startup.cjs release/win-unpacked/Duprove.exe
+      - if: runner.os == 'Linux'
+        run: python tests/test_linux_archive.py
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a node tests/packaged-startup.cjs release/linux-unpacked/duprove
+      - if: runner.os == 'macOS'
+        run: python tests/test_macos_package.py
+      - if: runner.os == 'macOS'
+        run: node tests/packaged-startup.cjs release/mac*/Duprove.app/Contents/MacOS/Duprove
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Duprove-${{ steps.meta.outputs.version }}-${{ matrix.label }}
+          path: |
+            release/Duprove-*.exe
+            release/Duprove-*.tar.gz
+            release/Duprove-*.pkg
+            release/Duprove-*.dmg
+            release/BUILD-*.json
+            release/SHA512SUMS-*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with:
+          name: Defender-installer-report
+          path: .verification/defender/*.json
+          include-hidden-files: true
+          if-no-files-found: ignore

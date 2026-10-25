@@ -16,7 +16,7 @@ export function AppUpdate({ api, settings = false }: { api?: DesktopBridge; sett
   if (!state) return null
   const messages: Record<UpdateSnapshot['status'], string> = {
     unavailable: 'Автообновления недоступны для этой установки.',
-    idle: `Версия ${state.currentVersion}. Обновления проверяются автоматически.`,
+    idle: 'Обновления проверяются автоматически.',
     checking: 'Проверка обновлений…',
     downloading: `Загрузка версии ${state.availableVersion}: ${state.percent ?? 0}%.`,
     waiting: `Версия ${state.availableVersion} загружена. Установка начнётся после завершения или остановки анализа.`,
@@ -25,5 +25,5 @@ export function AppUpdate({ api, settings = false }: { api?: DesktopBridge; sett
     error: 'Не удалось обновить приложение. Текущая версия сохранена; проверка повторится позже.',
   }
   if (!settings && ['unavailable', 'idle', 'checking', 'error'].includes(state.status)) return null
-  return <div className="app-update" role="status"><p>{messages[state.status]}</p>{settings && <small>Обновления не зависят от отправки статистики.</small>}</div>
+  return <div className="app-update" role="status"><p>{settings && <>Версия {state.currentVersion}. </>}{messages[state.status]}</p>{settings && <small>Обновления не зависят от отправки статистики.</small>}</div>
 }

@@ -21,6 +21,16 @@ const envelope = (value, key = pair.privateKey) => {
   const payload = Buffer.from(JSON.stringify(value))
   return Buffer.from(JSON.stringify({ payload: payload.toString('base64'), signature: sign(null, payload, key).toString('base64') }))
 }
+test('version 2 signed update metadata refers to the renamed Windows and Linux installers', async t => {
+  const directory = await temporary(t)
+  const { makeManifest } = await import('../scripts/release-manifest.mjs')
+  const files = ['Duprove-2.0.0-windows-64bit-x86_64.exe', 'Duprove-2.0.0-linux-64bit-x86_64.tar.gz']
+  for (const file of files) await writeFile(path.join(directory, file), 'new')
+  const signed = await makeManifest(directory, '2.0.0', pair.privateKey.export({ type: 'pkcs8', format: 'pem' }), publicKey)
+  const verified = verifyManifest(Buffer.from(JSON.stringify(signed)), publicKey, '2.0.0')
+  assert.deepEqual(verified.targets.map(target => target.asset), files)
+  assert.ok(verified.targets.every(target => target.sha512 === createHash('sha512').update('new').digest('hex')))
+})
 async function temporary(t) {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'duprove-update-'))
   t.after(() => rm(dir, { recursive: true, force: true })); return dir

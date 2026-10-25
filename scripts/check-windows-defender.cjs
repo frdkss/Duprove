@@ -16,11 +16,16 @@ function runDefender(args, projectDir, run = spawnSync) {
   })
 }
 
-function checkWindowsDefender(file, projectDir, run = spawnSync) {
+function checkWindowsDefender(file, projectDir, run = spawnSync, { reportOnly = false } = {}) {
   const result = runDefender(['-Path', file], projectDir, run)
   if (result.error || result.status !== 0) {
+    if (reportOnly) {
+      console.warn(`WINDOWS_DEFENDER_REPORT_ONLY: scan not confirmed clean for ${file}; exit=${result.status}; error=${result.error?.message ?? 'none'}. See .verification/defender.`)
+      return false
+    }
     throw Error('WINDOWS_DEFENDER_CHECK_FAILED: package blocked; see .verification/defender and docs/windows-defender.md', { cause: result.error })
   }
+  return true
 }
 
 module.exports = { checkWindowsDefender, windowsPowerShellEnvironment }

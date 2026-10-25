@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import plistlib
 import subprocess
 import sys
 import tempfile
@@ -15,8 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform == 'darwin', 'Requires macOS pkgutil and Mach-O runtime')
 class MacPackageTests(unittest.TestCase):
     def test_dmg_contains_app_install_link_notice_and_native_analyzer(self):
-        arch = 'arm64' if platform.machine() == 'arm64' else 'x64'
-        images = list((ROOT / 'release').glob(f'Duprove-*-mac-{arch}.dmg'))
+        arch = 'arm64' if platform.machine() == 'arm64' else 'x86_64'
+        version = json.loads((ROOT / 'package.json').read_text())['version']
+        images = list((ROOT / 'release').glob(f'Duprove-{version}-macos-64bit-{arch}.dmg'))
         self.assertEqual(len(images), 1)
         with tempfile.TemporaryDirectory(prefix='duprove-dmg-') as temporary:
             mount = Path(temporary) / 'volume'
@@ -29,6 +31,8 @@ class MacPackageTests(unittest.TestCase):
                 self.assertTrue((mount / 'Applications').is_symlink())
                 self.assertEqual(os.readlink(mount / 'Applications'), '/Applications')
                 app = mount / 'Duprove.app/Contents'
+                with (app / 'Info.plist').open('rb') as metadata:
+                    self.assertEqual(plistlib.load(metadata)['CFBundleShortVersionString'], version)
                 analyzer = app / 'Resources/analyzer/duprove-analyzer'
                 for binary in [app / 'MacOS/Duprove', analyzer]:
                     checked = subprocess.run(['lipo', '-archs', str(binary)], check=True,
@@ -44,7 +48,8 @@ class MacPackageTests(unittest.TestCase):
                                    capture_output=True, timeout=60)
 
     def test_pkg_contains_visible_notice_and_native_analyzer(self):
-        packages = list((ROOT / 'release').glob('Duprove-*-mac-*.pkg'))
+        version = json.loads((ROOT / 'package.json').read_text())['version']
+        packages = list((ROOT / 'release').glob(f'Duprove-{version}-macos-*.pkg'))
         self.assertEqual(len(packages), 1)
         with tempfile.TemporaryDirectory(prefix='duprove-pkg-') as temporary:
             expanded = Path(temporary) / 'expanded'

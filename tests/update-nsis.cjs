@@ -52,6 +52,7 @@ if (process.argv[2] === '--driver') {
       for (const version of ['1.0.0', '1.0.1']) {
         try { await fs.access(path.join(base, version, `Duprove-${version}-win-x64.exe`)); continue } catch {}
         await run(process.execPath, ['node_modules/electron-builder/cli.js', '--win', 'nsis', '--x64', '--publish', 'never',
+          '-c.artifactName=Duprove-${version}-win-x64.${ext}',
           `-c.appId=ru.duprove.update-test.${id}`, `-c.directories.output=${path.join(base, version)}`,
           `-c.extraMetadata.name=${name}`, `-c.extraMetadata.productName=${name}`, `-c.extraMetadata.version=${version}`,
           '-c.nsis.createDesktopShortcut=false', '-c.nsis.createStartMenuShortcut=false', `-c.nsis.uninstallDisplayName=${name}`])

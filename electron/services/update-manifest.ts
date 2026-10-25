@@ -1,4 +1,5 @@
 import { createPublicKey, verify } from 'node:crypto'
+import { updateAssetName } from '../../scripts/artifact-names.cjs'
 
 export const repository = 'frdkss/Duprove'
 export const dataSchema = 1
@@ -44,7 +45,8 @@ export function verifyManifest(envelope: Buffer, publicKey: string, expectedVers
     if (!record(target) || !['win32', 'linux'].includes(String(target.platform)) || !['x64', 'arm64'].includes(String(target.arch))
       || target.format !== (target.platform === 'win32' ? 'nsis' : 'tar.gz') || !osVersion(target.minOs)
       || (target.platform === 'linux' && !osVersion(target.minGlibc))
-      || typeof target.asset !== 'string' || target.asset !== `Duprove-${expectedVersion}-${target.platform === 'win32' ? 'win' : 'linux'}-${target.arch}.${target.format === 'nsis' ? 'exe' : 'tar.gz'}`
+      || typeof target.asset !== 'string' || ![updateAssetName(expectedVersion, String(target.platform), String(target.arch)),
+        `Duprove-${expectedVersion}-${target.platform === 'win32' ? 'win' : 'linux'}-${target.arch}.${target.format === 'nsis' ? 'exe' : 'tar.gz'}`].includes(target.asset)
       || !Number.isSafeInteger(target.size) || Number(target.size) < 1 || Number(target.size) > 1024 ** 3
       || typeof target.sha512 !== 'string' || !/^[a-f0-9]{128}$/.test(target.sha512)) throw Error('UPDATE_MANIFEST_INVALID')
     const id = `${target.platform}-${target.arch}`

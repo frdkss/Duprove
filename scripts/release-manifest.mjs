@@ -3,6 +3,7 @@ import { createReadStream } from 'node:fs'
 import { readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import names from './artifact-names.cjs'
 
 export async function digest(file) {
   const hash = createHash('sha512')
@@ -15,8 +16,8 @@ export async function makeManifest(directory, version, privatePem, publicPem) {
   if (key.asymmetricKeyType !== 'ed25519' || !createPublicKey(key).equals(createPublicKey(publicPem))) throw Error('RELEASE_SIGNING_KEY_MISMATCH')
   // Conservative, explicit baseline matching the release runners. Changing it requires platform validation.
   const targets = [
-    { platform: 'win32', arch: 'x64', format: 'nsis', minOs: '10.0.19045', asset: `Duprove-${version}-win-x64.exe` },
-    { platform: 'linux', arch: 'x64', format: 'tar.gz', minOs: '5.15.0', minGlibc: '2.35', asset: `Duprove-${version}-linux-x64.tar.gz` },
+    { platform: 'win32', arch: 'x64', format: 'nsis', minOs: '10.0.19045', asset: names.updateAssetName(version, 'win32', 'x64') },
+    { platform: 'linux', arch: 'x64', format: 'tar.gz', minOs: '5.15.0', minGlibc: '2.35', asset: names.updateAssetName(version, 'linux', 'x64') },
   ]
   for (const target of targets) {
     const file = path.join(directory, target.asset)

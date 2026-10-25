@@ -3,6 +3,7 @@ import { existsSync, chmodSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import defender from './check-windows-defender.cjs'
+import names from './artifact-names.cjs'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const requested = process.argv[2] ?? process.platform
@@ -26,8 +27,10 @@ run(process.execPath, ['node_modules/vite/bin/vite.js', 'build'])
 run(process.execPath, ['scripts/build-electron.mjs'])
 run(process.execPath, ['scripts/build-installer-resources.mjs'])
 if (process.platform === 'linux') chmodSync(resolve(root, 'installer/linux/install.sh'), 0o755)
-run(process.execPath, ['node_modules/electron-builder/cli.js', `--${{win32:'win',linux:'linux',darwin:'mac'}[requested]}`, `--${process.arch}`, '--publish', 'never'])
+run(process.execPath, ['node_modules/electron-builder/cli.js', `--${{win32:'win',linux:'linux',darwin:'mac'}[requested]}`, `--${process.arch}`, '--publish', 'never',
+  `--config.artifactName=${names.artifactTemplate(requested, process.arch)}`])
 if (process.platform === 'win32') {
   const { version } = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
-  defender.checkWindowsDefender(resolve(root, `release/Duprove-${version}-win-${process.arch}.exe`), root)
+  defender.checkWindowsDefender(resolve(root, 'release', names.artifactName(version, 'win32', process.arch, 'exe')), root, undefined,
+    { reportOnly: process.env.DUPROVE_DEFENDER_REPORT_ONLY === '1' })
 }
