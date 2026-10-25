@@ -146,3 +146,15 @@ test('decisions preserve evidence, warn deletion requires both previews and orig
   await catalog.request({ action: 'original', analysisId: f.analysisId, groupId: 't:1', fileId: 1 })
   await assert.rejects(catalog.request({ ...decision, groupId: 't:1', reviewed: true }), /MANUAL_REVIEW_REQUIRED/)
 })
+
+test('multi-file comparison always includes the chosen original first, while opening a single file stays single', async t => {
+  const f = await fixture(t, 4)
+  const request = { analysisId: f.analysisId, groupId: 'e:1' }
+  assert.deepEqual((await f.catalog.comparison({ ...request, fileIds: [2, 3] })).files.map(file => file.id), [2, 3])
+  await f.catalog.request({ action: 'original', ...request, fileId: 1 })
+  const context = await f.catalog.comparison({ ...request, fileIds: [2, 3] })
+  assert.equal(context.originalId, 1)
+  assert.deepEqual(context.files.map(file => file.id), [1, 2, 3])
+  assert.deepEqual((await f.catalog.comparison({ ...request, fileIds: [2, 1, 3] })).files.map(file => file.id), [1, 2, 3])
+  assert.deepEqual((await f.catalog.comparison({ ...request, fileIds: [2] })).files.map(file => file.id), [2])
+})

@@ -42,7 +42,7 @@ export function MemberGroup({ api, analysisId, group, root, revision, busy, perf
       <div className="results-group-toolbar"><p>Оригинал: {group.originalId === null ? 'не выбран' : `экземпляр №${group.originalId}`}. {group.originalId !== null && <button disabled={busy} onClick={() => void original(null)}>Снять выбор</button>}</p>
         <div className="result-actions"><button disabled={busy || selectedMembers.length < 2 || selectedMembers.length > MAX_COMPARISON_FILES} onClick={() => void compare(selectedMembers.map(member => member.id))}>Сравнить выделенные ({selectedMembers.length})</button>
           <button disabled={busy || !canTrashSelected} onClick={() => void trash(selectedMembers.map(member => member.id))}>Перенести выделенные в корзину</button></div></div>
-      {selectedMembers.length > MAX_COMPARISON_FILES && <p className="results-note">В одном окне сравнения можно открыть до {MAX_COMPARISON_FILES} файлов.</p>}
+      {selectedMembers.length > MAX_COMPARISON_FILES && <p className="results-note">Для сравнения можно выделить до {MAX_COMPARISON_FILES} файлов.</p>}
       {selectedMembers.length > 1000 && <p className="results-note">За один перенос можно выбрать до 1 000 файлов.</p>}
     </div>
     {(!!error || !!members.error) && <p className="results-error" role="alert">{error || catalogError(members.error)} {!!members.error && <button onClick={members.retry}>Повторить</button>}</p>}

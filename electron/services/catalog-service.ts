@@ -180,7 +180,9 @@ export class CatalogService {
       const group = db.prepare('SELECT kind,original_id FROM groups WHERE id=?').get(value.groupId) as Row | undefined
       if (!group) throw Error('GROUP_UNAVAILABLE')
       const query = db.prepare('SELECT f.*,EXISTS(SELECT 1 FROM groups WHERE original_id=f.id) AS protected FROM members m JOIN files f ON f.id=m.file_id WHERE m.group_id=? AND f.id=?')
-      const files = value.fileIds.map(id => {
+      const ids = value.fileIds.length > 1 && group.original_id
+        ? [group.original_id, ...value.fileIds.filter(id => id !== group.original_id)] : value.fileIds
+      const files = ids.map(id => {
         const file = query.get(value.groupId, id) as Row | undefined
         if (!file) throw Error('FILE_UNAVAILABLE')
         return { id, name: path.basename(file.path), path: file.path, size: file.size, decision: file.decision, protected: !!file.protected }
