@@ -13,6 +13,36 @@ export function isReport(value: unknown): value is Report {
   const { statistics: s, duplicates: groups } = value
   const summaries: Summary[] = [s.total, ...s.disks, s.locations.standard.total,
     ...Object.values(s.locations.standard.categories), s.locations.custom]
+  const byteReport = summaries.some(x => x.file_bytes !== undefined || x.duplicate_bytes !== undefined)
+    || groups.some(g => g.size_bytes !== undefined) || s.total.reclaimable_bytes !== undefined
+  if (byteReport) {
+    if (summaries.some(x => x.file_bytes === undefined || x.duplicate_bytes === undefined || x.duplicate_bytes > x.file_bytes)
+      || groups.some(g => g.size_bytes === undefined) || s.total.reclaimable_bytes === undefined) return false
+    const groupBytes = (key: string, field: 'disks' | 'categories') => groups.reduce((n, g) =>
+      n + BigInt((g[field] as Record<string, number>)[key] ?? 0) * BigInt(g.size_bytes!), 0n)
+    if (!same(s.total.duplicate_bytes!, groups.reduce((n, g) => n + BigInt(g.copies) * BigInt(g.size_bytes!), 0n))
+      || !same(s.total.reclaimable_bytes, groups.reduce((n, g) => n + BigInt(g.duplicates) * BigInt(g.size_bytes!), 0n))
+      || s.disks.some(d => !same(d.duplicate_bytes!, groupBytes(String(d.id), 'disks')))
+      || Object.entries(s.locations.standard.categories).some(([k, x]) => !same(x.duplicate_bytes!, groupBytes(k, 'categories')))
+      || !same(s.locations.custom.duplicate_bytes!, groupBytes('custom', 'categories'))) return false
+    const bytePartition = (total: Summary, parts: Summary[]) => ['file_bytes', 'duplicate_bytes'].every(k =>
+      same(total[k as 'file_bytes']!, sum(parts.map(p => p[k as 'file_bytes']!))))
+    if (!bytePartition(s.total, s.disks) || !bytePartition(s.total, [s.locations.standard.total, s.locations.custom])
+      || !bytePartition(s.locations.standard.total, Object.values(s.locations.standard.categories))) return false
+  }
+  const volumes = [s.total, ...s.disks]
+  const volumeKeys = ['capacity_bytes', 'available_bytes', 'used_bytes'] as const
+  if (volumes.some(x => volumeKeys.some(k => x[k] !== undefined))) {
+    if (volumes.some(x => volumeKeys.some(k => x[k] === undefined)
+      || BigInt(x.used_bytes!) + BigInt(x.available_bytes!) !== BigInt(x.capacity_bytes!))
+      || volumeKeys.some(k => !same(s.total[k]!, sum(s.disks.map(d => d[k]!))))) return false
+  }
+  if (value.progress && (value.progress.disks.length !== s.disks.length || value.complete && value.progress.status !== 'completed'
+    || value.progress.disks.some((d, i) => d.id !== i || d.work && (
+      d.work.total !== null && d.work.done > d.work.total
+      || (d.work.files_done === undefined) !== (d.work.files_total === undefined)
+      || d.work.files_done !== undefined && d.work.files_done > d.work.files_total!
+      || d.work.cached_files !== undefined && (d.work.files_done === undefined || d.work.cached_files > d.work.files_done))))) return false
   if (summaries.some(x => !same(x.files, count(x.types)) || x.empty !== (x.types.empty ?? 0) ||
     x.duplicate_members > x.files - x.empty || x.duplicate_groups > x.duplicate_members)) return false
   if (s.disks.some((disk, i) => disk.id !== i)) return false

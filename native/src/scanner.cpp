@@ -107,20 +107,27 @@ int scan(const json& job,ScanContext& context) {
             "DELETE FROM files; DROP TABLE IF EXISTS content_matches; DROP TABLE IF EXISTS content_files;");
     transaction.commit();
   }
-  auto lastGroups=std::chrono::steady_clock::now();
-  auto progress=[&] { if(std::chrono::steady_clock::now()-last>250ms) {
-    if(std::chrono::steady_clock::now()-lastGroups>2s && std::any_of(states.begin(),states.end(),[](const json& state) { return state["phase"]=="comparing"; })) {
-      std::vector<int64_t> members(count),counts(count);
-      Query groups(db,"SELECT root,count(*),count(DISTINCT gid) FROM files WHERE gid IN (SELECT gid FROM files WHERE gid>0 GROUP BY gid HAVING count(*)>1) GROUP BY root");
-      while(groups.next()) { members[groups.num(0)]=groups.num(1);counts[groups.num(0)]=groups.num(2); }
-      for(int root=0;root<count;++root) { states[root]["duplicate_members"]=members[root];states[root]["duplicate_groups"]=counts[root]; }
-      lastGroups=std::chrono::steady_clock::now();
+  auto lastReport=std::chrono::steady_clock::now();
+  bool buildingReport=false;
+  auto checkpointReport=[&] {
+    buildingReport=true;
+    struct ResetReport { bool& value; ~ResetReport() { value=false; } } resetReport{buildingReport};
+    const auto report=buildReport(db,count,false);
+    for(int root=0;root<count;++root) {
+      states[root]["duplicate_members"]=report["statistics"]["disks"][root]["duplicate_members"];
+      states[root]["duplicate_groups"]=report["statistics"]["disks"][root]["duplicate_groups"];
     }
+    context.emit({{"type","progress"},{"disks",states},{"report",report}});
+    lastReport=std::chrono::steady_clock::now();
+  };
+  auto progress=[&] { if(std::chrono::steady_clock::now()-last>250ms) {
+    // Never query recursively from SQLite's progress handler or this builder.
+    if(!buildingReport && std::chrono::steady_clock::now()-lastReport>5s) checkpointReport();
     send(); last=std::chrono::steady_clock::now();
   } };
   context.pulse=progress;
   // Avoid callbacks referencing this stack after scan returns (also on exception).
-  struct Reset { ScanContext& c; ~Reset() { c.pulse=[]{};c.readProgress=[](int,size_t){};c.fileProgress=[](int){};c.currentFile=[](int,const std::string&){}; } } reset{context};
+  struct Reset { ScanContext& c; ~Reset() { c.pulse=[]{};c.readProgress=[](int,size_t){};c.fileProgress=[](int){};c.currentFile=[](int,const std::string&){};c.fileSkipped=[](const std::string&) { return false; }; } } reset{context};
   auto work=[&](int root,const char* operation,const char* unit,json total) {
     const auto read=states[root].contains("work") ? states[root]["work"].value("read_bytes",uint64_t(0)) : 0;
     states[root]["work"]={{"operation",operation},{"current",""},{"done",0},{"total",total},{"unit",unit},{"read_bytes",read}};
@@ -132,10 +139,18 @@ int scan(const json& job,ScanContext& context) {
     states[root]["work"]["done"]=std::min(done[root],totals[root]);states[root]["work"]["total"]=totals[root];
   };
   discover(db,roots,privateDirectory,states,context,progress);
+  checkpointReport();
   for(int root=0;root<count;++root) if(states[root]["phase"]=="waiting") work(root,"preparing","files",nullptr);
   send();
   Query invalidate(db,"UPDATE files SET hash='',gid=0 WHERE path=?");
-  auto invalid=[&](const std::string& path,int root) { invalidate.reset(); invalidate.bind(1,path); invalidate.next(); recordIssue(states[root],"file_unavailable_or_changed"); };
+  std::unordered_set<std::string> skipped;
+  context.fileSkipped=[&](const std::string& path) { return skipped.count(path)!=0; };
+  auto invalid=[&](const std::string& path,int root) {
+    if(!skipped.insert(path).second) return;
+    invalidate.reset();invalidate.bind(1,path);invalidate.next();
+    put(db,"DELETE FROM hash_cache WHERE path=?",{path});
+    recordIssue(states[root],"file_unavailable_or_changed");
+  };
   // Materialize candidate sizes once, shared by all selected roots.
   db.exec("CREATE TEMP TABLE candidate_sizes(size INTEGER PRIMARY KEY); INSERT INTO candidate_sizes SELECT size FROM files WHERE size>0 GROUP BY size HAVING count(*)>1;");
   Query saveHash(db,"UPDATE files SET hash=? WHERE path=?");
@@ -235,6 +250,7 @@ int scan(const json& job,ScanContext& context) {
   context.fileProgress=[&](int root) { ++done[root];update(root); };
   send();
   groupExactFiles(db,context,invalid,progress);
+  checkpointReport();
   // Give content phases the confirmed exact-match counters, even on tiny fixtures.
   {
     Query groups(db,"SELECT root,count(*),count(DISTINCT gid) FROM files WHERE gid IN (SELECT gid FROM files WHERE gid>0 GROUP BY gid HAVING count(*)>1) GROUP BY root");
@@ -275,7 +291,7 @@ int scan(const json& job,ScanContext& context) {
     while(types.next()) { states[root]["types"][types.str(0)]=types.num(1); total+=types.num(1); }
     states[root]["files"]=total; states[root]["empty"]=states[root]["types"].value("empty",int64_t(0));
     if(context.controls[root]==2) { states[root]["phase"]="stopped"; complete=false; }
-    else if(states[root]["phase"]=="error" || states[root]["errors"].get<int64_t>()>0) { states[root]["phase"]="error"; complete=false; }
+    else if(states[root]["phase"]=="error" || hasBlockingIssues(states[root])) { states[root]["phase"]="error"; complete=false; }
     // Keep validation visible until report construction has also finished.
   }
   json report=buildReport(db,count,complete);

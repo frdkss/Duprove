@@ -14,7 +14,7 @@ std::string digest(const fs::path& path,const FileInfo& expected,int root,ScanCo
       if(!context.waitFor(root)) return "";
       const auto n=file.read(reinterpret_cast<char*>(buffer.data()),buffer.size());
       total+=int64_t(n);
-      if(total>expected.size) return "";
+      if(total>expected.size || !file.info().same(expected)) { if(n) context.accountRead(root,n);return ""; }
       if(!n) break;
       hash.process(buffer.data(),n);
       context.accountRead(root,n);
@@ -46,6 +46,8 @@ ByteMatch equalBytes(const fs::path& a,const FileInfo& expectedA,const fs::path&
     try { nx=x->read(bx.data(),bx.size()); } catch(const std::exception&) { return ByteMatch::leftUnavailable; }
     try { ny=y->read(by.data(),by.size()); } catch(const std::exception&) { return ByteMatch::rightUnavailable; }
     context.accountRead(root,nx+ny);
+    const auto stability=stable();
+    if(stability!=ByteMatch::equal) return stability;
     if(int64_t(nx)>expectedA.size-total) return ByteMatch::leftUnavailable;
     if(int64_t(ny)>expectedB.size-total) return ByteMatch::rightUnavailable;
     if(nx!=ny || !std::equal(bx.begin(),bx.begin()+nx,by.begin())) {
@@ -86,6 +88,7 @@ void groupExactFiles(DB& db,ScanContext& context,const std::function<void(const 
     struct Advance { ScanContext& c;int root;~Advance() { c.fileProgress(root);c.throttle(); } } advance{context,root};
     if(!context.waitFor(root)) continue;
     const auto path=rows.str(0);
+    if(context.fileSkipped(path)) continue;
     context.currentFile(root,path);
     const auto expected=record(rows,2);
     if(!current(path,expected,&left)) { invalid(path,root); continue; }
@@ -97,6 +100,7 @@ void groupExactFiles(DB& db,ScanContext& context,const std::function<void(const 
       const auto candidateRoot=int(candidates.num(2));
       if(candidateGroup==previous || context.controls[candidateRoot]==2) continue;
       const auto candidate=candidates.str(0);
+      if(context.fileSkipped(candidate)) continue;
       const auto candidateInfo=record(candidates,3);
       if(!current(candidate,candidateInfo,&right)) { invalid(candidate,candidateRoot); continue; }
       const auto match=equalBytes(fs::u8path(path),expected,fs::u8path(candidate),candidateInfo,root,context,candidateRoot,&left,&right);

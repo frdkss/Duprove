@@ -91,9 +91,30 @@ def fixtures():
     return cases
 
 
+def byte_example():
+    report = copy.deepcopy(fixtures()[0]['report'])
+    s = report['statistics']
+    standard = s['locations']['standard']
+    for x in [s['total'], *s['disks'], standard['total'], *standard['categories'].values(), s['locations']['custom']]:
+        x['duplicate_bytes'] = x['duplicate_members'] * 12
+        x['file_bytes'] = x['duplicate_bytes'] + x['types'].get('.jpg', 0) * 7
+    s['total']['reclaimable_bytes'] = 24
+    for x in [s['total'], *s['disks']]:
+        x.update(capacity_bytes=200 if 'id' not in x else 100,
+                 available_bytes=80 if 'id' not in x else 40,
+                 used_bytes=120 if 'id' not in x else 60)
+    report['duplicates'][0]['size_bytes'] = 12
+    report['progress'] = {'updated_at': 1000, 'status': 'completed', 'disks': [
+        {'id': i, 'phase': 'completed', 'percent': 100,
+         'work': {'operation': 'saving', 'done': 0, 'total': None, 'unit': 'files', 'read_bytes': 48}}
+        for i in range(2)]}
+    return report
+
+
 if __name__ == '__main__':
     directory = Path(__file__).resolve().parents[1] / 'contracts' / 'fixtures'
     directory.mkdir(exist_ok=True)
     cases = fixtures()
     (directory / 'cases.json').write_text(json.dumps(cases, indent=2) + '\n', encoding='utf-8')
     (directory / 'example.json').write_text(json.dumps(cases[0]['report'], indent=2) + '\n', encoding='utf-8')
+    (directory / 'byte-example.json').write_text(json.dumps(byte_example(), indent=2) + '\n', encoding='utf-8')

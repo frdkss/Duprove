@@ -21,6 +21,8 @@ app.on('browser-window-created', (_event, window) => {
       assert.equal(window.isVisible(), true, 'The actual application window must be visible')
       assert.deepEqual(window.getMinimumSize(), [640, 480])
       assert.equal((await window.webContents.executeJavaScript('window.duprove.getAnalysis()')).status, 'idle')
+      // This harness is Electron's entry point; package metadata is checked by packaged-startup.cjs.
+      assert.equal((await window.webContents.executeJavaScript('window.duprove.getUpdate()')).currentVersion, app.getVersion())
       assert.equal((await window.webContents.executeJavaScript('window.duprove.getReportDelivery()')).sent, 0)
       assert.equal((await window.webContents.executeJavaScript('window.duprove.getReportDelivery()')).error, null, 'Actual Electron loads delivery configuration without a runtime error')
       await assert.rejects(window.webContents.executeJavaScript('window.duprove.startAnalysis({version:2,roots:[],mode:"low",content:false})'), /INVALID_ANALYSIS_REQUEST/)

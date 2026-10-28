@@ -114,6 +114,13 @@ test('job runs with incremental state, refuses arbitrary roots, persists separat
   assert.ok(phases.has('discovering') && phases.has('hashing') && phases.has('comparing'))
   const report = await f.service.report()
   assert.equal(report.complete, true)
+  assert.equal(report.statistics.total.file_bytes, 2 * 1024 * 1024)
+  assert.equal(report.statistics.total.duplicate_bytes, 2 * 1024 * 1024)
+  assert.equal(report.statistics.total.reclaimable_bytes, 1024 * 1024)
+  assert.equal(report.duplicates[0].size_bytes, 1024 * 1024)
+  assert.equal(report.statistics.total.used_bytes, 10e9)
+  assert.equal(report.progress.status, 'completed')
+  assert.ok(report.progress.disks.every(d => !d.work || !('current' in d.work)))
   assert.ok(!JSON.stringify(report).includes('private.bin'))
   const saved = JSON.parse(await fs.readFile(path.join(f.directory, 'app/reports', `${start.id}.json`)))
   assert.equal(saved.consentGrantId, f.consent.current().grantId)
@@ -158,6 +165,32 @@ test('pause, stop, service restart and explicit resume preserve job identity and
   assert.equal(result.status, 'completed', result.error)
   assert.equal(result.id, started.id)
   assert.equal(result.total.duplicates, 0)
+})
+
+test('a real interrupted scan keeps its inventory and work progress in a validated partial report', async t => {
+  const f = await fixture(t, 8 * 1024 * 1024)
+  f.request.mode = 'low'
+  let notices = 0
+  f.service.on('report', () => notices++)
+  const started = await f.service.start(f.request)
+  const initial = await f.service.report()
+  assert.equal(initial.complete, false)
+  assert.equal(initial.progress.status, 'running')
+  await until(f.service, s => s.disks.some(d => d.phase === 'hashing'))
+  const partial = await f.service.report()
+  assert.equal(partial.statistics.total.file_bytes, 16 * 1024 * 1024)
+  assert.equal(partial.statistics.total.files, 3)
+  f.service.child.kill()
+  const failed = await until(f.service, s => s.status === 'error')
+  assert.equal(failed.error, 'ANALYZER_INTERRUPTED')
+  const saved = await f.service.report()
+  assert.equal(saved.complete, false)
+  assert.equal(saved.progress.status, 'error')
+  assert.ok(saved.progress.disks.some(d => d.work?.operation === 'hashing'))
+  assert.ok(notices >= 2)
+  const restored = f.make(); f.services.push(restored); await restored.restore()
+  assert.equal(restored.snapshot().id, started.id)
+  assert.equal(restored.snapshot().total.file_bytes, 16 * 1024 * 1024)
 })
 
 test('failed catalog capture retains a valid working database larger than the cleanup threshold and survives restart', async t => {
@@ -308,7 +341,8 @@ test('an analyzer crash retains unfinished progress and a local exit code withou
   assert.deepEqual(result.exit, { code: 42, signal: null })
   assert.deepEqual(result.disks.map(d => d.overall_percent), [66.96, 66.96])
   assert.equal(analysisFinished(result), false)
-  assert.equal(await service.report(), null)
+  assert.equal((await service.report()).complete, false)
+  assert.equal((await service.report()).progress.status, 'error')
 })
 
 test('malformed or oversized analyzer output is bounded and cannot become a saved report', async t => {
@@ -326,11 +360,11 @@ test('malformed or oversized analyzer output is bounded and cannot become a save
     await service.start(f.request)
     const result = await until(service, s => s.status === 'error')
     assert.equal(result.error, expected)
-    assert.equal(await service.report(), null)
+    assert.equal((await service.report()).complete, false)
   }
 })
 
-test('a report is persisted only after a clean exit and a complete event stream', async t => {
+test('checkpoints survive a crash or truncated stream; only a clean exit commits completion', async t => {
   const { spawn } = require('node:child_process')
   const f = await fixture(t, 16)
   for (const [name, exitCode, tail, error] of [
@@ -352,16 +386,16 @@ test('a report is persisted only after a clean exit and a complete event stream'
         { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] }))
     f.services.push(service)
     await service.start(f.request)
-    await until(service, s => s.total !== null)
-    assert.equal(await service.report(), null, 'An event alone is not a committed report')
+    await until(service, s => s.disks.every(d => d.phase === 'completed'))
+    assert.equal((await service.report()).complete, false, 'An event alone cannot commit completion')
     const result = await until(service, s => ['completed', 'error'].includes(s.status))
     assert.equal(result.error, error)
     assert.equal(result.status, error ? 'error' : 'completed')
-    assert.equal((await service.report()) !== null, !error)
+    assert.equal((await service.report()).complete, !error)
     assert.equal(JSON.stringify(result).includes('PRIVATE_TRAILING_DATA'), false)
     if (error) {
       if (name === 'crash') assert.deepEqual(result.exit, { code: exitCode, signal: null })
-      await assert.rejects(fs.stat(path.join(directory, 'reports')), { code: 'ENOENT' })
+      assert.ok((await fs.stat(path.join(directory, 'reports'))).isDirectory())
       assert.equal((await fs.stat(path.join(directory, 'work/index.sqlite'))).isFile(), true)
       const restored = new JobService(binary, directory, path.join(f.directory, 'consent.json'))
       f.services.push(restored)

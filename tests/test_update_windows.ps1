@@ -65,3 +65,6 @@ class FixtureInstaller {
         Remove-Item -LiteralPath $resolved -Recurse -Force
     }
 }
+# The expected rollback invokes the helper with exit code 1. GitHub Actions
+# otherwise forwards that stale LASTEXITCODE despite all assertions succeeding.
+exit 0

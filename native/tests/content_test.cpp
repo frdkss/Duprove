@@ -65,6 +65,9 @@ int main() {
     write(second/"compressed.jpg",compressed);write(second/"different.png",different);
     write(first/"a.txt",bytes("private-content-marker hello"));
     write(second/"b.md",bytes("**private-content-marker**  hello\n"));
+    ScanContext skipping;skipping.fileSkipped=[](const std::string&) { return true; };
+    FileInfo expected;require(inspectFile(first/"a.txt",expected),"skipped fixture metadata");
+    require(content::read(first/"a.txt",expected,0,skipping).status==content::Status::unavailable && skipping.readBytes==0,"already skipped file is not read again");
     ScanContext context;context.loadMode=2;json result;
     context.emit=[&](const json& event) { if(event["type"]=="result") result=event; };
     const json job={{"roots",json::array({utf8(first),utf8(second)})},{"database",utf8(base/"work"/"index.sqlite")},{"content",true}};
@@ -85,7 +88,7 @@ int main() {
       }
     };
     scan(job,context);
-    require(changed && result["report"]["complete"]==false,"mutation after content extraction reported");
+    require(changed && result["report"]["complete"]==true && result["disks"][0]["errors"]==1,"mutation after content extraction skipped without failing the run");
     require(result["content"]["warning_pairs"]["text"]==0,"no stale content warning");
     require(result["content"]["complete"]==false,"partial content result");
   } catch(const std::exception& error) {

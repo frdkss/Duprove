@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 @unittest.skipUnless(sys.platform.startswith('linux') and os.geteuid() != 0, 'Linux non-root archive test')
 class ArchiveTests(unittest.TestCase):
     def test_archive_installs_with_notice_and_bundled_analyzer_runs(self):
-        archives = list((ROOT / 'release').glob('Duprove-*-linux-*.tar.gz'))
+        version = json.loads((ROOT / 'package.json').read_text())['version']
+        archives = list((ROOT / 'release').glob(f'Duprove-{version}-linux-*.tar.gz'))
         self.assertEqual(len(archives), 1, 'Use a clean release directory for this architecture')
         with tempfile.TemporaryDirectory(prefix='duprove-archive-') as temporary:
             base = Path(temporary)

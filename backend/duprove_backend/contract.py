@@ -13,6 +13,44 @@ def is_report(value):
     s, groups = value['statistics'], value['duplicates']
     standard = s['locations']['standard']
     summaries = [s['total'], *s['disks'], standard['total'], *standard['categories'].values(), s['locations']['custom']]
+    byte_report = (any('file_bytes' in x or 'duplicate_bytes' in x for x in summaries)
+                   or any('size_bytes' in g for g in groups) or 'reclaimable_bytes' in s['total'])
+    if byte_report:
+        if (any('file_bytes' not in x or 'duplicate_bytes' not in x or x['duplicate_bytes'] > x['file_bytes'] for x in summaries)
+                or any('size_bytes' not in g for g in groups) or 'reclaimable_bytes' not in s['total']):
+            return False
+        def group_bytes(key, field):
+            return sum(g[field].get(key, 0) * g['size_bytes'] for g in groups)
+        if (s['total']['duplicate_bytes'] != sum(g['copies'] * g['size_bytes'] for g in groups)
+                or s['total']['reclaimable_bytes'] != sum(g['duplicates'] * g['size_bytes'] for g in groups)
+                or any(d['duplicate_bytes'] != group_bytes(str(d['id']), 'disks') for d in s['disks'])
+                or any(x['duplicate_bytes'] != group_bytes(k, 'categories') for k, x in standard['categories'].items())
+                or s['locations']['custom']['duplicate_bytes'] != group_bytes('custom', 'categories')):
+            return False
+        def byte_partition(total, parts):
+            return all(total[k] == sum(p[k] for p in parts) for k in ('file_bytes', 'duplicate_bytes'))
+        if (not byte_partition(s['total'], s['disks'])
+                or not byte_partition(s['total'], [standard['total'], s['locations']['custom']])
+                or not byte_partition(standard['total'], list(standard['categories'].values()))):
+            return False
+    volumes, volume_keys = [s['total'], *s['disks']], ('capacity_bytes', 'available_bytes', 'used_bytes')
+    if any(any(k in x for k in volume_keys) for x in volumes):
+        if (any(any(k not in x for k in volume_keys) or x['used_bytes'] + x['available_bytes'] != x['capacity_bytes'] for x in volumes)
+                or any(s['total'][k] != sum(d[k] for d in s['disks']) for k in volume_keys)):
+            return False
+    if 'progress' in value:
+        progress = value['progress']
+        if (len(progress['disks']) != len(s['disks']) or value['complete'] and progress['status'] != 'completed'):
+            return False
+        for i, d in enumerate(progress['disks']):
+            if d['id'] != i:
+                return False
+            w = d.get('work')
+            if w and (w['total'] is not None and w['done'] > w['total']
+                      or ('files_done' in w) != ('files_total' in w)
+                      or 'files_done' in w and w['files_done'] > w['files_total']
+                      or 'cached_files' in w and ('files_done' not in w or w['cached_files'] > w['files_done'])):
+                return False
     if any(x['files'] != sum(x['types'].values()) or x['empty'] != x['types'].get('empty', 0)
            or x['duplicate_members'] > x['files'] - x['empty'] or x['duplicate_groups'] > x['duplicate_members']
            for x in summaries):

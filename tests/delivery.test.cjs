@@ -66,6 +66,63 @@ test('lost acknowledgement retries with the same durable ID after restart and ob
   assert.equal(ids.length, 2); assert.equal(ids[0], ids[1]); assert.equal(f.records()[0].attempts, 2)
 })
 
+test('a checkpoint updated during sending is followed by the final revision with a fresh ID', async t => {
+  const calls = []
+  let release
+  const f = fixture(t, { send: async (json, options) => {
+    calls.push({ report: JSON.parse(json), id: options.reportId })
+    if (calls.length === 1) await new Promise(resolve => { release = resolve })
+  } })
+  const { file, prepared } = f.save()
+  prepared.report.complete = false; savePreparedReport(file, prepared)
+  const queue = f.make(); await queue.refresh(); await until(() => calls.length === 1)
+  prepared.report.complete = true; savePreparedReport(file, prepared)
+  await queue.refresh()
+  assert.equal(queue.snapshot().sending, true)
+  release()
+  await until(() => calls.length === 2 && queue.snapshot().sent === 1)
+  assert.deepEqual(calls.map(c => c.report.complete), [false, true])
+  assert.notEqual(calls[0].id, calls[1].id)
+})
+
+test('newer progress supersedes an unsent checkpoint without resetting retry backoff', async t => {
+  const ids = []
+  const f = fixture(t, { send: async (_json, options) => {
+    ids.push(options.reportId)
+    if (ids.length === 1) throw new DeliveryError('NETWORK_UNAVAILABLE', true)
+  } })
+  const { file, prepared } = f.save()
+  prepared.report.complete = false; savePreparedReport(file, prepared)
+  const queue = f.make(); await queue.refresh(); await until(() => ids.length === 1 && !queue.snapshot().sending)
+  const nextAttempt = queue.snapshot().nextAttemptAt
+  prepared.report.complete = true; savePreparedReport(file, prepared)
+  await queue.refresh(); await delay(30)
+  assert.equal(ids.length, 1)
+  assert.equal(queue.snapshot().nextAttemptAt, nextAttempt)
+  f.advance(60_000); queue.consentChanged(); await until(() => queue.snapshot().sent === 1)
+  assert.notEqual(ids[0], ids[1], 'A changed payload cannot reuse a possibly accepted ID')
+  assert.equal(Math.max(...f.records().map(r => r.attempts)), 2)
+})
+
+test('a restart preserves backoff when the report changed after the last queue scan', async t => {
+  const ids = []
+  const f = fixture(t, { send: async (_json, options) => {
+    ids.push(options.reportId)
+    if (ids.length === 1) throw new DeliveryError('NETWORK_UNAVAILABLE', true)
+  } })
+  const { file, prepared } = f.save()
+  prepared.report.complete = false; savePreparedReport(file, prepared)
+  const queue = f.make(); await queue.refresh(); await until(() => ids.length === 1 && !queue.snapshot().sending)
+  const nextAttempt = queue.snapshot().nextAttemptAt
+  await queue.stop()
+  prepared.report.complete = true; savePreparedReport(file, prepared)
+  const restored = f.make(); await restored.refresh(); await delay(30)
+  assert.equal(ids.length, 1)
+  assert.equal(restored.snapshot().nextAttemptAt, nextAttempt)
+  f.advance(60_000); restored.consentChanged(); await until(() => restored.snapshot().sent === 1)
+  assert.notEqual(ids[0], ids[1])
+})
+
 test('revocation aborts in-flight upload; regrant never retags pending or previously unconsented reports', async t => {
   let calls = 0, aborted = 0
   const f = fixture(t, { send: async (_json, { signal }) => {

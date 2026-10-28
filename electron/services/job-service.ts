@@ -11,6 +11,8 @@ import { writeLocalJson } from './local-json'
 import { ConsentService } from './consent-service'
 import { prepareReport, loadPreparedReport, savePreparedReport } from './report-service'
 import { CatalogService } from './catalog-service'
+import { isReport } from '../../contracts/validate'
+import { initialReport, updateReport } from './progress-report'
 
 export const WORK_FILE_THRESHOLD = 5 * 1024 * 1024
 const MAX_EVENT_BYTES = 32 * 1024 * 1024
@@ -36,6 +38,8 @@ export class JobService extends EventEmitter {
   private busy = false
   private stopTimer: ReturnType<typeof setTimeout> | undefined
   private lastSave = 0
+  private lastReportNotice = 0
+  private liveReport: ReturnType<typeof prepareReport> | null = null
   private readonly stateFile: string
   private readonly database: string
   private completion: Promise<void> = Promise.resolve()
@@ -98,9 +102,21 @@ export class JobService extends EventEmitter {
   private publish(persist = false) {
     this.state.revision++
     if (persist || Date.now() - this.lastSave >= 1000) {
-      try { writeLocalJson(this.stateFile, { ...this.state, disks: this.state.disks.map(d => cleanProgress(d, true)) }) }
+      try {
+        if (this.liveReport) {
+          const report = updateReport(this.liveReport.report, this.state)
+          // Each checkpoint is newly created under the current consent period.
+          this.liveReport = prepareReport(report, new ConsentService(this.consentFile))
+          savePreparedReport(this.reportPath(), this.liveReport)
+          this.state.total = report.statistics.total
+        }
+        writeLocalJson(this.stateFile, { ...this.state, disks: this.state.disks.map(d => cleanProgress(d, true)) })
+      }
       catch { throw new Error('JOB_SAVE_FAILED') }
       this.lastSave = Date.now()
+      if (this.liveReport && (!activeJob(this.state.status) || Date.now() - this.lastReportNotice >= 12_000)) {
+        this.lastReportNotice = Date.now(); this.emit('report')
+      }
     }
     this.emit('snapshot', this.snapshot())
   }
@@ -154,6 +170,8 @@ export class JobService extends EventEmitter {
       const input = path.join(this.directory, 'input.json')
       writeLocalJson(input, { roots: this.state.drives.map(d => d.path), database: this.database, private_directory: this.directory,
         load: ['low', 'medium', 'high'].indexOf(this.state.mode), content: this.state.content, managed: true })
+      this.liveReport = prepareReport(initialReport(this.state), new ConsentService(this.consentFile))
+      this.lastReportNotice = 0
       this.publish(true) // Durable intent precedes process creation.
       const child = this.launchProcess(this.executable, input)
       this.child = child
@@ -181,20 +199,26 @@ export class JobService extends EventEmitter {
             this.state.disks = event.disks.map((d, i) => ({ ...cleanProgress(d), path: this.state.drives[i].path,
               overall_percent: overallProgress(d, this.state.content, this.state.disks[i]),
               timing: this.timing.observe(d, this.state.content, this.state.status === 'running') }))
+            const checkpoint = event.type === 'progress' && Object.hasOwn(event, 'report')
+            if (checkpoint) {
+              if (!isReport(event.report) || event.report.complete || event.report.statistics.disks.length !== this.state.drives.length) throw new Error()
+              this.liveReport = prepareReport(event.report, new ConsentService(this.consentFile))
+              this.state.total = event.report.statistics.total
+            }
             if (event.type === 'result') {
               result = reportFromEvent(event)
               content = contentFromEvent(event)
               if (result.statistics.disks.length !== this.state.drives.length || content.enabled !== this.state.content) throw new Error()
               this.state.total = result.statistics.total
               this.state.warnings = { ...content.warning_pairs, limited: content.files.limit ?? 0 }
-              // Capture consent once at creation, but do not persist a report
-              // until a clean process exit confirms the final event.
+              // A final event remains partial until a clean process exit.
               prepared = prepareReport(result, new ConsentService(this.consentFile))
+              this.liveReport = { ...prepared, report: { ...prepared.report, complete: false } }
               // No further commands follow a final result. Release the CLI's
               // input reader so runtime shutdown cannot wait on an open pipe.
               child.stdin.end()
             }
-            this.publish()
+            this.publish(checkpoint || event.type === 'result')
           } catch { fail('INVALID_ANALYZER_EVENT'); return }
         }
       })
@@ -212,12 +236,13 @@ export class JobService extends EventEmitter {
         }
         try {
           if (!failed && code === 0 && prepared && content) {
-            savePreparedReport(this.reportPath(), prepared)
+            this.liveReport = prepared
             writeLocalJson(path.join(this.directory, 'content.json'), content)
             try { await this.catalog.capture(this.database, this.state.id!, this.state.drives.map(d => d.path), !!result?.complete) }
             catch { this.state.error = 'CATALOG_SAVE_FAILED' }
           }
           this.publish(true) // Persist result/state before deleting the only working copy.
+          this.liveReport = null
           await cleanupWorkFile(this.database, this.state.status === 'completed' && this.state.error !== 'CATALOG_SAVE_FAILED')
         } catch { this.state.error = 'JOB_SAVE_FAILED'; this.state.status = 'error'; this.emit('snapshot', this.snapshot()) }
         this.busy = false

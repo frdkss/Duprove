@@ -7,12 +7,12 @@ from pathlib import Path
 @dataclass(frozen=True)
 class Settings:
     database: Path
-    max_request_bytes: int = 2 * 1024 * 1024
+    max_request_bytes: int = 32 * 1024 * 1024
     max_payload_bytes: int = 256 * 1024 * 1024
     max_database_bytes: int = 480 * 1024 * 1024
     max_reports: int = 100_000
     retention_seconds: int = 30 * 86400
-    processing_seconds: float = 5.0
+    processing_seconds: float = 30.0
     requests_per_minute: int = 60
     burst: int = 10
 

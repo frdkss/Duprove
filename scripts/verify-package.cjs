@@ -23,6 +23,7 @@ module.exports = async context => {
   const file = path.join(context.packager.projectDir, 'build/native/bin', platform === 'win32' ? 'duprove-analyzer.exe' : 'duprove-analyzer')
   const native = binaryTarget(readFileSync(file))
   if (native.platform !== platform || native.arch !== arch) throw Error('ANALYZER_TARGET_MISMATCH: build the analyzer on the target OS and architecture before packaging')
-  if (platform === 'win32') require('./check-windows-defender.cjs').checkWindowsDefender(file, context.packager.projectDir)
+  if (platform === 'win32') require('./check-windows-defender.cjs').checkWindowsDefender(file, context.packager.projectDir, undefined,
+    { reportOnly: process.env.DUPROVE_DEFENDER_REPORT_ONLY === '1' })
 }
 module.exports.binaryTarget = binaryTarget

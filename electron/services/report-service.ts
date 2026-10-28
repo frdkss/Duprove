@@ -25,7 +25,7 @@ export function validatePrepared(value: unknown): asserts value is PreparedRepor
   serializeReport(item.report)
 }
 
-// Store the local envelope once, at report creation. Never retag old reports on retry.
+// Persist a prepared snapshot. The sender never retags it on retry.
 export function savePreparedReport(file: string, prepared: PreparedReport): void {
   validatePrepared(prepared)
   try { writeLocalJson(file, prepared) } catch { throw new Error('REPORT_SAVE_FAILED') }

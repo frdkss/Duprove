@@ -6,7 +6,7 @@ import { parseEnv } from 'node:util'
 import { isGrantId } from './consent-service'
 import type { ReportTransport } from './report-service'
 
-export const MAX_REPORT_BYTES = 2 * 1024 * 1024
+export const MAX_REPORT_BYTES = 32 * 1024 * 1024
 export class DeliveryError extends Error {
   constructor(readonly code: string, readonly retryable: boolean, readonly retryAfterMs = 0) { super(code); this.name = 'DeliveryError' }
 }
@@ -65,7 +65,7 @@ export class HttpsReportTransport implements ReportTransport {
         if (error) rejectRequest(error); else resolveRequest()
       }
       // Absolute deadline includes DNS, TLS, upload and a slow/trickling response.
-      const deadline = setTimeout(() => request?.destroy(new DeliveryError('DELIVERY_TIMEOUT', true)), this.settings.timeoutMs ?? 20_000)
+      const deadline = setTimeout(() => request?.destroy(new DeliveryError('DELIVERY_TIMEOUT', true)), this.settings.timeoutMs ?? 60_000)
       try { request = https.request(this.url, {
         method: 'POST', agent: false, signal, ca: this.settings.ca, rejectUnauthorized: true,
         minVersion: 'TLSv1.2', headers: { 'Content-Type': 'application/json', 'Content-Length': bytes,

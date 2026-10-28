@@ -16,3 +16,13 @@ inline void recordIssue(json& state,const char* code,const char* operation=nullp
   }
   (*issue)["count"]=(*issue)["count"].get<int64_t>()+1;
 }
+
+// Individual unavailable/changed entries are skipped; unfinished directory
+// traversal and unknown failures still make a run incomplete.
+inline bool hasBlockingIssues(const json& state) {
+  int64_t skipped=0;
+  if(state.contains("issues")) for(const auto& issue:state["issues"])
+    if(issue["code"]=="metadata_unavailable" || issue["code"]=="file_unavailable_or_changed")
+      skipped+=issue["count"].get<int64_t>();
+  return state.value("errors",int64_t(0))>skipped;
+}

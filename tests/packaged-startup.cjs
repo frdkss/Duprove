@@ -1,5 +1,5 @@
 const { spawn } = require('node:child_process')
-const { mkdtempSync, rmSync } = require('node:fs')
+const { mkdtempSync, rmSync, readFileSync } = require('node:fs')
 const { tmpdir } = require('node:os')
 const path = require('node:path')
 const assert = require('node:assert/strict')
@@ -7,6 +7,7 @@ const { waitForMain } = require('./helpers/packaged-readiness.cjs')
 if (process.argv.length !== 3) throw Error('Usage: node tests/packaged-startup.cjs <packaged executable>')
 const profile = mkdtempSync(path.join(tmpdir(), 'duprove-packaged-ui-'))
 const binary = process.argv[2]
+const expectedVersion = JSON.parse(readFileSync(path.join(__dirname, '../package.json'), 'utf8')).version
 const environment = { ...process.env, XDG_CONFIG_HOME: profile }
 delete environment.ELECTRON_RUN_AS_NODE
 const child = spawn(binary, ['--inspect=0', `--user-data-dir=${profile}`], {
@@ -68,7 +69,7 @@ async function check() {
         const window = BrowserWindow.getAllWindows()[0];
         if (window && !window.webContents.isLoading()) {
           const result = await window.webContents.executeJavaScript('(async()=>{if(!window.duprove || !document.querySelector("h1")) return null; return {drives:await window.duprove.listDrives(),consent:await window.duprove.getStatisticsConsent(),rendered:document.querySelectorAll(".sidebar-drives .drive-item").length};})()');
-          if (result && result.rendered === result.drives.length) return {packaged:app.isPackaged,visible:window.isVisible(),count:result.drives.length,paths:result.drives.map(d=>d.path),rendered:result.rendered,decision:result.consent.decision};
+          if (result && result.rendered === result.drives.length) return {packaged:app.isPackaged,version:app.getVersion(),visible:window.isVisible(),count:result.drives.length,paths:result.drives.map(d=>d.path),rendered:result.rendered,decision:result.consent.decision,updateVersion:(await window.webContents.executeJavaScript('window.duprove.getUpdate()')).currentVersion};
         }
         await new Promise(resolve=>setTimeout(resolve,100));
       }
@@ -77,6 +78,8 @@ async function check() {
     if (response.error || response.result?.exceptionDetails) throw Error(JSON.stringify(response))
     const value = response.result.result.value
     assert.equal(value.packaged, true)
+    assert.equal(value.version, expectedVersion, 'Packaged application metadata has the requested version')
+    assert.equal(value.updateVersion, expectedVersion, 'Application settings receive the packaged version')
     assert.equal(value.visible, true)
     assert.ok(process.platform === 'win32' ? value.paths.some(p => /^[a-z]:[\\/]+$/i.test(p)) : value.paths.includes('/'), 'A system drive must be listed')
     assert.ok(value.count > 0)

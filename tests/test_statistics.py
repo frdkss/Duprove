@@ -58,7 +58,9 @@ class StatisticsTests(unittest.TestCase):
             self.assertTrue(is_report(report))
             self.assertTrue(report['complete'])
             self.assertEqual(report['statistics']['total'], dict(files=15, empty=7, duplicate_members=7,
-                             duplicate_groups=1, duplicates=6, types={'.txt': 4, '.bin': 3, 'empty': 7, 'none': 1}))
+                             duplicate_groups=1, duplicates=6, types={'.txt': 4, '.bin': 3, 'empty': 7, 'none': 1},
+                             file_bytes=sum(map(len, files.values())), duplicate_bytes=7 * len(payload),
+                             reclaimable_bytes=6 * len(payload)))
             group, = report['duplicates']
             self.assertEqual(group['extensions'], {'.txt': 4, '.bin': 3})
             self.assertEqual(group['disks'], {'0': 4, '1': 3})

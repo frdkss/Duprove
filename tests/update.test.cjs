@@ -7,7 +7,7 @@ const os = require('node:os')
 const https = require('node:https')
 const { EventEmitter } = require('node:events')
 const { PassThrough } = require('node:stream')
-const { spawnSync } = require('node:child_process')
+const { spawn, spawnSync } = require('node:child_process')
 const { verifyManifest, selectTarget, compareVersions, stableVersion } = require('../.verification/tests/electron/services/update-manifest.js')
 const { UpdateService } = require('../.verification/tests/electron/services/update-service.js')
 const { verifyPackage, installedUpdateHost, PackageUpdateInstaller } = require('../.verification/tests/electron/services/update-installer.js')
@@ -21,6 +21,16 @@ const envelope = (value, key = pair.privateKey) => {
   const payload = Buffer.from(JSON.stringify(value))
   return Buffer.from(JSON.stringify({ payload: payload.toString('base64'), signature: sign(null, payload, key).toString('base64') }))
 }
+test('version 2 signed update metadata refers to the renamed Windows and Linux installers', async t => {
+  const directory = await temporary(t)
+  const { makeManifest } = await import('../scripts/release-manifest.mjs')
+  const files = ['Duprove-2.0.0-windows-64bit-x86_64.exe', 'Duprove-2.0.0-linux-64bit-x86_64.tar.gz']
+  for (const file of files) await writeFile(path.join(directory, file), 'new')
+  const signed = await makeManifest(directory, '2.0.0', pair.privateKey.export({ type: 'pkcs8', format: 'pem' }), publicKey)
+  const verified = verifyManifest(Buffer.from(JSON.stringify(signed)), publicKey, '2.0.0')
+  assert.deepEqual(verified.targets.map(target => target.asset), files)
+  assert.ok(verified.targets.every(target => target.sha512 === createHash('sha512').update('new').digest('hex')))
+})
 async function temporary(t) {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'duprove-update-'))
   t.after(() => rm(dir, { recursive: true, force: true })); return dir
@@ -219,6 +229,26 @@ test('Windows installer executes hash verification with its own PowerShell modul
   try { await installer.prepare(file, '1.1.0', target); await installer.install() }
   finally { if (inherited === undefined) delete process.env.PSModulePath; else process.env.PSModulePath = inherited }
   assert.equal(stopped, true)
+})
+
+test('Windows update helper survives the actual parent process exit', { skip: process.platform !== 'win32' }, async t => {
+  const base = await temporary(t), directory = path.join(base, 'profile with spaces', 'updates'), app = path.join(base, 'app'), helpers = path.join(base, 'helpers')
+  for (const folder of [directory, app, helpers]) await mkdir(folder, { recursive: true })
+  const file = path.join(directory, 'package.exe'); await writeFile(file, 'new')
+  await writeFile(path.join(helpers, 'update-windows.ps1'), `param([string]$Transaction)\n$ErrorActionPreference='Stop'\n$job=Get-Content -LiteralPath $Transaction -Raw | ConvertFrom-Json\n[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'armed'),$job.token)\nStart-Sleep -Seconds 2\n[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'survived'),$job.token)\n`)
+  const moduleFile = path.resolve(__dirname, '../.verification/tests/electron/services/update-installer.js')
+  const driver = path.join(base, 'driver.cjs')
+  await writeFile(driver, `const {PackageUpdateInstaller}=require(${JSON.stringify(moduleFile)});\n(async()=>{const options=${JSON.stringify({ directory, executable: path.join(app, 'Duprove.exe'), helperDirectory: helpers })};options.shutdown=async()=>process.exit(0);const installer=new PackageUpdateInstaller(options);await installer.prepare(${JSON.stringify(file)},'1.1.0',${JSON.stringify(target)});await installer.install();})().catch(e=>{console.error(e);process.exitCode=1});`)
+  const child = spawn(process.execPath, [driver], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] })
+  let stderr = ''; child.stderr.on('data', chunk => { stderr += chunk })
+  const exit = await new Promise((resolve, reject) => { child.on('error', reject); child.on('exit', resolve) })
+  assert.equal(exit, 0, stderr)
+  let survived = false
+  for (let i = 0; i < 80; i++) {
+    try { await readFile(path.join(directory, 'survived')); survived = true; break } catch {}
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  assert.ok(survived, 'Helper must continue after shutdown() exits the old process')
 })
 
 test('release signing CLI accepts a planned main-branch release and rejects a mismatched version', async t => {
