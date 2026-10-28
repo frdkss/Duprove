@@ -81,8 +81,14 @@ export class DeliveryService extends EventEmitter {
       error: this.error }
   }
   private publish() { this.revision++; this.emit('snapshot', this.snapshot()) }
+  private sourceFile(file: string) { return path.join(this.directory, 'delivery-sources', path.basename(file)) }
   private persist(entry: Entry): boolean {
-    try { writeLocalJson(entry.stateFile, entry.record); return true }
+    try {
+      writeLocalJson(entry.stateFile, entry.record)
+      // Link the rolling source to its last attempt across process restarts.
+      writeLocalJson(this.sourceFile(entry.file), { version: 1, grant: entry.grant, record: entry.record })
+      return true
+    }
     catch { entry.record.status = 'failed'; entry.record.error = 'DELIVERY_SAVE_FAILED'; this.error = 'DELIVERY_SAVE_FAILED'; return false }
   }
   refresh(): Promise<void> {
@@ -104,10 +110,31 @@ export class DeliveryService extends EventEmitter {
       try {
         const { prepared, raw } = await preparedFile(file)
         const digest = fingerprint(name, raw)
-        if (this.entries.get(name)?.record.fingerprint === digest) continue
+        let previous = this.entries.get(name)
+        if (previous?.record.fingerprint === digest || previous?.record.status === 'sending') continue
+        if (!previous) {
+          try {
+            const source: unknown = JSON.parse(await readBounded(this.sourceFile(file), 4096))
+            if (!source || typeof source !== 'object' || Array.isArray(source)) throw Error()
+            const saved = source as { version: number; grant: string | null; record: RecordState }
+            if (Object.keys(saved).length !== 3 || saved.version !== 1 || saved.grant !== null && !isGrantId(saved.grant)
+              || !saved.record || typeof saved.record.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(saved.record.fingerprint)
+              || !validRecord(saved.record, saved.record.fingerprint)) throw Error()
+            if (saved.record.status === 'sending') saved.record.status = 'pending'
+            previous = { file, stateFile: '', grant: saved.grant, record: saved.record }
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw Error('INVALID_DELIVERY_STATE')
+          }
+        }
         const stateFile = path.join(this.directory, 'delivery', `${digest}.json`)
         let record: RecordState = { version: 1, id: randomUUID(), fingerprint: digest, status: 'pending',
           attempts: 0, firstAttemptAt: null, nextAttemptAt: 0, error: null }
+        // A newer checkpoint supersedes unsent data, preserving network backoff.
+        // Its new payload needs a new idempotency key even after a lost response.
+        if (previous && previous.grant === prepared.consentGrantId
+          && (previous.record.status === 'pending' || previous.record.attempts >= 5)) {
+          record = { ...previous.record, id: record.id, fingerprint: digest }
+        }
         try {
           const stored: unknown = JSON.parse(await readBounded(stateFile, 4096))
           if (!validRecord(stored, digest)) throw new Error('INVALID_DELIVERY_STATE')
@@ -143,7 +170,7 @@ export class DeliveryService extends EventEmitter {
     const at = Math.max(this.nextNetworkAt, Math.min(...pending.map(entry => entry.record.nextAttemptAt)))
     this.timer = setTimeout(() => {
       this.running = this.attempt().catch(() => { this.error = 'DELIVERY_FAILED' }).finally(() => {
-        this.running = null; this.publish(); this.schedule()
+        this.running = null; this.publish(); void this.refresh()
       })
     }, Math.max(0, Math.min(2_147_483_647, at - this.now())))
     this.timer.unref()

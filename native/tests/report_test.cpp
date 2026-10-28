@@ -42,6 +42,9 @@ int main() {
     const auto report=buildReport(db,2,true);
     const auto& s=report.at("statistics");
     check(s["total"],19,7,10,4); require(s["total"]["duplicates"]==6);
+    require(s["total"]["file_bytes"]==144 && s["total"]["duplicate_bytes"]==120 && s["total"]["reclaimable_bytes"]==72);
+    require(s["disks"][0]["file_bytes"]==84 && s["disks"][0]["duplicate_bytes"]==72);
+    require(s["disks"][1]["file_bytes"]==60 && s["disks"][1]["duplicate_bytes"]==48);
     check(s["disks"][0],7,0,6,4); check(s["disks"][1],12,7,4,3);
     const auto& standard=s["locations"]["standard"];
     check(standard["total"],14,6,7,3);
@@ -52,6 +55,7 @@ int main() {
     require(report["duplicates"].size()==4);
     const auto& group=report["duplicates"][0];
     require(group["copies"]==4 && group["duplicates"]==3);
+    require(group["size_bytes"]==12);
     require(group["extensions"]==json({{".txt",2},{".md",1},{".bin",1}}));
     require(group["disks"]==json({{"0",2},{"1",2}}));
     require(group["categories"]==json({{"downloads",1},{"documents",1},{"custom",1},{"pictures",1}}));
@@ -61,6 +65,13 @@ int main() {
     db.exec("DELETE FROM files;");
     auto empty=buildReport(db,1,true);
     check(empty["statistics"]["total"],0,0,0,0); require(empty["duplicates"].empty());
+    require(empty["statistics"]["total"]["file_bytes"]==0 && empty["statistics"]["total"]["duplicate_bytes"]==0);
+    db.exec("INSERT INTO files VALUES('a',0,'custom','.bin',9007199254740991,1,'x');"
+            "INSERT INTO files VALUES('b',0,'custom','.bin',1,1,'x');");
+    bool overflow=false;
+    try { buildReport(db,1,true); } catch(const std::exception&) { overflow=true; }
+    require(overflow);
+    db.exec("DELETE FROM files;");
     for(int disks:{0,65}) {
       bool rejected=false;
       try { buildReport(db,disks,true); } catch(const std::exception&) { rejected=true; }

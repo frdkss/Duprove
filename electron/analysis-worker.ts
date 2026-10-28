@@ -3,6 +3,7 @@ import { JobService } from './services/job-service'
 
 const service = new JobService(workerData.executable, workerData.directory, workerData.consentFile)
 service.on('snapshot', snapshot => parentPort!.postMessage({ snapshot }))
+service.on('report', () => parentPort!.postMessage({ report: true }))
 let commands = service.restore().then(async () => { await service.catalog.clearComparison(); parentPort!.postMessage({ ready: true, snapshot: service.snapshot() }) })
 parentPort!.on('message', ({ id, method, value }) => {
   commands = commands.then(async () => {

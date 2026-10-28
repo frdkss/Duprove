@@ -27,6 +27,7 @@ Value read(const fs::path& path,const FileInfo& expected,int root,ScanContext& c
   const bool text=ext==".txt" || ext==".md" || ext==".markdown" || ext==".docx";
   const bool image=ext==".png" || ext==".jpg" || ext==".jpeg";
   if(!context.waitFor(root)) { value.status=Status::stopped; return value; }
+  if(context.fileSkipped(utf8(path))) { value.status=Status::unavailable; return value; }
   if(expected.size==0) { value.status=Status::empty; return value; }
   if(!text && !image) return value;
   value.kind=text ? "text" : "image";
@@ -43,6 +44,7 @@ Value read(const fs::path& path,const FileInfo& expected,int root,ScanContext& c
       const auto amount=std::min(size_t(262144),bytes.size()-offset);
       if(file.read(reinterpret_cast<char*>(bytes.data()+offset),amount)!=amount) throw Failure{Status::unavailable};
       offset+=amount; context.accountRead(root,amount);
+      if(!file.info().same(expected)) throw Failure{Status::unavailable};
     }
     char extra;
     if(file.read(&extra,1) || !file.info().same(expected)) throw Failure{Status::unavailable};

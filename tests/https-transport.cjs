@@ -5,7 +5,7 @@ const https = require('node:https')
 const fs = require('node:fs')
 const path = require('node:path')
 const { randomUUID } = require('node:crypto')
-const { HttpsReportTransport } = require('../.verification/tests/electron/services/report-transport.js')
+const { HttpsReportTransport, MAX_REPORT_BYTES } = require('../.verification/tests/electron/services/report-transport.js')
 const payload = JSON.stringify(require('../contracts/fixtures/example.json'))
 const directory = process.env.DUPROVE_TEST_TLS_DIR
 assert.ok(directory, 'Run test:delivery:deployment or set DUPROVE_TEST_TLS_DIR to a test-only localhost certificate directory')
@@ -91,5 +91,5 @@ test('rate limits, permanent errors and oversize requests are distinguished', as
     await assert.rejects(f.transport.send(payload, options()), error => error.retryable === retryable && error.retryAfterMs === 120_000)
   }
   const f = await fixture(t, () => assert.fail('Oversized request sent'))
-  await assert.rejects(f.transport.send(' '.repeat(2 * 1024 * 1024 + 1), options()), error => error.code === 'REPORT_TOO_LARGE')
+  await assert.rejects(f.transport.send(' '.repeat(MAX_REPORT_BYTES + 1), options()), error => error.code === 'REPORT_TOO_LARGE')
 })

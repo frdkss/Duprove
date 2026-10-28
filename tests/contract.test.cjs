@@ -5,6 +5,27 @@ const { prepareReport, sendReport } = require('../.verification/tests/electron/s
 const { reportFromEvent } = require('../.verification/tests/electron/services/analyzer-service.js')
 const cases = require('../contracts/fixtures/cases.json')
 for (const fixture of cases) test(fixture.name, () => assert.equal(isReport(fixture.report), fixture.valid))
+
+test('byte counters, volume totals and progress are checked without losing legacy compatibility', () => {
+  const report = require('../contracts/fixtures/byte-example.json')
+  assert.ok(isReport(report))
+  for (const mutate of [
+    r => r.duplicates[0].size_bytes++,
+    r => r.statistics.total.file_bytes++,
+    r => r.statistics.total.duplicate_bytes++,
+    r => r.statistics.total.reclaimable_bytes++,
+    r => delete r.statistics.disks[0].file_bytes,
+    r => r.statistics.disks[0].used_bytes++,
+    r => r.statistics.total.used_bytes = 9007199254740992,
+    r => r.progress.disks[0].id = 1,
+    r => r.progress.disks[0].work.current = 'PRIVATE_PATH',
+    r => Object.assign(r.progress.disks[0].work, { done: 2, total: 1 }),
+    r => r.progress.status = 'running',
+  ]) {
+    const invalid = structuredClone(report); mutate(invalid)
+    assert.equal(isReport(invalid), false)
+  }
+})
 test('reject non-JSON values and overflow', () => {
   for (const value of [undefined, null, [], NaN, Infinity]) assert.equal(isReport(value), false)
   const report = structuredClone(cases[0].report)

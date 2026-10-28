@@ -148,7 +148,7 @@ class TraversalTests(unittest.TestCase):
         self.assertNotIn('issues', event['report'])
 
     @unittest.skipUnless(os.name == 'nt', 'Windows sharing rules')
-    def test_windows_locked_file_is_reported(self):
+    def test_windows_locked_file_is_skipped(self):
         import ctypes
         from ctypes import wintypes
         locked = self.root / 'locked'
@@ -165,7 +165,8 @@ class TraversalTests(unittest.TestCase):
             event = self.scan()
         finally:
             api.CloseHandle(handle)
-        self.assertFalse(event['report']['complete'])
+        self.assertTrue(event['report']['complete'])
+        self.assertEqual(event['disks'][0]['phase'], 'completed')
         self.assertGreater(event['disks'][0]['errors'], 0)
         self.assertEqual(event['report']['statistics']['total']['duplicates'], 0)
         self.assertEqual(event['disks'][0]['issues'][0]['code'], 'file_unavailable_or_changed')
@@ -240,7 +241,8 @@ class TraversalTests(unittest.TestCase):
             event = self.scan()
         finally:
             denied.chmod(0o600)
-        self.assertFalse(event['report']['complete'])
+        self.assertTrue(event['report']['complete'])
+        self.assertEqual(event['disks'][0]['phase'], 'completed')
         self.assertEqual(event['report']['statistics']['total']['duplicates'], 0)
 
 

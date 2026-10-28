@@ -51,6 +51,20 @@ int main() {
     require(equalBytes(a,info(a),b,info(b),0,context,1)==ByteMatch::stopped,"cancelled other root");
     context.controls[1]=0;
 
+    // Mutations during streaming stop the current file before reading it all.
+    const std::string large(4*1024*1024,'x');
+    ScanContext streaming;streaming.loadMode=2;streaming.regulateCpu=false;
+    write(a,large);bool mutated=false;
+    streaming.readProgress=[&](int,size_t) { if(!mutated) { mutated=true;std::ofstream out(a,std::ios::binary|std::ios::app);out<<'x'; } };
+    require(digest(a,info(a),0,streaming).empty() && mutated,"file changed during hashing is skipped");
+    require(streaming.readBytes<large.size(),"changed hash stops reading early");
+    for(bool right:{false,true}) {
+      write(a,large);write(b,large);mutated=false;streaming.readBytes=0;
+      streaming.readProgress=[&](int,size_t) { if(!mutated) { mutated=true;std::ofstream out(right?b:a,std::ios::binary|std::ios::app);out<<'x'; } };
+      require(equalBytes(a,info(a),b,info(b),0,streaming)==(right?ByteMatch::rightUnavailable:ByteMatch::leftUnavailable),"file changed during comparison is skipped");
+      require(streaming.readBytes<large.size(),"changed comparison stops reading early");
+    }
+
     // Deliberately inject a collision into the private candidate index. Production
     // grouping must separate different bytes even when the supplied hashes match.
     DB db(":memory:");
@@ -80,7 +94,7 @@ int main() {
       }
     };
     scan({{"roots",json::array({utf8(selected)})},{"database",utf8(base/"work"/"scan.sqlite")}},context);
-    require(replaced && result["report"]["complete"]==false,"change between hash and comparison reported");
+    require(replaced && result["report"]["complete"]==true && result["disks"][0]["errors"]==1,"change between hash and comparison is skipped");
     require(result["report"]["statistics"]["total"]["duplicates"]==0,"no stale duplicate");
   } catch(const std::exception& error) {
     std::cerr<<error.what()<<'\n'; std::error_code ec; fs::remove_all(base,ec); return 1;

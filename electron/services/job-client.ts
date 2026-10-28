@@ -17,6 +17,7 @@ export class JobClient extends EventEmitter {
     let ready!: () => void
     this.ready = new Promise(resolve => { ready = resolve })
     this.worker.on('message', message => {
+      if (message.report) this.emit('report')
       if (message.snapshot) { this.state = message.snapshot; this.emit('snapshot', this.snapshot()) }
       if (message.ready) ready()
       if (message.id) {

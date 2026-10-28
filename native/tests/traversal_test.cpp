@@ -14,12 +14,12 @@ void write(const fs::path& path,const std::string& bytes) {
   std::ofstream file(path,std::ios::binary); file<<bytes;
   require(bool(file),"fixture write");
 }
-json run(const fs::path& db,const std::vector<fs::path>& roots,const std::function<void(const json&)>& hook={}) {
+json run(const fs::path& db,const std::vector<fs::path>& roots,const std::function<void(const json&)>& hook={},bool content=false) {
   ScanContext context; context.loadMode=2;
   json result;
   context.emit=[&](const json& event) { if(hook) hook(event); if(event["type"]=="result") result=event; };
   json paths=json::array(); for(const auto& root:roots) paths.push_back(utf8(root));
-  require(scan({{"roots",paths},{"database",utf8(db)}},context)==0,"scan status");
+  require(scan({{"roots",paths},{"database",utf8(db)},{"content",content}},context)==0,"scan status");
   require(!result.is_null(),"result missing"); return result;
 }
 }
@@ -78,7 +78,7 @@ int main() {
         write(changes/"b","DIFF"); fs::last_write_time(changes/"b",time);
       }
     });
-    require(changed && result["report"]["complete"]==false,"replacement detected");
+    require(changed && result["report"]["complete"]==true && result["disks"][0]["phase"]=="completed","replacement skipped without failing the run");
     require(result["report"]["statistics"]["total"]["duplicates"]==0,"replacement cannot match stale identity");
 
     const auto rewritten=base/"rewritten";
@@ -92,7 +92,7 @@ int main() {
         }
       }
     });
-    require(changed && result["report"]["complete"]==false,"same-size edit with restored mtime detected");
+    require(changed && result["report"]["complete"]==true && result["disks"][0]["errors"]==2,"same-size edits skipped with restored mtime");
     require(result["report"]["statistics"]["total"]["duplicates"]==0,"changed files do not use stale metadata");
 
     const auto first=base/"first", second=base/"second";
@@ -102,7 +102,26 @@ int main() {
         changed=true; fs::remove(first/"a");
       }
     });
-    require(changed && result["report"]["complete"]==false && result["report"]["statistics"]["total"]["duplicates"]==0,"disappearance between phases");
+    require(changed && result["report"]["complete"]==true && result["report"]["statistics"]["total"]["duplicates"]==0,"disappearance between phases is skipped");
+
+    const auto skipRoot=base/"skip-once",moved=base/"temporarily-unavailable";
+    for(const char* name:{"a.txt","b.txt","c.txt"}) write(skipRoot/name,"same");
+    bool removed=false,restored=false;
+    result=run(base/"work"/"skip-once.sqlite",{skipRoot},[&](const json& event) {
+      if(event["type"]!="progress") return;
+      if(!removed && event["disks"][0]["phase"]=="hashing") {
+        fs::rename(skipRoot/"a.txt",moved);removed=true;
+      } else if(removed && !restored && event["disks"][0]["phase"]=="content") {
+        fs::rename(moved,skipRoot/"a.txt");restored=true;
+      }
+    },true);
+    require(removed && restored && result["report"]["complete"]==true,"remaining files complete after a skip");
+    require(result["disks"][0]["errors"]==1,"skipped file is reported once across stages");
+    require(result["report"]["statistics"]["total"]["duplicates"]==1,"other healthy duplicates are preserved");
+    require(result["content"]["files"]["unavailable"]==1 && result["content"]["files"]["ready"]==2,"hash failure remains excluded from content");
+    result=run(base/"work"/"skip-once.sqlite",{skipRoot},{},true);
+    require(result["report"]["complete"]==true && result["disks"][0]["errors"]==0,"next explicit scan retries recovered files");
+    require(result["report"]["statistics"]["total"]["duplicates"]==2,"recovered file is included on next scan");
 
     FileInfo info; require(inspectFile(changes/"a",info),"file metadata");
     FileReader reader(changes/"a");

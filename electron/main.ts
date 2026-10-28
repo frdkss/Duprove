@@ -102,6 +102,7 @@ else {
     jobs = new JobClient(path.join(__dirname, 'analysis-worker.js'), { executable: executable(),
       directory: path.join(app.getPath('userData'), 'analysis'), consentFile: path.join(app.getPath('userData'), 'statistics-consent.json') })
     let previousStatus = 'idle'
+    jobs.on('report', () => { void delivery!.refresh() })
     jobs.on('snapshot', snapshot => {
       if (!activeJob(snapshot.status) && snapshot.status !== 'idle') void delivery!.refresh()
       for (const window of BrowserWindow.getAllWindows()) if (!window.webContents.isDestroyed()) window.webContents.send(channels.analysisEvent, snapshot)

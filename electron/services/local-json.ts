@@ -2,7 +2,7 @@ import { closeSync, fsyncSync, mkdirSync, openSync, renameSync, rmSync, writeFil
 import { dirname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
-// Small local records only: replace a complete file, never expose a partial JSON.
+// Replace a complete local record or report; never expose a partial JSON.
 export function writeLocalJson(file: string, value: unknown): void {
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
   const temporary = `${file}.${randomUUID()}.tmp`

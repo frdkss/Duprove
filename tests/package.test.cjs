@@ -40,6 +40,16 @@ test('Windows packaging fails closed on Defender detection, unavailability, or t
     return { status: 0 }
   })
 })
+
+test('Windows update helper test succeeds with GitHub Actions PowerShell exit handling', { skip: process.platform !== 'win32' }, () => {
+  const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command',
+    "$ErrorActionPreference='Stop'; . $env:DUPROVE_HELPER_TEST; if (Test-Path -LiteralPath 'variable:LASTEXITCODE') { exit $LASTEXITCODE }"], {
+    encoding: 'utf8', windowsHide: true, timeout: 60000,
+    env: windowsPowerShellEnvironment({ ...process.env, DUPROVE_HELPER_TEST: join(__dirname, 'test_update_windows.ps1') }),
+  })
+  assert.equal(result.status, 0, result.stderr || result.stdout)
+  assert.match(result.stdout, /WINDOWS_UPDATE_HELPER_OK/)
+})
 test('packaging distinguishes analyzer OS and CPU and rejects unknown executables', () => {
   for (const [machine, arch] of [[62, 'x64'], [183, 'arm64']]) {
     const elf = Buffer.alloc(64)

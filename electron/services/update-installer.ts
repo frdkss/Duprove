@@ -82,15 +82,19 @@ export class PackageUpdateInstaller {
     const helper = path.join(directory, windows ? 'install.ps1' : 'install.sh')
     await copyFile(path.join(this.options.helperDirectory, windows ? 'update-windows.ps1' : 'update-linux.sh'), helper)
     await chmod(helper, 0o700)
-    // All arguments are separate argv entries. No shell interpolation of user paths.
     const command = windows ? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe') : '/bin/bash'
-    const args = windows ? ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', helper, '-Transaction', path.join(directory, 'transaction.json')]
+    // Start-Process gives the Windows helper an independent lifetime. A direct
+    // child can disappear when the parent exits; DETACHED_PROCESS can skip -File.
+    // Paths travel in environment values, never interpolated into PowerShell code.
+    const bootstrap = `$ErrorActionPreference='Stop'
+$arguments=@('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',('"'+$env:DUPROVE_UPDATE_HELPER+'"'),'-Transaction',('"'+$env:DUPROVE_UPDATE_TRANSACTION+'"'))
+Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList $arguments -WindowStyle Hidden`
+    const args = windows ? ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(bootstrap, 'utf16le').toString('base64')]
       : [helper, directory, String(this.transaction.parentPid), String(this.transaction.target), String(this.transaction.source), String(this.transaction.token)]
-    // Windows PowerShell can exit 0 without executing -File with DETACHED_PROCESS.
-    // Windows children outlive the parent with ignored handles + unref; POSIX needs setsid.
     // A GUI started from pwsh can inherit PS7 module paths too. The PS5 helper
     // needs its own modules for Get-FileHash and JSON/file operations.
-    const env = windows ? Object.fromEntries(Object.entries(process.env).filter(([name]) => name.toUpperCase() !== 'PSMODULEPATH')) : process.env
+    const env = windows ? { ...Object.fromEntries(Object.entries(process.env).filter(([name]) => name.toUpperCase() !== 'PSMODULEPATH')),
+      DUPROVE_UPDATE_HELPER: helper, DUPROVE_UPDATE_TRANSACTION: path.join(directory, 'transaction.json') } : process.env
     const child = spawn(command, args, { detached: !windows, stdio: 'ignore', windowsHide: true, env })
     await new Promise<void>((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject) })
     child.unref()
@@ -99,7 +103,8 @@ export class PackageUpdateInstaller {
       let armed = false
       try { armed = (await readFile(path.join(directory, 'armed'), 'utf8')).trim() === this.transaction.token } catch {}
       if (armed) { await this.options.shutdown(); return }
-      if (child.exitCode !== null) throw Error('UPDATE_HELPER_FAILED')
+      // A successful Windows bootstrap exits before its independent helper arms.
+      if (child.exitCode !== null && (!windows || child.exitCode !== 0)) throw Error('UPDATE_HELPER_FAILED')
       await new Promise(resolve => setTimeout(resolve, 100))
     }
     child.kill(); throw Error('UPDATE_HELPER_TIMEOUT')

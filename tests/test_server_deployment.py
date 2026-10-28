@@ -69,7 +69,7 @@ def main():
                                          headers={'Content-Type': 'application/json',
                                                   'X-Forwarded-For': 'PRIVATE_IP', 'Cookie': 'PRIVATE_COOKIE'})
             try:
-                response = urllib.request.urlopen(req, context=context, timeout=20)
+                response = urllib.request.urlopen(req, context=context, timeout=60)
             except urllib.error.HTTPError as error:
                 response = error
             with response:
@@ -92,7 +92,7 @@ def main():
             assert post(path='/v1/reports?file=PRIVATE_FILE')[0] == 400
             assert post(path='/PRIVATE_FILE')[0] == 404
             # Oversize body is rejected before the Python validator.
-            assert post(b' ' * (2 * 1024 * 1024 + 1))[0] == 413
+            assert post(b' ' * (32 * 1024 * 1024 + 1))[0] == 413
             results = [post()[0] for _ in range(5)]
             assert 429 in results, results
             accepted = 1 + results.count(201)

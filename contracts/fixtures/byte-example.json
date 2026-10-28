@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "complete": true,
+  "statistics": {
+    "total": {
+      "files": 5,
+      "empty": 1,
+      "types": {
+        ".txt": 2,
+        ".bin": 1,
+        ".jpg": 1,
+        "empty": 1
+      },
+      "duplicate_members": 3,
+      "duplicate_groups": 1,
+      "duplicates": 2,
+      "duplicate_bytes": 36,
+      "file_bytes": 43,
+      "reclaimable_bytes": 24,
+      "capacity_bytes": 200,
+      "available_bytes": 80,
+      "used_bytes": 120
+    },
+    "disks": [
+      {
+        "files": 2,
+        "empty": 0,
+        "types": {
+          ".txt": 2
+        },
+        "duplicate_members": 2,
+        "duplicate_groups": 1,
+        "id": 0,
+        "duplicate_bytes": 24,
+        "file_bytes": 24,
+        "capacity_bytes": 100,
+        "available_bytes": 40,
+        "used_bytes": 60
+      },
+      {
+        "files": 3,
+        "empty": 1,
+        "types": {
+          ".bin": 1,
+          ".jpg": 1,
+          "empty": 1
+        },
+        "duplicate_members": 1,
+        "duplicate_groups": 1,
+        "id": 1,
+        "duplicate_bytes": 12,
+        "file_bytes": 19,
+        "capacity_bytes": 100,
+        "available_bytes": 40,
+        "used_bytes": 60
+      }
+    ],
+    "locations": {
+      "standard": {
+        "total": {
+          "files": 3,
+          "empty": 0,
+          "types": {
+            ".txt": 2,
+            ".jpg": 1
+          },
+          "duplicate_members": 2,
+          "duplicate_groups": 1,
+          "duplicate_bytes": 24,
+          "file_bytes": 31
+        },
+        "categories": {
+          "downloads": {
+            "files": 1,
+            "empty": 0,
+            "types": {
+              ".jpg": 1
+            },
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "duplicate_bytes": 0,
+            "file_bytes": 7
+          },
+          "documents": {
+            "files": 2,
+            "empty": 0,
+            "types": {
+              ".txt": 2
+            },
+            "duplicate_members": 2,
+            "duplicate_groups": 1,
+            "duplicate_bytes": 24,
+            "file_bytes": 24
+          },
+          "videos": {
+            "files": 0,
+            "empty": 0,
+            "types": {},
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "duplicate_bytes": 0,
+            "file_bytes": 0
+          },
+          "pictures": {
+            "files": 0,
+            "empty": 0,
+            "types": {},
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "duplicate_bytes": 0,
+            "file_bytes": 0
+          },
+          "music": {
+            "files": 0,
+            "empty": 0,
+            "types": {},
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "duplicate_bytes": 0,
+            "file_bytes": 0
+          },
+          "desktop": {
+            "files": 0,
+            "empty": 0,
+            "types": {},
+            "duplicate_members": 0,
+            "duplicate_groups": 0,
+            "duplicate_bytes": 0,
+            "file_bytes": 0
+          }
+        }
+      },
+      "custom": {
+        "files": 2,
+        "empty": 1,
+        "types": {
+          ".bin": 1,
+          "empty": 1
+        },
+        "duplicate_members": 1,
+        "duplicate_groups": 1,
+        "duplicate_bytes": 12,
+        "file_bytes": 12
+      }
+    }
+  },
+  "duplicates": [
+    {
+      "copies": 3,
+      "duplicates": 2,
+      "extensions": {
+        ".txt": 2,
+        ".bin": 1
+      },
+      "disks": {
+        "0": 2,
+        "1": 1
+      },
+      "categories": {
+        "documents": 2,
+        "custom": 1
+      },
+      "size_bytes": 12
+    }
+  ],
+  "progress": {
+    "updated_at": 1000,
+    "status": "completed",
+    "disks": [
+      {
+        "id": 0,
+        "phase": "completed",
+        "percent": 100,
+        "work": {
+          "operation": "saving",
+          "done": 0,
+          "total": null,
+          "unit": "files",
+          "read_bytes": 48
+        }
+      },
+      {
+        "id": 1,
+        "phase": "completed",
+        "percent": 100,
+        "work": {
+          "operation": "saving",
+          "done": 0,
+          "total": null,
+          "unit": "files",
+          "read_bytes": 48
+        }
+      }
+    ]
+  }
+}

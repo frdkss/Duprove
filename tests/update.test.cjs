@@ -7,7 +7,7 @@ const os = require('node:os')
 const https = require('node:https')
 const { EventEmitter } = require('node:events')
 const { PassThrough } = require('node:stream')
-const { spawnSync } = require('node:child_process')
+const { spawn, spawnSync } = require('node:child_process')
 const { verifyManifest, selectTarget, compareVersions, stableVersion } = require('../.verification/tests/electron/services/update-manifest.js')
 const { UpdateService } = require('../.verification/tests/electron/services/update-service.js')
 const { verifyPackage, installedUpdateHost, PackageUpdateInstaller } = require('../.verification/tests/electron/services/update-installer.js')
@@ -229,6 +229,26 @@ test('Windows installer executes hash verification with its own PowerShell modul
   try { await installer.prepare(file, '1.1.0', target); await installer.install() }
   finally { if (inherited === undefined) delete process.env.PSModulePath; else process.env.PSModulePath = inherited }
   assert.equal(stopped, true)
+})
+
+test('Windows update helper survives the actual parent process exit', { skip: process.platform !== 'win32' }, async t => {
+  const base = await temporary(t), directory = path.join(base, 'profile with spaces', 'updates'), app = path.join(base, 'app'), helpers = path.join(base, 'helpers')
+  for (const folder of [directory, app, helpers]) await mkdir(folder, { recursive: true })
+  const file = path.join(directory, 'package.exe'); await writeFile(file, 'new')
+  await writeFile(path.join(helpers, 'update-windows.ps1'), `param([string]$Transaction)\n$ErrorActionPreference='Stop'\n$job=Get-Content -LiteralPath $Transaction -Raw | ConvertFrom-Json\n[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'armed'),$job.token)\nStart-Sleep -Seconds 2\n[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'survived'),$job.token)\n`)
+  const moduleFile = path.resolve(__dirname, '../.verification/tests/electron/services/update-installer.js')
+  const driver = path.join(base, 'driver.cjs')
+  await writeFile(driver, `const {PackageUpdateInstaller}=require(${JSON.stringify(moduleFile)});\n(async()=>{const options=${JSON.stringify({ directory, executable: path.join(app, 'Duprove.exe'), helperDirectory: helpers })};options.shutdown=async()=>process.exit(0);const installer=new PackageUpdateInstaller(options);await installer.prepare(${JSON.stringify(file)},'1.1.0',${JSON.stringify(target)});await installer.install();})().catch(e=>{console.error(e);process.exitCode=1});`)
+  const child = spawn(process.execPath, [driver], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] })
+  let stderr = ''; child.stderr.on('data', chunk => { stderr += chunk })
+  const exit = await new Promise((resolve, reject) => { child.on('error', reject); child.on('exit', resolve) })
+  assert.equal(exit, 0, stderr)
+  let survived = false
+  for (let i = 0; i < 80; i++) {
+    try { await readFile(path.join(directory, 'survived')); survived = true; break } catch {}
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  assert.ok(survived, 'Helper must continue after shutdown() exits the old process')
 })
 
 test('release signing CLI accepts a planned main-branch release and rejects a mismatched version', async t => {

@@ -7,19 +7,15 @@ const assert = require('node:assert/strict')
 const { randomUUID, createHash } = require('node:crypto')
 const { createReadStream } = require('node:fs')
 const root = path.resolve(__dirname, '..')
+const environment = { ...process.env }
+delete environment.ELECTRON_RUN_AS_NODE
 async function run(command, args, options = {}) {
-  const child = spawn(command, args, { cwd: root, windowsHide: true, stdio: 'inherit', ...options })
+  const child = spawn(command, args, { cwd: root, windowsHide: true, stdio: 'inherit', env: environment, ...options })
   await new Promise((resolve, reject) => { child.on('error', reject); child.on('exit', code => code === 0 ? resolve() : reject(Error(`CHILD_EXIT_${code}`))) })
 }
 if (process.argv[2] === '--driver') {
   ;(async () => {
-    const childProcess = require('node:child_process')
-    const originalSpawn = childProcess.spawn
-    childProcess.spawn = (command, args, options) => {
-      const child = originalSpawn(command, args, { ...options, stdio: 'inherit' })
-      child.once('exit', (code, signal) => console.error('TEST_HELPER_EXIT', code, signal))
-      return child
-    }
+    // Use the production launcher and its handle/lifetime settings unchanged.
     const { PackageUpdateInstaller } = require('../.verification/tests/electron/services/update-installer.js')
     const input = JSON.parse(await fs.readFile(process.argv[3], 'utf8'))
     const installer = new PackageUpdateInstaller({ directory: input.directory, executable: input.executable,
@@ -59,7 +55,7 @@ if (process.argv[2] === '--driver') {
       }
       // NSIS expects /D to contain all remaining text, including spaces.
       const initial = path.join(base, '1.0.0/Duprove-1.0.0-win-x64.exe')
-      const install = spawnSync(initial, ['/S', '/currentuser', `/D=${target}`], { windowsHide: true, windowsVerbatimArguments: true })
+      const install = spawnSync(initial, ['/S', '/currentuser', `/D=${target}`], { windowsHide: true, windowsVerbatimArguments: true, env: environment })
       if (install.error || install.status !== 0) throw Error('INITIAL_NSIS_FAILED')
       installed = true
       assert.equal((await fs.readFile(path.join(target, '.duprove-managed'), 'utf8')).trim(), 'Duprove NSIS per-user v1')
