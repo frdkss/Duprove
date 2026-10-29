@@ -168,10 +168,25 @@ class TraversalTests(unittest.TestCase):
         self.assertTrue(event['report']['complete'])
         self.assertEqual(event['disks'][0]['phase'], 'completed')
         self.assertGreater(event['disks'][0]['errors'], 0)
+        self.assertEqual(event['report']['statistics']['total']['files'], 1)
+        self.assertEqual(event['disks'][0]['files'], 1)
         self.assertEqual(event['report']['statistics']['total']['duplicates'], 0)
         self.assertEqual(event['disks'][0]['issues'][0]['code'], 'file_unavailable_or_changed')
         self.assertEqual(event['disks'][0]['issues'][0]['operation'], 'hashing')
         self.assertEqual(event['disks'][0]['issues'][0]['examples'], [])
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows permits unpaired UTF-16 surrogates in filenames')
+    def test_unconvertible_filename_does_not_discard_directory_siblings(self):
+        (self.root / '\ud800.bad').write_bytes(b'invalid filename')
+        (self.root / 'first.txt').write_bytes(b'healthy copies')
+        (self.root / 'second.txt').write_bytes(b'healthy copies')
+        event = self.scan()
+        self.assertTrue(event['report']['complete'])
+        self.assertEqual(event['disks'][0]['phase'], 'completed')
+        self.assertEqual(event['report']['statistics']['total']['files'], 2)
+        self.assertEqual(event['report']['statistics']['total']['duplicates'], 1)
+        self.assertEqual(event['disks'][0]['errors'], 1)
+        self.assertEqual(event['disks'][0]['issues'][0]['code'], 'metadata_unavailable')
 
     def test_directory_links_and_cycles(self):
         outside = self.base / 'unselected'
@@ -225,7 +240,8 @@ class TraversalTests(unittest.TestCase):
             event = self.scan()
         finally:
             denied.chmod(0o700)
-        self.assertFalse(event['report']['complete'])
+        self.assertTrue(event['report']['complete'])
+        self.assertEqual(event['disks'][0]['phase'], 'completed')
         self.assertGreater(event['disks'][0]['errors'], 0)
         self.assertEqual(event['report']['statistics']['total']['files'], 1)
 

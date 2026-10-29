@@ -361,6 +361,12 @@ test('malformed or oversized analyzer output is bounded and cannot become a save
     const result = await until(service, s => s.status === 'error')
     assert.equal(result.error, expected)
     assert.equal((await service.report()).complete, false)
+    await service.shutdown()
+    const restored = new JobService(binary, path.join(f.directory, `bad-${index}`), path.join(f.directory, 'consent.json'))
+    f.services.push(restored)
+    await restored.restore()
+    assert.equal(restored.snapshot().status, 'interrupted')
+    assert.equal(restored.snapshot().error, expected, 'The failure reason survives application restart')
   }
 })
 

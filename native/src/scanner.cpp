@@ -56,8 +56,8 @@ int scan(const json& job,ScanContext& context) {
   if(!storageAvailable()) throw std::runtime_error("ANALYSIS_STORAGE_LIMIT");
   DB db(utf8(dbPath));
   db.exec("PRAGMA temp_store=FILE;");
-  storage::limitDatabase(db,"main",storage::databaseBytes);
-  storage::limitDatabase(db,"temp",storage::temporaryBytes);
+  storage::limitAvailableDatabase(db,"main",dbPath.parent_path());
+  storage::limitAvailableDatabase(db,"temp",temporaryDirectory);
   const int count=int(roots.size());
   json states=json::array();
   for(auto& root:roots) states.push_back({{"path",root},{"phase","waiting"},{"files",0},{"empty",0},{"duplicate_members",0},{"duplicate_groups",0},{"errors",0},{"percent",nullptr},{"types",json::object()}});
@@ -142,7 +142,7 @@ int scan(const json& job,ScanContext& context) {
   checkpointReport();
   for(int root=0;root<count;++root) if(states[root]["phase"]=="waiting") work(root,"preparing","files",nullptr);
   send();
-  Query invalidate(db,"UPDATE files SET hash='',gid=0 WHERE path=?");
+  Query invalidate(db,"UPDATE files SET hash='',gid=0,seen=0 WHERE path=?");
   std::unordered_set<std::string> skipped;
   context.fileSkipped=[&](const std::string& path) { return skipped.count(path)!=0; };
   auto invalid=[&](const std::string& path,int root) {
@@ -283,11 +283,22 @@ int scan(const json& job,ScanContext& context) {
     for(int root=0;root<count;++root) if(context.controls[root]==2) put(db,"UPDATE files SET gid=0 WHERE root=?",{root});
     transaction.commit();
   }
+  // Do not delete rows while the phase cursors are still using them. Failed
+  // entries are hidden from reports immediately, then removed from the final
+  // inventory so the local catalog and all counters agree with the report.
+  {
+    Transaction transaction(db);
+    if(checkContent) db.exec("DELETE FROM content_matches WHERE left_path IN (SELECT path FROM files WHERE seen=0) OR right_path IN (SELECT path FROM files WHERE seen=0);"
+                             "DELETE FROM content_files WHERE path IN (SELECT path FROM files WHERE seen=0);");
+    db.exec("DELETE FROM files WHERE seen=0");
+    transaction.commit();
+  }
   bool complete=true;
   for(int root=0;root<count;++root) if(states[root]["phase"]=="validating") work(root,"saving","files",nullptr);
   for(int root=0;root<count;++root) {
     Query types(db,"SELECT ext,count(*) FROM files WHERE root=? GROUP BY ext",{root});
     int64_t total=0;
+    states[root]["types"]=json::object();
     while(types.next()) { states[root]["types"][types.str(0)]=types.num(1); total+=types.num(1); }
     states[root]["files"]=total; states[root]["empty"]=states[root]["types"].value("empty",int64_t(0));
     if(context.controls[root]==2) { states[root]["phase"]="stopped"; complete=false; }
@@ -302,7 +313,7 @@ int scan(const json& job,ScanContext& context) {
   }
   auto contentResult=content::result(db,checkContent);
   context.throttle();
-  if(checkContent && !complete) contentResult["complete"]=false;
+  if(checkContent && (!complete || !skipped.empty())) contentResult["complete"]=false;
   // The current inventory is sufficient as the next cache after a successful scan.
   if(complete) db.exec("DROP TABLE hash_cache;");
   for(auto& state:states) if(state["phase"]=="validating") { state["phase"]="completed";state["percent"]=100; }

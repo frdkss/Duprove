@@ -14,13 +14,18 @@ void write(const fs::path& path,const std::string& bytes) {
   std::ofstream file(path,std::ios::binary); file<<bytes;
   require(bool(file),"fixture write");
 }
-json run(const fs::path& db,const std::vector<fs::path>& roots,const std::function<void(const json&)>& hook={},bool content=false) {
-  ScanContext context; context.loadMode=2;
+json run(const fs::path& db,const std::vector<fs::path>& roots,const std::function<void(const json&)>& hook={},bool content=false,int mode=2) {
+  ScanContext context; context.loadMode=mode;
   json result;
   context.emit=[&](const json& event) { if(hook) hook(event); if(event["type"]=="result") result=event; };
   json paths=json::array(); for(const auto& root:roots) paths.push_back(utf8(root));
   require(scan({{"roots",paths},{"database",utf8(db)},{"content",content}},context)==0,"scan status");
-  require(!result.is_null(),"result missing"); return result;
+  require(!result.is_null(),"result missing");
+  if(content) {
+    int64_t counted=0;for(const auto& number:result["content"]["files"]) counted+=number.get<int64_t>();
+    require(counted==result["report"]["statistics"]["total"]["files"].get<int64_t>(),"content and inventory count the same files");
+  }
+  return result;
 }
 }
 int main() {
@@ -118,10 +123,49 @@ int main() {
     require(removed && restored && result["report"]["complete"]==true,"remaining files complete after a skip");
     require(result["disks"][0]["errors"]==1,"skipped file is reported once across stages");
     require(result["report"]["statistics"]["total"]["duplicates"]==1,"other healthy duplicates are preserved");
-    require(result["content"]["files"]["unavailable"]==1 && result["content"]["files"]["ready"]==2,"hash failure remains excluded from content");
+    require(result["content"]["files"]["unavailable"]==0 && result["content"]["files"]["ready"]==2,"hash failure remains excluded from content inventory");
+    require(result["report"]["statistics"]["total"]["files"]==2 && result["disks"][0]["files"]==2,"restored file stays excluded from inventory until the next run");
     result=run(base/"work"/"skip-once.sqlite",{skipRoot},{},true);
     require(result["report"]["complete"]==true && result["disks"][0]["errors"]==0,"next explicit scan retries recovered files");
     require(result["report"]["statistics"]["total"]["duplicates"]==2,"recovered file is included on next scan");
+
+    // Fail a file in every exact-analysis phase, including serial and parallel
+    // hashing. Healthy copies must still be counted and the run must reach 100%.
+    for(int mode:{0,1,2}) for(const char* phase:{"hashing","comparing","validating"}) {
+      const auto label=std::to_string(mode)+"-"+phase;
+      const auto selected=base/("failure-"+label),database=base/"work"/(label+".sqlite"),removedFile=base/("removed-"+label);
+      write(selected/"a.bad","same");write(selected/"b.txt","same");write(selected/"c.txt","same");
+      bool failed=false;
+      result=run(database,{selected},[&](const json& event) {
+        if(!failed && event["type"]=="progress" && event["disks"][0]["phase"]==phase) {
+          fs::rename(selected/"a.bad",removedFile);failed=true;
+        }
+      },false,mode);
+      require(failed && result["report"]["complete"]==true && result["disks"][0]["percent"]==100,"file failure must not interrupt analysis");
+      require(result["disks"][0]["errors"]==1 && result["disks"][0]["issues"][0]["operation"]==phase,"file failure reported once at its stage");
+      const auto& total=result["report"]["statistics"]["total"];
+      require(total["files"]==2 && total["file_bytes"]==8 && total["duplicates"]==1,"only healthy files are counted");
+      require(result["disks"][0]["files"]==2 && result["disks"][0]["types"]==json({{".txt",2}}),"failed extension removed from disk counters");
+      {
+        DB index(utf8(database));Query remaining(index,"SELECT count(*) FROM files");
+        require(remaining.next() && remaining.num(0)==2,"failed file removed from local catalog inventory");
+      }
+      fs::rename(removedFile,selected/"a.bad");
+      result=run(database,{selected},{},false,mode);
+      require(result["report"]["complete"]==true && result["disks"][0]["errors"]==0 && result["report"]["statistics"]["total"]["duplicates"]==2,"next run retries the recovered file");
+    }
+
+    const auto contentRoot=base/"content-failure";
+    write(contentRoot/"a.txt","unique length");write(contentRoot/"b.txt","same");write(contentRoot/"c.txt","same");
+    bool contentFailed=false;
+    result=run(base/"work"/"content-failure.sqlite",{contentRoot},[&](const json& event) {
+      if(!contentFailed && event["type"]=="progress" && event["disks"][0]["phase"]=="content") {
+        fs::rename(contentRoot/"a.txt",base/"content-removed");contentFailed=true;
+      }
+    },true);
+    require(contentFailed && result["report"]["complete"]==true && result["disks"][0]["phase"]=="completed","content access failure does not interrupt the run");
+    require(result["disks"][0]["errors"]==1 && result["content"]["files"]["ready"]==2,"content access failure is recorded without counting the skipped file");
+    require(result["report"]["statistics"]["total"]["files"]==2 && result["report"]["statistics"]["total"]["duplicates"]==1,"content access failure excluded without losing healthy copies");
 
     FileInfo info; require(inspectFile(changes/"a",info),"file metadata");
     FileReader reader(changes/"a");

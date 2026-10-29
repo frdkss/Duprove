@@ -14,7 +14,7 @@ void check(const json& value,int files,int empty,int members,int groups) {
 int main() {
   try {
     DB db(":memory:");
-    db.exec("CREATE TABLE files(path TEXT,root INTEGER,cat TEXT,ext TEXT,size INTEGER,gid INTEGER,hash TEXT);");
+    db.exec("CREATE TABLE files(path TEXT,root INTEGER,cat TEXT,ext TEXT,size INTEGER,gid INTEGER,hash TEXT,seen INTEGER DEFAULT 1);");
     const auto base=fs::temp_directory_path()/"PRIVATE_STATISTICS";
     UserFolders folders;
     for(auto name:{"downloads","documents","videos","pictures","music","desktop"})
@@ -28,7 +28,7 @@ int main() {
     int serial=0;
     auto file=[&](int disk,const char* folder,const char* ext,int group,bool empty=false) {
       const auto path=base/folder/("PRIVATE_FILE_"+std::to_string(++serial));
-      put(db,"INSERT INTO files VALUES(?,?,?,?,?,?,?)",
+      put(db,"INSERT INTO files(path,root,cat,ext,size,gid,hash) VALUES(?,?,?,?,?,?,?)",
           {utf8(path),disk,folderCategory(path,folders),ext,empty?0:12,group,"PRIVATE_HASH"});
     };
     file(0,"downloads",".txt",1); file(0,"documents",".md",1);
@@ -66,8 +66,8 @@ int main() {
     auto empty=buildReport(db,1,true);
     check(empty["statistics"]["total"],0,0,0,0); require(empty["duplicates"].empty());
     require(empty["statistics"]["total"]["file_bytes"]==0 && empty["statistics"]["total"]["duplicate_bytes"]==0);
-    db.exec("INSERT INTO files VALUES('a',0,'custom','.bin',9007199254740991,1,'x');"
-            "INSERT INTO files VALUES('b',0,'custom','.bin',1,1,'x');");
+    db.exec("INSERT INTO files(path,root,cat,ext,size,gid,hash) VALUES('a',0,'custom','.bin',9007199254740991,1,'x');"
+            "INSERT INTO files(path,root,cat,ext,size,gid,hash) VALUES('b',0,'custom','.bin',1,1,'x');");
     bool overflow=false;
     try { buildReport(db,1,true); } catch(const std::exception&) { overflow=true; }
     require(overflow);
@@ -81,6 +81,10 @@ int main() {
     for(int i=0;i<100;++i) recordIssue(state,"file_unavailable_or_changed");
     require(state["errors"]==100 && state["issues"].size()==1 && state["issues"][0]["count"]==100);
     require(state["issues"][0]["examples"].empty());
+    for(const char* code:{"metadata_unavailable","directory_unavailable","directory_changed","enumeration_failed"}) recordIssue(state,code,"discovering");
+    require(!hasBlockingIssues(state));
+    recordIssue(state,"root_unavailable","discovering");
+    require(hasBlockingIssues(state));
     return 0;
   } catch(const std::exception&) { std::cerr<<"STATISTICS_TEST_FAILED\n"; return 1; }
 }

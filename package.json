@@ -1,6 +1,6 @@
 {
   "name": "duprove",
-  "version": "2.0.1",
+  "version": "2.1.1",
   "private": true,
   "description": "Локальный анализ дубликатов файлов",
   "author": "frdkss",

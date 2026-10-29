@@ -19,6 +19,7 @@ int main() {
   const auto base=fs::current_path()/("duprove-comparison-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   try {
     ScanContext context; context.loadMode=2;
+    require(!current(std::string("\xff",1),FileInfo{}),"invalid path encoding is unavailable");
     const auto a=base/"a", b=base/"b";
     // Published SHA-256 test vectors exercise empty input, padding and multiple blocks.
     write(a,"");
@@ -96,6 +97,7 @@ int main() {
     scan({{"roots",json::array({utf8(selected)})},{"database",utf8(base/"work"/"scan.sqlite")}},context);
     require(replaced && result["report"]["complete"]==true && result["disks"][0]["errors"]==1,"change between hash and comparison is skipped");
     require(result["report"]["statistics"]["total"]["duplicates"]==0,"no stale duplicate");
+    require(result["report"]["statistics"]["total"]["files"]==1,"changed file excluded from inventory");
   } catch(const std::exception& error) {
     std::cerr<<error.what()<<'\n'; std::error_code ec; fs::remove_all(base,ec); return 1;
   }

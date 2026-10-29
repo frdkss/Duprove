@@ -33,7 +33,7 @@ static int run(int argc,const std::vector<std::string>& argv) {
     return scan(job,*context);
   } catch(const std::exception& error) {
     if(std::string(error.what())=="ANALYSIS_STORAGE_LIMIT") {
-      emit({{"type","error"},{"code","ANALYSIS_STORAGE_LIMIT"},{"message","Анализ остановлен: достигнут предел рабочей базы или осталось менее 512 МиБ свободного места."}});
+      emit({{"type","error"},{"code","ANALYSIS_STORAGE_LIMIT"},{"message","Анализ остановлен: недостаточно места для рабочей базы или временных данных с резервом 512 МиБ."}});
     } else emit({{"type","error"},{"message","Не удалось выполнить анализ. Проверьте доступ к рабочему каталогу."}});
     return 1;
   } catch(...) {emit({{"type","error"},{"message","Не удалось выполнить анализ."}});return 1;}

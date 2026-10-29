@@ -39,6 +39,27 @@ int main() {
       Query saved(db,"SELECT length(value) FROM existing");
       require(saved.next() && saved.num(0)==65536,"checkpoint was modified on rejection");
     }
+    {
+      // A checkpoint at the old 512 MiB ceiling can grow using available disk
+      // space. Keep this regression small by imposing a 32 KiB ceiling first.
+      DB db(":memory:");
+      db.exec("PRAGMA temp_store=FILE;");
+      for(const char* schema:{"main","temp"}) {
+        const std::string name(schema);
+        storage::limitDatabase(db,schema,32*1024);
+        storage::limitAvailableDatabase(db,schema,fs::current_path());
+        db.exec(("CREATE TABLE "+name+".resumed(value BLOB);INSERT INTO "+name+".resumed VALUES(zeroblob(65536));").c_str());
+        Query saved(db,("SELECT length(value) FROM "+name+".resumed").c_str());
+        require(saved.next() && saved.num(0)==65536,"available disk space did not replace the old ceiling");
+      }
+      const uint64_t oldCeiling=512ULL*1024*1024;
+      require(storage::databaseBudget(oldCeiling,storage::reserveBytes+oldCeiling)==2*oldCeiling,"existing checkpoint pages charged twice");
+      require(storage::databaseBudget(oldCeiling,storage::reserveBytes)==oldCeiling,"reserve must not fund database growth");
+      bool stopped=false;
+      try { storage::databaseBudget(oldCeiling,storage::reserveBytes-1); }
+      catch(const std::exception& error) { stopped=std::string(error.what())=="ANALYSIS_STORAGE_LIMIT"; }
+      require(stopped,"insufficient reserve was ignored");
+    }
     require(!storage::hasReserve(fs::current_path(),std::numeric_limits<uint64_t>::max()),"impossible reserve accepted");
     {
       DB db(":memory:");

@@ -30,7 +30,7 @@ json buildReport(DB& db,int diskCount,bool complete) {
   for(auto name:{"downloads","documents","videos","pictures","music","desktop"})categories[name]=summary();
   json standard=summary(),custom=summary(),groups=json::array();
   for(int i=0;i<diskCount;i++){auto disk=summary();disk["id"]=i;disks.push_back(disk);}
-  Query files(db,"SELECT root,cat,ext,count(*),sum(size) FROM files GROUP BY root,cat,ext");
+  Query files(db,"SELECT root,cat,ext,count(*),sum(size) FROM files WHERE seen=1 GROUP BY root,cat,ext");
   while(files.next()) {
     int root=int(files.num(0));auto cat=files.str(1),ext=files.str(2);auto n=files.num(3);
     auto size=files.num(4);

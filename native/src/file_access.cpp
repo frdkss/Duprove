@@ -171,10 +171,15 @@ bool Directory::next(FileEntry& result) {
     }
     const fs::path name(impl->entry.cFileName);
     if(name==L"." || name==L"..") continue;
-    result={impl->path/name,{},false};
-    // Filter links and system directories before opening or enumerating them.
-    if((impl->entry.dwFileAttributes&FILE_ATTRIBUTE_REPARSE_POINT) || excluded(result.path)) return true;
-    result.error=!inspect(name,result.info); return true;
+    try {
+      result={impl->path/name,{},false};
+      // Filter links and system directories before opening or enumerating them.
+      if((impl->entry.dwFileAttributes&FILE_ATTRIBUTE_REPARSE_POINT) || excluded(result.path)) return true;
+      result.error=!inspect(name,result.info);
+    } catch(const std::exception&) { result.error=true; }
+    // A bad entry (including a name that cannot be converted to UTF-8) must
+    // not be mistaken for an enumeration failure and discard its siblings.
+    return true;
   }
 #else
   if(!impl->entries) {
@@ -189,9 +194,12 @@ bool Directory::next(FileEntry& result) {
     if(!entry) { if(errno) failed(); return false; }
     const fs::path name(entry->d_name);
     if(name=="." || name=="..") continue;
-    result={impl->path/name,{},false};
-    if(excluded(result.path) || (entry->d_type!=DT_REG && entry->d_type!=DT_DIR && entry->d_type!=DT_UNKNOWN)) return true;
-    result.error=!inspect(name,result.info); return true;
+    try {
+      result={impl->path/name,{},false};
+      if(excluded(result.path) || (entry->d_type!=DT_REG && entry->d_type!=DT_DIR && entry->d_type!=DT_UNKNOWN)) return true;
+      result.error=!inspect(name,result.info);
+    } catch(const std::exception&) { result.error=true; }
+    return true;
   }
 #endif
 }
