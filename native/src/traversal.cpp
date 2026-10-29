@@ -66,15 +66,24 @@ void discover(DB& db,const std::vector<std::string>& roots,const fs::path& worki
           catch(const std::exception&) { error("enumeration_failed"); break; }
           if(entry.error) error("metadata_unavailable");
           else if(entry.info.kind!=FileInfo::Kind::skip && !pathWithin(entry.path,workingDirectory)) {
+            // Prepare filesystem-derived values separately from database work:
+            // path/metadata errors skip one entry; index errors must propagate.
+            std::string encodedPath,key,name,ext;
+            try {
+              encodedPath=utf8(entry.path); key=pathKey(entry.path);
+              if(entry.info.kind==FileInfo::Kind::regular) {
+                name=utf8(entry.path.filename());
+                ext=entry.info.size==0 ? std::string("empty") : extension(entry.path);
+              }
+            } catch(const std::exception&) { error("metadata_unavailable"); continue; }
             if(entry.info.kind==FileInfo::Kind::directory) {
               // Hidden, virtual and bind mounts are boundaries too.
-              if(!boundaries.count(pathKey(entry.path)) && devices.count(entry.info.device)) queue(entry.path,entry.info,root);
-            } else if(devices.count(entry.info.device) && !boundaries.count(pathKey(entry.path))) {
-              file.reset(); file.bind(1,utf8(entry.path)); file.bind(2,entry.info.id); file.bind(3,root);
+              if(!boundaries.count(key) && devices.count(entry.info.device)) queue(entry.path,entry.info,root);
+            } else if(devices.count(entry.info.device) && !boundaries.count(key)) {
+              file.reset(); file.bind(1,encodedPath); file.bind(2,entry.info.id); file.bind(3,root);
               file.bind(4,entry.info.size); file.bind(5,entry.info.modified); file.bind(6,entry.info.changed);
-              const auto ext=entry.info.size==0 ? std::string("empty") : extension(entry.path);
               file.bind(7,ext); file.bind(8,cat);
-              file.bind(9,utf8(entry.path.filename())); file.next();
+              file.bind(9,name); file.next();
               if(sqlite3_changes(db.db)) {
                 state["files"]=state["files"].get<int64_t>()+1;
                 state["types"][ext]=state["types"].value(ext,int64_t(0))+1;

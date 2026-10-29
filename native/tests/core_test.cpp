@@ -6,8 +6,8 @@ static void require(bool value) { if(!value)throw std::runtime_error("core test 
 int main() {
   try {
     DB db(":memory:");
-    db.exec("CREATE TABLE files(path TEXT,root INTEGER,cat TEXT,ext TEXT,size INTEGER,gid INTEGER);");
-    db.exec("INSERT INTO files VALUES('PRIVATE_A',0,'documents','.txt',12,1),"
+    db.exec("CREATE TABLE files(path TEXT,root INTEGER,cat TEXT,ext TEXT,size INTEGER,gid INTEGER,seen INTEGER DEFAULT 1);");
+    db.exec("INSERT INTO files(path,root,cat,ext,size,gid) VALUES('PRIVATE_A',0,'documents','.txt',12,1),"
             "('PRIVATE_B',0,'downloads','.txt',12,1),"
             "('PRIVATE_C',1,'custom','.bin',12,1),"
             "('PRIVATE_EMPTY',1,'custom','empty',0,0),"

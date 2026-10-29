@@ -16,6 +16,8 @@ import { initialReport, updateReport } from './progress-report'
 
 export const WORK_FILE_THRESHOLD = 5 * 1024 * 1024
 const MAX_EVENT_BYTES = 32 * 1024 * 1024
+const RESTORABLE_ERRORS = new Set(['ANALYSIS_STORAGE_LIMIT', 'ANALYZER_UNAVAILABLE', 'ANALYZER_FAILED', 'ANALYZER_OUTPUT_LIMIT',
+  'INVALID_ANALYZER_EVENT', 'ANALYZER_INTERRUPTED', 'ANALYSIS_WORKER_FAILED', 'JOB_START_FAILED', 'JOB_SAVE_FAILED'])
 // Legacy snapshots/events may contain diagnostic paths. Discard these at ingress;
 // the live current path is kept in memory only and is unnecessary for resuming.
 function cleanProgress(disk: DiskProgress, persisted = false): DiskProgress {
@@ -68,6 +70,7 @@ export class JobService extends EventEmitter {
         mode: v.mode as AnalysisSnapshot['mode'], content: v.content as boolean,
         status: v.status === 'completed' ? 'completed' : 'interrupted',
         ...(v.status !== 'completed' && isAnalysisExit(v.exit) ? { exit: v.exit } : {}) }
+      if (v.status !== 'completed' && typeof v.error === 'string' && RESTORABLE_ERRORS.has(v.error)) this.state.error = v.error
       // Restore summaries only from the separately validated report.
       try {
         const report = loadPreparedReport(this.reportPath()).report

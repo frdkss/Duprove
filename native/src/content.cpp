@@ -23,18 +23,18 @@ FileInfo record(Query& row,int start) {
 }
 Value read(const fs::path& path,const FileInfo& expected,int root,ScanContext& context) {
   Value value;
-  const auto ext=extension(path);
-  const bool text=ext==".txt" || ext==".md" || ext==".markdown" || ext==".docx";
-  const bool image=ext==".png" || ext==".jpg" || ext==".jpeg";
-  if(!context.waitFor(root)) { value.status=Status::stopped; return value; }
-  if(context.fileSkipped(utf8(path))) { value.status=Status::unavailable; return value; }
-  if(expected.size==0) { value.status=Status::empty; return value; }
-  if(!text && !image) return value;
-  value.kind=text ? "text" : "image";
-  const auto limit=text && ext!=".docx" ? maxTextBytes : maxFileBytes;
-  if(expected.size<0) { value.status=Status::unavailable;return value; }
-  if(uint64_t(expected.size)>limit) { value.status=Status::limit;return value; }
   try {
+    const auto ext=extension(path);
+    const bool text=ext==".txt" || ext==".md" || ext==".markdown" || ext==".docx";
+    const bool image=ext==".png" || ext==".jpg" || ext==".jpeg";
+    if(!context.waitFor(root)) { value.status=Status::stopped; return value; }
+    if(context.fileSkipped(utf8(path))) { value.status=Status::unavailable; return value; }
+    if(expected.size==0) { value.status=Status::empty; return value; }
+    if(!text && !image) return value;
+    value.kind=text ? "text" : "image";
+    const auto limit=text && ext!=".docx" ? maxTextBytes : maxFileBytes;
+    if(expected.size<0) { value.status=Status::unavailable;return value; }
+    if(uint64_t(expected.size)>limit) { value.status=Status::limit;return value; }
     FileReader file(path);
     if(!file.info().same(expected)) throw Failure{Status::unavailable};
     std::vector<unsigned char> bytes(size_t(expected.size));

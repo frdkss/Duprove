@@ -62,8 +62,11 @@ ByteMatch equalBytes(const fs::path& a,const FileInfo& expectedA,const fs::path&
   }
 }
 bool current(const std::string& path,const FileInfo& expected,DirectoryCursor* cursor) {
-  FileInfo info;
-  return (cursor ? cursor->inspect(fs::u8path(path),info) : inspectFile(fs::u8path(path),info)) && info.same(expected);
+  try {
+    FileInfo info;
+    const auto filePath=fs::u8path(path);
+    return (cursor ? cursor->inspect(filePath,info) : inspectFile(filePath,info)) && info.same(expected);
+  } catch(const std::exception&) { return false; }
 }
 
 void groupExactFiles(DB& db,ScanContext& context,const std::function<void(const std::string&,int)>& invalid,
